@@ -87,37 +87,38 @@ export default function QRCodeDisplay({
               flex: 1;
             }
             .label-text {
-              font-size: 24px;
+              font-size: 18px;
               font-weight: 900;
               margin: 0;
-              line-height: 0.85;
+              line-height: 1.1;
               word-break: break-word;
               color: #000;
+              max-height: 40px;
+              overflow: hidden;
             }
             .serial-text {
-              font-size: 16px;
-              font-weight: 800;
+              font-size: 13px;
+              font-weight: 700;
               color: #111;
-              margin-top: 2px;
+              margin-top: 1px;
               white-space: nowrap;
               overflow: hidden;
               text-overflow: ellipsis;
             }
             .shop-name { 
-              font-size: 10px; 
-              font-weight: 900; 
+              font-size: 9px; 
+              font-weight: 800; 
               color: #000; 
-              margin-top: 4px;
+              margin-top: 2px;
               text-transform: uppercase;
-              letter-spacing: -0.01em;
               white-space: nowrap;
               overflow: hidden;
               text-overflow: ellipsis;
             }
             .shop-phone { 
-              font-size: 9px; 
-              color: #444; 
-              margin-top: 1px;
+              font-size: 8px; 
+              color: #333; 
+              margin-top: 0px;
               font-weight: 600;
             }
             @media print {
@@ -221,10 +222,10 @@ export default function QRCodeDisplay({
         >
           {qrUrl && <img src={qrUrl} alt="QR Code" className="w-44 h-44 mr-4 flex-shrink-0" />}
           <div className="flex flex-col justify-center min-width-0 flex-1">
-            {label && <p className="text-4xl font-black text-black leading-none mb-1 truncate">{label}</p>}
-            {serialNumber && <p className="text-2xl font-black text-neutral-900 mb-2 truncate">S/N: {serialNumber}</p>}
-            {shopName && <p className="text-sm font-black text-black uppercase tracking-tight truncate">{shopName}</p>}
-            {shopPhone && <p className="text-xs font-bold text-neutral-800">{shopPhone}</p>}
+            {label && <p className="text-xl font-black text-black leading-tight mb-0.5 line-clamp-2">{label}</p>}
+            {serialNumber && <p className="text-sm font-bold text-neutral-900 mb-1 truncate">S/N: {serialNumber}</p>}
+            {shopName && <p className="text-[10px] font-black text-black uppercase tracking-tight truncate">{shopName}</p>}
+            {shopPhone && <p className="text-[9px] font-bold text-neutral-800">{shopPhone}</p>}
           </div>
         </div>
       </div>
