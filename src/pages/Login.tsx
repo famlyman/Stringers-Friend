@@ -66,7 +66,7 @@ export default function Login() {
       <div className="max-w-md w-full bg-white dark:bg-neutral-800 rounded-2xl shadow-xl border border-neutral-200 dark:border-neutral-700 p-8">
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-primary rounded-2xl mb-4 shadow-lg shadow-primary/20 rotate-3">
-            <span className="text-2xl font-bold text-secondary">SP</span>
+            <span className="text-2xl font-bold text-secondary">SF</span>
           </div>
           <h1 className="text-3xl font-bold text-primary tracking-tight">Welcome Back</h1>
           <p className="text-neutral-500 dark:text-neutral-400 mt-2">Sign in to manage your racquet shop</p>
