@@ -896,8 +896,7 @@ export default function CustomerList({ user }: { user: any }) {
                         <QRCodeDisplay 
                           value={racquet.qr_code} 
                           label={`${racquet.brand} ${racquet.model}`} 
-                          shopName={shop?.name}
-                          shopPhone={shop?.phone}
+                          serialNumber={racquet.serial_number}
                         />
                       </div>
                       <div className="flex gap-2 pt-4 border-t border-neutral-200 dark:border-neutral-700">

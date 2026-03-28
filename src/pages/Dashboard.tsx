@@ -23,7 +23,7 @@ export default function Dashboard({ user }: { user: any }) {
   const [expandedCustomerId, setExpandedCustomerId] = useState<string | null>(null);
   const [editingRacquet, setEditingRacquet] = useState<any | null>(null);
   const [editingJob, setEditingJob] = useState<any | null>(null);
-  const [showQRCodeModal, setShowQRCodeModal] = useState<{ value: string, label: string } | null>(null);
+  const [showQRCodeModal, setShowQRCodeModal] = useState<{ value: string, label: string, serialNumber?: string } | null>(null);
   
   // New Job Form State
   const [customers, setCustomers] = useState<any[]>([]);
@@ -528,8 +528,7 @@ export default function Dashboard({ user }: { user: any }) {
               <QRCodeDisplay 
                 value={showQRCodeModal.value} 
                 label={showQRCodeModal.label}
-                shopName={shop?.name}
-                shopPhone={shop?.phone}
+                serialNumber={showQRCodeModal.serialNumber}
               />
             </div>
           </div>
@@ -1442,7 +1441,11 @@ export default function Dashboard({ user }: { user: any }) {
                             <button 
                               onClick={() => {
                                 const racquet = racquets.find(r => r.id === job.racquet_id);
-                                if (racquet) setShowQRCodeModal({ value: racquet.qr_code, label: `${racquet.brand} ${racquet.model}` });
+                                if (racquet) setShowQRCodeModal({ 
+                                  value: racquet.qr_code, 
+                                  label: `${racquet.brand} ${racquet.model}`,
+                                  serialNumber: racquet.serial_number
+                                });
                               }}
                               className="p-2 text-neutral-400 hover:text-primary hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg transition-colors"
                               title="Print QR Code"
@@ -1595,7 +1598,11 @@ export default function Dashboard({ user }: { user: any }) {
                                       </div>
                                       <div className="flex gap-2">
                                         <button 
-                                          onClick={() => setShowQRCodeModal({ value: racquet.qr_code, label: `${racquet.brand} ${racquet.model}` })}
+                                          onClick={() => setShowQRCodeModal({ 
+                                            value: racquet.qr_code, 
+                                            label: `${racquet.brand} ${racquet.model}`,
+                                            serialNumber: racquet.serial_number
+                                          })}
                                           className="p-2 text-neutral-400 hover:text-primary hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg transition-colors"
                                           title="Print QR Code"
                                         >

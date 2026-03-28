@@ -3,7 +3,19 @@ import QRCode from "qrcode";
 import { Printer, Share2, Download, Copy, Check } from "lucide-react";
 import { toPng } from "html-to-image";
 
-export default function QRCodeDisplay({ value, label, shopName, shopPhone }: { value: string, label?: string, shopName?: string, shopPhone?: string }) {
+export default function QRCodeDisplay({ 
+  value, 
+  label, 
+  shopName, 
+  shopPhone,
+  serialNumber 
+}: { 
+  value: string, 
+  label?: string, 
+  shopName?: string, 
+  shopPhone?: string,
+  serialNumber?: string
+}) {
   const [qrUrl, setQrUrl] = useState("");
   const [isSharing, setIsSharing] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
@@ -48,32 +60,65 @@ export default function QRCodeDisplay({ value, label, shopName, shopPhone }: { v
             }
             .container {
               display: flex;
-              flex-direction: column;
+              flex-direction: row;
               align-items: center;
-              justify-content: center;
-              text-align: center;
+              justify-content: flex-start;
+              text-align: left;
               border: 1px dashed #ccc;
-              padding: 30px;
-              border-radius: 12px;
+              padding: 4px;
+              border-radius: 2px;
+              width: 400px; /* 40mm approx */
+              height: 140px; /* 14mm approx */
+              box-sizing: border-box;
+              overflow: hidden;
+              background: white;
             }
             img { 
-              width: 300px; 
-              height: 300px; 
-              margin-bottom: 20px;
+              width: 130px; 
+              height: 130px; 
+              margin-right: 6px;
+              flex-shrink: 0;
+            }
+            .info {
+              display: flex;
+              flex-direction: column;
+              justify-content: center;
+              min-width: 0;
+              flex: 1;
+            }
+            .label-text {
+              font-size: 24px;
+              font-weight: 900;
+              margin: 0;
+              line-height: 0.85;
+              word-break: break-word;
+              color: #000;
+            }
+            .serial-text {
+              font-size: 16px;
+              font-weight: 800;
+              color: #111;
+              margin-top: 2px;
+              white-space: nowrap;
+              overflow: hidden;
+              text-overflow: ellipsis;
             }
             .shop-name { 
-              font-size: 28px; 
-              font-weight: 800; 
+              font-size: 10px; 
+              font-weight: 900; 
               color: #000; 
-              margin: 0;
+              margin-top: 4px;
               text-transform: uppercase;
-              letter-spacing: -0.02em;
+              letter-spacing: -0.01em;
+              white-space: nowrap;
+              overflow: hidden;
+              text-overflow: ellipsis;
             }
             .shop-phone { 
-              font-size: 20px; 
-              color: #333; 
-              margin-top: 8px;
-              font-weight: 500;
+              font-size: 9px; 
+              color: #444; 
+              margin-top: 1px;
+              font-weight: 600;
             }
             @media print {
               .container { border: none; }
@@ -84,8 +129,12 @@ export default function QRCodeDisplay({ value, label, shopName, shopPhone }: { v
         <body>
           <div class="container">
             <img src="${qrUrl}" />
-            ${shopName ? `<div class="shop-name">${shopName}</div>` : ''}
-            ${shopPhone ? `<div class="shop-phone">${shopPhone}</div>` : ''}
+            <div class="info">
+              ${label ? `<div class="label-text">${label}</div>` : ''}
+              ${serialNumber ? `<div class="serial-text">S/N: ${serialNumber}</div>` : ''}
+              ${shopName ? `<div class="shop-name">${shopName}</div>` : ''}
+              ${shopPhone ? `<div class="shop-phone">${shopPhone}</div>` : ''}
+            </div>
           </div>
           <script>
             window.onload = () => {
@@ -167,13 +216,16 @@ export default function QRCodeDisplay({ value, label, shopName, shopPhone }: { v
       <div className="fixed -left-[9999px] top-0">
         <div 
           ref={labelRef}
-          className="bg-white p-8 flex flex-col items-center justify-center text-center"
-          style={{ width: '400px' }}
+          className="bg-white p-4 flex flex-row items-center justify-start text-left"
+          style={{ width: '534px', height: '187px' }}
         >
-          {qrUrl && <img src={qrUrl} alt="QR Code" className="w-64 h-64 mb-4" />}
-          {label && <p className="text-2xl font-bold text-black mb-1">{label}</p>}
-          {shopName && <p className="text-xl font-extrabold text-black uppercase tracking-tight">{shopName}</p>}
-          {shopPhone && <p className="text-lg font-medium text-neutral-700">{shopPhone}</p>}
+          {qrUrl && <img src={qrUrl} alt="QR Code" className="w-44 h-44 mr-4 flex-shrink-0" />}
+          <div className="flex flex-col justify-center min-width-0 flex-1">
+            {label && <p className="text-4xl font-black text-black leading-none mb-1 truncate">{label}</p>}
+            {serialNumber && <p className="text-2xl font-black text-neutral-900 mb-2 truncate">S/N: {serialNumber}</p>}
+            {shopName && <p className="text-sm font-black text-black uppercase tracking-tight truncate">{shopName}</p>}
+            {shopPhone && <p className="text-xs font-bold text-neutral-800">{shopPhone}</p>}
+          </div>
         </div>
       </div>
 
