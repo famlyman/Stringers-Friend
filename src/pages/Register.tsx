@@ -43,7 +43,7 @@ export default function Register() {
             <span className="text-2xl font-bold text-secondary">SP</span>
           </div>
           <h1 className="text-3xl font-bold text-primary tracking-tight">Create Account</h1>
-          <p className="text-neutral-500 dark:text-neutral-400 mt-2">Join StringerPro today</p>
+          <p className="text-neutral-500 dark:text-neutral-400 mt-2">Join Stringers Friend today</p>
         </div>
 
         {error && (
