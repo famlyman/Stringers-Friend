@@ -7,8 +7,8 @@
       "properties": {
         "uid": { "type": "string", "description": "Firebase Auth UID" },
         "email": { "type": "string", "format": "email" },
-        "shop_id": { "type": "string", "description": "ID of the shop owned by this user" },
-        "role": { "type": "string", "enum": ["admin", "user"] }
+        "shop_id": { "type": "string", "description": "ID of the shop owned by this user (for shop owners)" },
+        "role": { "type": "string", "enum": ["admin", "user", "customer"] }
       },
       "required": ["uid", "email"]
     },
@@ -36,7 +36,8 @@
         "shop_id": { "type": "string" },
         "name": { "type": "string" },
         "email": { "type": "string", "format": "email" },
-        "phone": { "type": "string" }
+        "phone": { "type": "string" },
+        "uid": { "type": "string", "description": "Firebase Auth UID of the linked user" }
       },
       "required": ["id", "shop_id", "name"]
     },

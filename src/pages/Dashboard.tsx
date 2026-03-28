@@ -3,7 +3,7 @@ import { RACQUET_BRANDS, RACQUET_MODELS, STRINGS } from "../constants";
 import { Plus, Search, Filter, CheckCircle2, Clock, PlayCircle, CreditCard, X, Trash2, Users, Briefcase, Edit2, ChevronRight, ChevronDown, Printer, Package, MessageSquare, Mail, Phone } from "lucide-react";
 import QRCodeDisplay from "../components/QRCodeDisplay";
 import { collection, query, where, onSnapshot, doc, setDoc, updateDoc, deleteDoc, getDocs, writeBatch, serverTimestamp, orderBy } from "firebase/firestore";
-import { db } from "../lib/firebase";
+import { db, handleFirestoreError, OperationType } from "../lib/firebase";
 import { v4 as uuidv4 } from "uuid";
 import { safeFormatDate } from "../lib/utils";
 
@@ -130,8 +130,18 @@ export default function Dashboard({ user }: { user: any }) {
       const batch = writeBatch(db);
       let finalCustomerId = selectedCustomerId;
       let finalRacquetId = selectedRacquetId;
+      let finalCustomerEmail = newJob.customer_email;
 
       if (isNewCustomer) {
+        // Check if a user with this email already exists as a customer
+        const usersRef = collection(db, "users");
+        const q = query(usersRef, where("email", "==", newJob.customer_email), where("role", "==", "customer"));
+        const userSnap = await getDocs(q);
+        let linkedUid = null;
+        if (!userSnap.empty) {
+          linkedUid = userSnap.docs[0].id;
+        }
+
         finalCustomerId = uuidv4();
         const customerRef = doc(db, "customers", finalCustomerId);
         batch.set(customerRef, {
@@ -139,8 +149,15 @@ export default function Dashboard({ user }: { user: any }) {
           shop_id: user.shop_id,
           name: newJob.customer_name,
           email: newJob.customer_email,
-          phone: newJob.customer_phone
+          phone: newJob.customer_phone,
+          uid: linkedUid,
+          created_at: serverTimestamp()
         });
+      } else if (selectedCustomerId) {
+        const customer = customers.find(c => c.id === selectedCustomerId);
+        if (customer) {
+          finalCustomerEmail = customer.email;
+        }
       }
 
       if (isNewRacquet || isNewCustomer) {
@@ -160,6 +177,7 @@ export default function Dashboard({ user }: { user: any }) {
         batch.set(racquetRef, {
           id: finalRacquetId,
           customer_id: finalCustomerId,
+          customer_email: finalCustomerEmail,
           shop_id: user.shop_id,
           brand,
           model,
@@ -171,7 +189,8 @@ export default function Dashboard({ user }: { user: any }) {
           current_string_cross: stringCross,
           current_tension_main: newJob.tension_main,
           current_tension_cross: newJob.tension_cross,
-          qr_code: `racquet_${finalRacquetId}`
+          qr_code: `racquet_${finalRacquetId}`,
+          created_at: serverTimestamp()
         });
       } else if (selectedRacquetId) {
         // Update existing racquet with new string info
@@ -191,7 +210,8 @@ export default function Dashboard({ user }: { user: any }) {
           current_string_main: stringMain,
           current_string_cross: stringCross,
           current_tension_main: newJob.tension_main,
-          current_tension_cross: newJob.tension_cross
+          current_tension_cross: newJob.tension_cross,
+          updated_at: serverTimestamp()
         });
       }
 
@@ -212,6 +232,8 @@ export default function Dashboard({ user }: { user: any }) {
       batch.set(jobRef, {
         id: jobId,
         racquet_id: finalRacquetId,
+        customer_id: finalCustomerId,
+        customer_email: finalCustomerEmail,
         shop_id: user.shop_id,
         status: "pending",
         string_main: stringMain,
@@ -224,6 +246,22 @@ export default function Dashboard({ user }: { user: any }) {
         created_at: serverTimestamp(),
         updated_at: serverTimestamp()
       });
+
+      // Create notification for customer
+      if (finalCustomerEmail) {
+        const notificationId = uuidv4();
+        const racquet = racquets.find(r => r.id === finalRacquetId) || { brand: newJob.racquet_brand, model: newJob.racquet_model };
+        batch.set(doc(db, "notifications", notificationId), {
+          id: notificationId,
+          customer_email: finalCustomerEmail,
+          shop_id: user.shop_id,
+          job_id: jobId,
+          title: "New Job Created",
+          message: `A new stringing job has been created for your ${racquet.brand} ${racquet.model}.`,
+          read: false,
+          created_at: new Date().toISOString()
+        });
+      }
 
       await batch.commit();
       
@@ -242,8 +280,7 @@ export default function Dashboard({ user }: { user: any }) {
       setIsNewCustomer(false);
       setIsNewRacquet(false);
     } catch (err: any) {
-      console.error(err);
-      setError(err.message || "Failed to create job.");
+      handleFirestoreError(err, OperationType.WRITE, "create_job");
     } finally {
       setSubmitting(false);
     }
@@ -292,13 +329,13 @@ export default function Dashboard({ user }: { user: any }) {
           shop_id: user.shop_id,
           job_id: jobId,
           title: `Job Status Updated: ${status.charAt(0).toUpperCase() + status.slice(1)}`,
-          message: `Your ${job.brand} ${job.model} is now ${status}.`,
+          message: `Your ${racquet?.brand || 'racquet'} ${racquet?.model || ''} is now ${status}.`,
           read: false,
           created_at: new Date().toISOString()
         });
       }
     } catch (err) {
-      console.error(err);
+      handleFirestoreError(err, OperationType.UPDATE, `jobs/${jobId}`);
     }
   };
 
@@ -308,8 +345,28 @@ export default function Dashboard({ user }: { user: any }) {
         payment_status,
         updated_at: serverTimestamp()
       });
+
+      if (payment_status === 'paid') {
+        const job = jobs.find(j => j.id === jobId);
+        const racquet = racquets.find(r => r.id === job?.racquet_id);
+        const customer = customers.find(c => c.id === racquet?.customer_id);
+
+        if (customer?.email) {
+          const notificationId = uuidv4();
+          await setDoc(doc(db, "notifications", notificationId), {
+            id: notificationId,
+            customer_email: customer.email,
+            shop_id: user.shop_id,
+            job_id: jobId,
+            title: "Payment Received",
+            message: `Payment for your ${racquet?.brand || 'racquet'} ${racquet?.model || ''} has been received. Thank you!`,
+            read: false,
+            created_at: new Date().toISOString()
+          });
+        }
+      }
     } catch (err) {
-      console.error(err);
+      handleFirestoreError(err, OperationType.UPDATE, `jobs/${jobId}/payment`);
     }
   };
 
@@ -320,7 +377,7 @@ export default function Dashboard({ user }: { user: any }) {
       // Delete customer
       batch.delete(doc(db, "customers", customerId));
       
-      // Delete their racquets and jobs (In a real app, you'd query first)
+      // Delete their racquets and jobs
       const racquetsSnap = await getDocs(query(collection(db, "racquets"), where("customer_id", "==", customerId)));
       for (const rDoc of racquetsSnap.docs) {
         batch.delete(doc(db, "racquets", rDoc.id));
@@ -333,8 +390,7 @@ export default function Dashboard({ user }: { user: any }) {
       await batch.commit();
       setDeleteConfirm(null);
     } catch (err) {
-      console.error(err);
-      setError("Failed to delete customer");
+      handleFirestoreError(err, OperationType.WRITE, `delete_customer/${customerId}`);
     }
   };
 
@@ -343,8 +399,7 @@ export default function Dashboard({ user }: { user: any }) {
       await deleteDoc(doc(db, "jobs", jobId));
       setDeleteConfirm(null);
     } catch (err) {
-      console.error(err);
-      setError("Failed to delete job");
+      handleFirestoreError(err, OperationType.DELETE, `jobs/${jobId}`);
     }
   };
 
@@ -363,12 +418,12 @@ export default function Dashboard({ user }: { user: any }) {
         current_string_main: editingRacquet.current_string_main,
         current_string_cross: editingRacquet.current_string_cross,
         current_tension_main: editingRacquet.current_tension_main,
-        current_tension_cross: editingRacquet.current_tension_cross
+        current_tension_cross: editingRacquet.current_tension_cross,
+        updated_at: serverTimestamp()
       });
       setEditingRacquet(null);
     } catch (err) {
-      console.error(err);
-      setError("Failed to update racquet");
+      handleFirestoreError(err, OperationType.UPDATE, `racquets/${editingRacquet.id}`);
     } finally {
       setSubmitting(false);
     }
@@ -390,8 +445,7 @@ export default function Dashboard({ user }: { user: any }) {
       });
       setEditingJob(null);
     } catch (err) {
-      console.error(err);
-      setError("Failed to update job");
+      handleFirestoreError(err, OperationType.UPDATE, `jobs/${editingJob.id}`);
     } finally {
       setSubmitting(false);
     }
@@ -408,8 +462,7 @@ export default function Dashboard({ user }: { user: any }) {
       await batch.commit();
       setDeleteConfirm(null);
     } catch (err) {
-      console.error(err);
-      setError("Failed to delete racquet");
+      handleFirestoreError(err, OperationType.WRITE, `delete_racquet/${racquetId}`);
     }
   };
 
@@ -418,8 +471,7 @@ export default function Dashboard({ user }: { user: any }) {
       await deleteDoc(doc(db, "messages", messageId));
       setDeleteConfirm(null);
     } catch (err) {
-      console.error(err);
-      setError("Failed to delete message");
+      handleFirestoreError(err, OperationType.DELETE, `messages/${messageId}`);
     }
   };
 

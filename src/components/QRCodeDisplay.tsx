@@ -65,18 +65,18 @@ export default function QRCodeDisplay({
               justify-content: flex-start;
               text-align: left;
               border: 1px dashed #ccc;
-              padding: 4px;
-              border-radius: 2px;
-              width: 400px; /* 40mm approx */
-              height: 140px; /* 14mm approx */
+              padding: 1mm;
+              border-radius: 0.5mm;
+              width: 40mm;
+              height: 14mm;
               box-sizing: border-box;
               overflow: hidden;
               background: white;
             }
             img { 
-              width: 130px; 
-              height: 130px; 
-              margin-right: 6px;
+              width: 12mm; 
+              height: 12mm; 
+              margin-right: 1.5mm;
               flex-shrink: 0;
             }
             .info {
@@ -85,38 +85,39 @@ export default function QRCodeDisplay({
               justify-content: center;
               min-width: 0;
               flex: 1;
+              height: 100%;
             }
             .label-text {
-              font-size: 18px;
+              font-size: 10pt;
               font-weight: 900;
               margin: 0;
-              line-height: 1.1;
+              line-height: 1;
               word-break: break-word;
               color: #000;
-              max-height: 40px;
+              max-height: 20pt;
               overflow: hidden;
             }
             .serial-text {
-              font-size: 13px;
+              font-size: 7pt;
               font-weight: 700;
               color: #111;
-              margin-top: 1px;
+              margin-top: 0.5mm;
               white-space: nowrap;
               overflow: hidden;
               text-overflow: ellipsis;
             }
             .shop-name { 
-              font-size: 9px; 
+              font-size: 5pt; 
               font-weight: 800; 
               color: #000; 
-              margin-top: 2px;
+              margin-top: 0.5mm;
               text-transform: uppercase;
               white-space: nowrap;
               overflow: hidden;
               text-overflow: ellipsis;
             }
             .shop-phone { 
-              font-size: 8px; 
+              font-size: 4pt; 
               color: #333; 
               margin-top: 0px;
               font-weight: 600;
@@ -217,15 +218,15 @@ export default function QRCodeDisplay({
       <div className="fixed -left-[9999px] top-0">
         <div 
           ref={labelRef}
-          className="bg-white p-4 flex flex-row items-center justify-start text-left"
-          style={{ width: '534px', height: '187px' }}
+          className="bg-white p-2 flex flex-row items-center justify-start text-left"
+          style={{ width: '600px', height: '210px' }}
         >
-          {qrUrl && <img src={qrUrl} alt="QR Code" className="w-44 h-44 mr-4 flex-shrink-0" />}
+          {qrUrl && <img src={qrUrl} alt="QR Code" className="w-48 h-48 mr-4 flex-shrink-0" />}
           <div className="flex flex-col justify-center min-width-0 flex-1">
-            {label && <p className="text-xl font-black text-black leading-tight mb-0.5 line-clamp-2">{label}</p>}
-            {serialNumber && <p className="text-sm font-bold text-neutral-900 mb-1 truncate">S/N: {serialNumber}</p>}
-            {shopName && <p className="text-[10px] font-black text-black uppercase tracking-tight truncate">{shopName}</p>}
-            {shopPhone && <p className="text-[9px] font-bold text-neutral-800">{shopPhone}</p>}
+            {label && <p className="text-3xl font-black text-black leading-tight mb-1 line-clamp-2">{label}</p>}
+            {serialNumber && <p className="text-xl font-bold text-neutral-900 mb-1 truncate">S/N: {serialNumber}</p>}
+            {shopName && <p className="text-sm font-black text-black uppercase tracking-tight truncate">{shopName}</p>}
+            {shopPhone && <p className="text-xs font-bold text-neutral-800">{shopPhone}</p>}
           </div>
         </div>
       </div>

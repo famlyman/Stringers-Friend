@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { createUserWithEmailAndPassword } from "firebase/auth";
-import { doc, setDoc } from "firebase/firestore";
+import { doc, setDoc, query, collection, where, getDocs, updateDoc } from "firebase/firestore";
 import { auth, db } from "../lib/firebase";
 
 export default function Register() {
@@ -27,6 +27,16 @@ export default function Register() {
         role: role
       });
 
+      // If role is customer, link to existing customer records across all shops
+      if (role === "customer") {
+        const q = query(collection(db, "customers"), where("email", "==", user.email));
+        const querySnapshot = await getDocs(q);
+        const updatePromises = querySnapshot.docs.map(customerDoc => 
+          updateDoc(doc(db, "customers", customerDoc.id), { uid: user.uid })
+        );
+        await Promise.all(updatePromises);
+      }
+
       navigate("/");
     } catch (err: any) {
       setError(err.message || "Failed to create account");
@@ -43,7 +53,7 @@ export default function Register() {
             <span className="text-2xl font-bold text-secondary">SP</span>
           </div>
           <h1 className="text-3xl font-bold text-primary tracking-tight">Create Account</h1>
-          <p className="text-neutral-500 dark:text-neutral-400 mt-2">Join Stringers Friend today</p>
+          <p className="text-neutral-500 dark:text-neutral-400 mt-2">Join StringerPro today</p>
         </div>
 
         {error && (

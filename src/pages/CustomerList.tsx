@@ -114,9 +114,19 @@ export default function CustomerList({ user }: { user: any }) {
   const handleAddCustomer = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      // Check if a user with this email already exists as a customer
+      const usersRef = collection(db, "users");
+      const q = query(usersRef, where("email", "==", newCustomer.email), where("role", "==", "customer"));
+      const userSnap = await getDocs(q);
+      let linkedUid = null;
+      if (!userSnap.empty) {
+        linkedUid = userSnap.docs[0].id;
+      }
+
       await addDoc(collection(db, "customers"), {
         ...newCustomer,
         shop_id: user.shop_id,
+        uid: linkedUid,
         created_at: serverTimestamp()
       });
       setShowAdd(false);
@@ -146,6 +156,7 @@ export default function CustomerList({ user }: { user: any }) {
         brand,
         model,
         customer_id: selectedCustomer.id,
+        customer_email: selectedCustomer.email,
         shop_id: user.shop_id,
         head_size: parseInt(newRacquet.head_size) || 0,
         string_pattern_mains: parseInt(newRacquet.string_pattern_mains) || 0,

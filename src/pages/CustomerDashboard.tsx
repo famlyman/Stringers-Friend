@@ -113,6 +113,7 @@ export default function CustomerDashboard({ user }: { user: any }) {
             const newCustomerId = `cust_${Date.now()}`;
             const newCustomer = {
               id: newCustomerId,
+              uid: user.uid,
               shop_id: shopId,
               name: user.email?.split('@')[0] || "New Customer",
               email: user.email,
@@ -175,7 +176,21 @@ export default function CustomerDashboard({ user }: { user: any }) {
         updated_at: new Date().toISOString()
       };
 
-      await addDoc(collection(db, "jobs"), newJob);
+      const jobDoc = await addDoc(collection(db, "jobs"), newJob);
+
+      // Create message for shop
+      await addDoc(collection(db, "messages"), {
+        shop_id: selectedRacquet.shop_id,
+        customer_id: selectedRacquet.customer_id,
+        customer_email: user.email,
+        customer_name: customerInfo?.name || user.email?.split('@')[0],
+        title: "New Stringing Request",
+        message: `A new stringing request has been submitted for a ${selectedRacquet.brand} ${selectedRacquet.model}.`,
+        job_id: jobDoc.id,
+        read: false,
+        created_at: new Date().toISOString()
+      });
+
       setShowRequestModal(false);
       setSelectedRacquet(null);
       setRequestData({
@@ -256,7 +271,7 @@ export default function CustomerDashboard({ user }: { user: any }) {
         read: true
       });
     } catch (error) {
-      console.error("Error marking notification as read:", error);
+      handleFirestoreError(error, OperationType.UPDATE, `notifications/${notificationId}`);
     }
   };
 
