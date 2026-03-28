@@ -1,0 +1,146 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "A user of the application, typically a shop owner.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Firebase Auth UID" },
+        "email": { "type": "string", "format": "email" },
+        "shop_id": { "type": "string", "description": "ID of the shop owned by this user" },
+        "role": { "type": "string", "enum": ["admin", "user"] }
+      },
+      "required": ["uid", "email"]
+    },
+    "Shop": {
+      "title": "Shop",
+      "description": "A racquet stringing shop.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "address": { "type": "string" },
+        "phone": { "type": "string" },
+        "slug": { "type": "string", "description": "Custom URL handle for the shop" },
+        "owner_id": { "type": "string", "description": "UID of the owner" },
+        "qr_code": { "type": "string" }
+      },
+      "required": ["id", "name", "owner_id"]
+    },
+    "Customer": {
+      "title": "Customer",
+      "description": "A customer of a shop.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "shop_id": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "phone": { "type": "string" }
+      },
+      "required": ["id", "shop_id", "name"]
+    },
+    "Racquet": {
+      "title": "Racquet",
+      "description": "A tennis racquet owned by a customer.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "customer_id": { "type": "string" },
+        "brand": { "type": "string" },
+        "model": { "type": "string" },
+        "serial_number": { "type": "string" },
+        "head_size": { "type": "number" },
+        "string_pattern_mains": { "type": "number" },
+        "string_pattern_crosses": { "type": "number" },
+        "current_string_main": { "type": "string" },
+        "current_string_cross": { "type": "string" },
+        "current_tension_main": { "type": "number" },
+        "current_tension_cross": { "type": "number" },
+        "qr_code": { "type": "string" }
+      },
+      "required": ["id", "customer_id", "brand", "model"]
+    },
+    "Job": {
+      "title": "Job",
+      "description": "A stringing job for a racquet.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "racquet_id": { "type": "string" },
+        "shop_id": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "in-progress", "completed"] },
+        "string_main": { "type": "string" },
+        "string_cross": { "type": "string" },
+        "tension_main": { "type": "number" },
+        "tension_cross": { "type": "number" },
+        "price": { "type": "number" },
+        "payment_status": { "type": "string", "enum": ["paid", "unpaid"] },
+        "notes": { "type": "string" },
+        "created_at": { "type": "string", "format": "date-time" },
+        "updated_at": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "racquet_id", "shop_id", "status"]
+    },
+    "InventoryItem": {
+      "title": "InventoryItem",
+      "description": "An item in the shop's inventory.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "shop_id": { "type": "string" },
+        "name": { "type": "string" },
+        "brand": { "type": "string" },
+        "type": { "type": "string", "enum": ["string", "grip", "dampener", "other"] },
+        "sub_type": { "type": "string" },
+        "length": { "type": "number" },
+        "grip_type": { "type": "string" },
+        "quantity": { "type": "number" },
+        "low_stock_threshold": { "type": "number", "description": "Alert when quantity falls below this" },
+        "price": { "type": "number" }
+      },
+      "required": ["id", "shop_id", "name", "type"]
+    },
+    "Notification": {
+      "title": "Notification",
+      "description": "A notification for a customer.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "customer_email": { "type": "string", "format": "email" },
+        "shop_id": { "type": "string" },
+        "job_id": { "type": "string" },
+        "title": { "type": "string" },
+        "message": { "type": "string" },
+        "read": { "type": "boolean" },
+        "created_at": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "customer_email", "title", "message", "read", "created_at"]
+    },
+    "Message": {
+      "title": "Message",
+      "description": "A message from a potential customer to a shop.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "shop_id": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "phone": { "type": "string" },
+        "content": { "type": "string" },
+        "created_at": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "shop_id", "name", "email", "content"]
+    }
+  },
+  "firestore": {
+    "/users/{uid}": { "schema": "User", "description": "User profiles" },
+    "/shops/{shopId}": { "schema": "Shop", "description": "Shop details" },
+    "/customers/{customerId}": { "schema": "Customer", "description": "Customer records" },
+    "/racquets/{racquetId}": { "schema": "Racquet", "description": "Racquet records" },
+    "/jobs/{jobId}": { "schema": "Job", "description": "Stringing jobs" },
+    "/inventory/{itemId}": { "schema": "InventoryItem", "description": "Inventory items" },
+    "/notifications/{notificationId}": { "schema": "Notification", "description": "User notifications" },
+    "/messages/{messageId}": { "schema": "Message", "description": "Shop messages" }
+  }
+}

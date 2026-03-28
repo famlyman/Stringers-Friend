@@ -1,0 +1,7 @@
+{
+  "name": "StringersFriend",
+  "description": "Multi-tenant racquet stringing management with QR code tracking, inventory control, and customer portals.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}

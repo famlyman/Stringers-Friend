@@ -1,0 +1,53 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #2563eb;
+  --color-secondary: #dfff00;
+  --color-accent: #4ade80;
+  --dark-mode: class;
+}
+
+@layer base {
+  :root {
+    --bg-main: #f8fafc;
+    --bg-card: #ffffff;
+    --text-main: #0f172a;
+    --text-muted: #64748b;
+    --border-main: #e2e8f0;
+    color-scheme: light;
+  }
+
+  .dark {
+    --bg-main: #0f172a;
+    --bg-card: #1e293b;
+    --text-main: #f8fafc;
+    --text-muted: #94a3b8;
+    --border-main: #334155;
+    color-scheme: dark;
+  }
+
+  html, body {
+    background-color: var(--bg-main);
+    color: var(--text-main);
+    /* Prevent pull-to-refresh on mobile if desired, or just ensure smooth scrolling */
+    overscroll-behavior-y: none;
+    /* Remove tap highlight color on mobile */
+    -webkit-tap-highlight-color: transparent;
+    /* Ensure text doesn't resize unexpectedly on orientation change */
+    -webkit-text-size-adjust: 100%;
+    transition: background-color 0.2s ease, color 0.2s ease;
+  }
+
+  /* Support for safe area insets (notched phones) */
+  body {
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+
+  /* Better touch targets for mobile */
+  button, a {
+    touch-action: manipulation;
+  }
+}
