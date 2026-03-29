@@ -31,10 +31,30 @@ export default function Register() {
       if (role === "customer") {
         const q = query(collection(db, "customers"), where("email", "==", user.email));
         const querySnapshot = await getDocs(q);
-        const updatePromises = querySnapshot.docs.map(customerDoc => 
-          updateDoc(doc(db, "customers", customerDoc.id), { uid: user.uid })
-        );
-        await Promise.all(updatePromises);
+        
+        for (const customerDoc of querySnapshot.docs) {
+          const customerId = customerDoc.id;
+          // Link customer doc
+          await updateDoc(doc(db, "customers", customerId), { uid: user.uid });
+          
+          // Link racquets
+          const qRacq = query(collection(db, "racquets"), where("customer_id", "==", customerId));
+          const racqSnap = await getDocs(qRacq);
+          for (const rDoc of racqSnap.docs) {
+            if (!rDoc.data().customer_email) {
+              await updateDoc(doc(db, "racquets", rDoc.id), { customer_email: user.email });
+            }
+          }
+
+          // Link jobs
+          const qJobs = query(collection(db, "jobs"), where("customer_id", "==", customerId));
+          const jobsSnap = await getDocs(qJobs);
+          for (const jDoc of jobsSnap.docs) {
+            if (!jDoc.data().customer_email) {
+              await updateDoc(doc(db, "jobs", jDoc.id), { customer_email: user.email });
+            }
+          }
+        }
       }
 
       navigate("/");

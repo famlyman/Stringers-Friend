@@ -12,7 +12,8 @@ import {
   doc,
   getDocs,
   limit,
-  setDoc
+  setDoc,
+  writeBatch
 } from "firebase/firestore";
 import { db, handleFirestoreError, OperationType } from "../lib/firebase";
 import { Save, Edit2 } from "lucide-react";
@@ -143,6 +144,51 @@ export default function CustomerDashboard({ user }: { user: any }) {
       }));
       setNotifications(notificationList);
     });
+
+    // Sync existing racquets and jobs that might be missing customer_email
+    const syncExistingData = async () => {
+      try {
+        const qCust = query(collection(db, "customers"), where("email", "==", user.email));
+        const custSnap = await getDocs(qCust);
+        const customerIds = custSnap.docs.map(d => d.id);
+
+        if (customerIds.length === 0) return;
+
+        for (const cid of customerIds) {
+          // Sync racquets
+          const qRacq = query(collection(db, "racquets"), where("customer_id", "==", cid));
+          const racqSnap = await getDocs(qRacq);
+          const rBatch = writeBatch(db);
+          let rNeedsCommit = false;
+
+          racqSnap.docs.forEach(docSnap => {
+            if (!docSnap.data().customer_email) {
+              rBatch.update(docSnap.ref, { customer_email: user.email });
+              rNeedsCommit = true;
+            }
+          });
+          if (rNeedsCommit) await rBatch.commit();
+
+          // Sync jobs
+          const qJobsSync = query(collection(db, "jobs"), where("customer_id", "==", cid));
+          const jobsSnap = await getDocs(qJobsSync);
+          const jBatch = writeBatch(db);
+          let jNeedsCommit = false;
+
+          jobsSnap.docs.forEach(docSnap => {
+            if (!docSnap.data().customer_email) {
+              jBatch.update(docSnap.ref, { customer_email: user.email });
+              jNeedsCommit = true;
+            }
+          });
+          if (jNeedsCommit) await jBatch.commit();
+        }
+      } catch (error) {
+        console.error("Error syncing existing data:", error);
+      }
+    };
+
+    syncExistingData();
 
     return () => {
       unsubscribeJobs();
