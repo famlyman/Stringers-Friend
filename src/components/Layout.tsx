@@ -90,10 +90,7 @@ export default function Layout({ user, onLogout }: LayoutProps) {
             </div>
           </div>
           <button
-            onClick={() => {
-              onLogout();
-              navigate("/login");
-            }}
+            onClick={onLogout}
             className="w-full flex items-center px-4 py-2 text-sm font-medium text-red-600 rounded-lg hover:bg-red-50 transition-colors"
           >
             <LogOut className="w-4 h-4 mr-3" />
@@ -114,10 +111,7 @@ export default function Layout({ user, onLogout }: LayoutProps) {
             <span className="mt-1">Theme</span>
           </button>
           <button
-            onClick={() => {
-              onLogout();
-              navigate("/login");
-            }}
+            onClick={onLogout}
             className="flex flex-col items-center px-4 py-2 text-xs font-medium text-red-600 shrink-0"
           >
             <LogOut className="w-5 h-5" />

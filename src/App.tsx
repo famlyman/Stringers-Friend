@@ -42,28 +42,26 @@ function AppRoutes() {
         <Route path="/register" element={!user ? <Register /> : <Navigate to="/" />} />
         <Route path="/scan/:qrCode" element={<ScanResult />} />
         
-        <Route element={<Layout user={user?.profile || user} onLogout={handleLogout} />}>
+        <Route element={user ? <Layout user={user?.profile || user} onLogout={handleLogout} /> : <Navigate to="/login" />}>
           <Route path="/" element={
-            user ? (
-              user.profile ? (
-                user.profile.role === 'stringer' ? (
-                  user.profile.shop_id ? <Dashboard user={user.profile} /> : <Navigate to="/setup" />
-                ) : <CustomerDashboard user={user.profile} />
-              ) : (
-                <div className="min-h-screen flex items-center justify-center bg-neutral-50 dark:bg-neutral-950">
-                  <div className="text-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-                    <p className="text-neutral-500 dark:text-neutral-400">Loading profile...</p>
-                  </div>
+            user?.profile ? (
+              user.profile.role === 'stringer' ? (
+                user.profile.shop_id ? <Dashboard user={user.profile} /> : <Navigate to="/setup" />
+              ) : <CustomerDashboard user={user.profile} />
+            ) : (
+              <div className="min-h-screen flex items-center justify-center bg-neutral-50 dark:bg-neutral-950">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+                  <p className="text-neutral-500 dark:text-neutral-400">Loading profile...</p>
                 </div>
-              )
-            ) : <Navigate to="/login" />
+              </div>
+            )
           } />
           <Route path="/setup" element={user?.profile?.role === 'stringer' ? <ShopSetup user={user.profile} /> : <Navigate to="/" />} />
           <Route path="/inventory" element={user?.profile?.role === 'stringer' ? <Inventory user={user.profile} /> : <Navigate to="/" />} />
           <Route path="/customers" element={user?.profile?.role === 'stringer' ? <CustomerList user={user.profile} /> : <Navigate to="/" />} />
           <Route path="/messages" element={user?.profile?.role === 'stringer' ? <Dashboard user={user.profile} initialTab="messages" /> : <Navigate to="/" />} />
-          <Route path="/profile" element={<Profile user={user.profile} />} />
+          <Route path="/profile" element={user?.profile ? <Profile user={user.profile} /> : <Navigate to="/" />} />
         </Route>
         <Route path="/:slug" element={<PublicShop />} />
       </Routes>
