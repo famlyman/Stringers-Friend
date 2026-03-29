@@ -8,13 +8,15 @@ export default function QRCodeDisplay({
   label, 
   shopName, 
   shopPhone,
-  serialNumber 
+  serialNumber,
+  minimal = false
 }: { 
   value: string, 
   label?: string, 
   shopName?: string, 
   shopPhone?: string,
-  serialNumber?: string
+  serialNumber?: string,
+  minimal?: boolean
 }) {
   const [qrUrl, setQrUrl] = useState("");
   const [isSharing, setIsSharing] = useState(false);
@@ -155,11 +157,10 @@ export default function QRCodeDisplay({
   const generateImage = async () => {
     if (!labelRef.current) return null;
     try {
-      // Ensure the hidden element is ready
       const dataUrl = await toPng(labelRef.current, {
         cacheBust: true,
         backgroundColor: '#ffffff',
-        pixelRatio: 2, // High quality
+        pixelRatio: 2,
       });
       return dataUrl;
     } catch (err) {
@@ -200,7 +201,6 @@ export default function QRCodeDisplay({
           text: `Label for ${label || value}`
         });
       } else {
-        // Fallback to clipboard if sharing is not supported
         const item = new ClipboardItem({ 'image/png': blob });
         await navigator.clipboard.write([item]);
         setIsCopied(true);
@@ -211,6 +211,49 @@ export default function QRCodeDisplay({
     }
     setIsSharing(false);
   };
+
+  if (minimal) {
+    return (
+      <div className="flex flex-col items-center gap-2">
+        {/* Hidden element for image generation */}
+        <div className="fixed -left-[9999px] top-0">
+          <div 
+            ref={labelRef}
+            className="bg-white p-2 flex flex-row items-center justify-start text-left"
+            style={{ width: '600px', height: '210px' }}
+          >
+            {qrUrl && <img src={qrUrl} alt="QR Code" className="w-48 h-48 mr-4 flex-shrink-0" />}
+            <div className="flex flex-col justify-center min-width-0 flex-1">
+              {label && <p className="text-3xl font-black text-black leading-tight mb-1 line-clamp-2">{label}</p>}
+              {serialNumber && <p className="text-xl font-bold text-neutral-900 mb-1 truncate">S/N: {serialNumber}</p>}
+              {shopName && <p className="text-sm font-black text-black uppercase tracking-tight truncate">{shopName}</p>}
+              {shopPhone && <p className="text-xs font-bold text-neutral-800">{shopPhone}</p>}
+            </div>
+          </div>
+        </div>
+
+        <div className="p-1 bg-white rounded-lg shadow-sm border border-neutral-100 dark:border-neutral-700">
+          {qrUrl && <img src={qrUrl} alt="QR Code" className="w-20 h-20 dark:invert dark:brightness-150" />}
+        </div>
+        <div className="flex gap-1">
+          <button 
+            onClick={handlePrint}
+            className="p-1.5 bg-primary/10 text-primary rounded-lg hover:bg-primary hover:text-white transition-all"
+            title="Print Label"
+          >
+            <Printer className="w-3 h-3" />
+          </button>
+          <button 
+            onClick={handleDownload}
+            className="p-1.5 bg-neutral-100 dark:bg-neutral-800 text-neutral-500 rounded-lg hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-all"
+            title="Download"
+          >
+            <Download className="w-3 h-3" />
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col items-center p-4 bg-white dark:bg-neutral-800 rounded-2xl border border-neutral-200 dark:border-neutral-700 shadow-sm group relative">

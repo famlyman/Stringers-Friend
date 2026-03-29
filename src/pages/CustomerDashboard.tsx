@@ -17,6 +17,7 @@ import {
 } from "firebase/firestore";
 import { db, handleFirestoreError, OperationType } from "../lib/firebase";
 import { Save, Edit2 } from "lucide-react";
+import QRCodeDisplay from "../components/QRCodeDisplay";
 
 export default function CustomerDashboard({ user }: { user: any }) {
   const [jobs, setJobs] = useState<any[]>([]);
@@ -482,9 +483,17 @@ export default function CustomerDashboard({ user }: { user: any }) {
             {racquets.map((racquet) => (
             <div key={racquet.id} className="bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-2xl p-6 shadow-sm hover:shadow-md transition-all group">
               <div className="flex justify-between items-start mb-4">
-                <div>
-                  <h3 className="font-bold text-primary">{racquet.brand} {racquet.model}</h3>
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-bold text-primary truncate">{racquet.brand} {racquet.model}</h3>
                   <p className="text-[10px] text-neutral-400 font-mono uppercase">SN: {racquet.serial_number || 'N/A'}</p>
+                </div>
+                <div className="flex-shrink-0 ml-4">
+                  <QRCodeDisplay 
+                    value={racquet.qr_code} 
+                    label={`${racquet.brand} ${racquet.model}`} 
+                    serialNumber={racquet.serial_number}
+                    minimal={true}
+                  />
                 </div>
               </div>
 

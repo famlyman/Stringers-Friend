@@ -889,42 +889,67 @@ export default function CustomerList({ user }: { user: any }) {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {racquets.map((racquet) => (
-                    <div key={racquet.id} className="bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-2xl p-6 flex flex-col gap-4">
-                      <div className="flex gap-6 items-center">
-                        <div className="flex-1">
-                          <h4 className="font-bold text-neutral-900 dark:text-white">{racquet.brand}</h4>
-                          <p className="text-neutral-600 dark:text-neutral-400">{racquet.model}</p>
-                          <div className="flex gap-4 mt-2">
-                            <p className="text-xs text-neutral-400 font-mono">SN: {racquet.serial_number || 'N/A'}</p>
-                            {racquet.head_size > 0 && (
-                              <p className="text-xs text-neutral-400 font-mono">Head: {racquet.head_size} sq in</p>
-                            )}
-                            {racquet.string_pattern_mains > 0 && (
-                              <p className="text-xs text-neutral-400 font-mono">Pattern: {racquet.string_pattern_mains}x{racquet.string_pattern_crosses}</p>
-                            )}
-                          </div>
+                    <div key={racquet.id} className="bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-2xl p-5 flex flex-col sm:flex-row gap-6 items-start sm:items-center">
+                      <div className="flex-1 min-w-0 w-full">
+                        <div className="flex items-center gap-2 mb-2">
+                          <h4 className="font-bold text-neutral-900 dark:text-white truncate">
+                            {racquet.brand} {racquet.model}
+                          </h4>
+                          {racquet.serial_number && (
+                            <span className="text-[10px] px-1.5 py-0.5 bg-neutral-200 dark:bg-neutral-700 text-neutral-600 dark:text-neutral-400 rounded font-mono">
+                              {racquet.serial_number}
+                            </span>
+                          )}
                         </div>
+                        
+                        <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
+                          {racquet.head_size > 0 && (
+                            <div className="flex flex-col">
+                              <span className="text-neutral-400 uppercase text-[10px] font-bold tracking-wider">Head Size</span>
+                              <span className="text-neutral-700 dark:text-neutral-300 truncate">{racquet.head_size} sq in</span>
+                            </div>
+                          )}
+                          {racquet.string_pattern_mains > 0 && (
+                            <div className="flex flex-col">
+                              <span className="text-neutral-400 uppercase text-[10px] font-bold tracking-wider">Pattern</span>
+                              <span className="text-neutral-700 dark:text-neutral-300 truncate">{racquet.string_pattern_mains}x{racquet.string_pattern_crosses}</span>
+                            </div>
+                          )}
+                          {racquet.current_string_main && (
+                            <div className="col-span-2 mt-1">
+                              <span className="text-neutral-400 uppercase text-[10px] font-bold tracking-wider">Current Setup</span>
+                              <p className="text-neutral-700 dark:text-neutral-300 truncate">
+                                {racquet.current_string_main} / {racquet.current_string_cross} @ {racquet.current_tension_main}/{racquet.current_tension_cross} lbs
+                              </p>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="mt-4 flex gap-2">
+                          <button 
+                            onClick={() => setEditingRacquet(racquet)}
+                            className="p-2 text-neutral-400 hover:text-primary transition-colors"
+                            title="Edit Racquet"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                          <button 
+                            onClick={() => setDeleteConfirm({ type: 'racquet', id: racquet.id, name: `${racquet.brand} ${racquet.model}` })}
+                            className="p-2 text-neutral-400 hover:text-red-500 transition-colors"
+                            title="Delete Racquet"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="flex-shrink-0 w-full sm:w-auto flex justify-center sm:justify-end border-t sm:border-t-0 sm:border-l border-neutral-200 dark:border-neutral-700 pt-4 sm:pt-0 sm:pl-6">
                         <QRCodeDisplay 
                           value={racquet.qr_code} 
                           label={`${racquet.brand} ${racquet.model}`} 
                           serialNumber={racquet.serial_number}
+                          minimal={true}
                         />
-                      </div>
-                      <div className="flex gap-2 pt-4 border-t border-neutral-200 dark:border-neutral-700">
-                        <button 
-                          onClick={() => setEditingRacquet(racquet)}
-                          className="flex-1 flex items-center justify-center px-4 py-2 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 rounded-xl text-sm font-bold hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
-                        >
-                          <Edit2 className="w-4 h-4 mr-2" />
-                          Edit
-                        </button>
-                        <button 
-                          onClick={() => setDeleteConfirm({ type: 'racquet', id: racquet.id, name: `${racquet.brand} ${racquet.model}` })}
-                          className="flex-1 flex items-center justify-center px-4 py-2 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 text-red-600 rounded-xl text-sm font-bold hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-                        >
-                          <Trash2 className="w-4 h-4 mr-2" />
-                          Delete
-                        </button>
                       </div>
                     </div>
                   ))}
