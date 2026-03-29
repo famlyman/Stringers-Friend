@@ -332,9 +332,30 @@ export default function CustomerDashboard({ user }: { user: any }) {
           <p className="text-neutral-500 dark:text-neutral-400 mt-1">Manage your racquets and track your stringing jobs.</p>
         </div>
 
-        <div className="flex items-center justify-end gap-2 sm:gap-4 w-full md:w-auto">
+        <div className="flex items-center justify-between gap-4 w-full mt-4">
+          <div className="bg-neutral-100 dark:bg-neutral-800 p-1 rounded-xl flex flex-1 sm:flex-none">
+            <button 
+              onClick={() => setActiveTab('jobs')}
+              className={`flex-1 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all ${activeTab === 'jobs' ? 'bg-white dark:bg-neutral-700 text-primary shadow-sm' : 'text-neutral-500 hover:text-primary'}`}
+            >
+              My Jobs
+            </button>
+            <button 
+              onClick={() => setActiveTab('racquets')}
+              className={`flex-1 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all ${activeTab === 'racquets' ? 'bg-white dark:bg-neutral-700 text-primary shadow-sm' : 'text-neutral-500 hover:text-primary'}`}
+            >
+              My Bag
+            </button>
+            <button 
+              onClick={() => setActiveTab('profile')}
+              className={`flex-1 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all ${activeTab === 'profile' ? 'bg-white dark:bg-neutral-700 text-primary shadow-sm' : 'text-neutral-500 hover:text-primary'}`}
+            >
+              Profile
+            </button>
+          </div>
+
           {/* Notifications Dropdown */}
-          <div className="relative">
+          <div className="relative flex-shrink-0">
             <button 
               onClick={() => setShowNotifications(!showNotifications)}
               className="p-3 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-2xl shadow-sm hover:bg-neutral-50 dark:hover:bg-neutral-700 transition-all relative"
@@ -392,28 +413,7 @@ export default function CustomerDashboard({ user }: { user: any }) {
               </div>
             )}
           </div>
-
-          <div className="bg-neutral-100 dark:bg-neutral-800 p-1 rounded-xl flex w-full sm:w-auto">
-          <button 
-            onClick={() => setActiveTab('jobs')}
-            className={`flex-1 sm:flex-none px-2 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all ${activeTab === 'jobs' ? 'bg-white dark:bg-neutral-700 text-primary shadow-sm' : 'text-neutral-500 hover:text-primary'}`}
-          >
-            My Jobs
-          </button>
-          <button 
-            onClick={() => setActiveTab('racquets')}
-            className={`flex-1 sm:flex-none px-2 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all ${activeTab === 'racquets' ? 'bg-white dark:bg-neutral-700 text-primary shadow-sm' : 'text-neutral-500 hover:text-primary'}`}
-          >
-            My Bag
-          </button>
-          <button 
-            onClick={() => setActiveTab('profile')}
-            className={`flex-1 sm:flex-none px-2 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all ${activeTab === 'profile' ? 'bg-white dark:bg-neutral-700 text-primary shadow-sm' : 'text-neutral-500 hover:text-primary'}`}
-          >
-            Profile
-          </button>
         </div>
-      </div>
     </div>
       {activeTab === 'jobs' ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
