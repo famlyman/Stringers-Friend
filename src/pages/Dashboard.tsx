@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { RACQUET_BRANDS, RACQUET_MODELS, STRINGS } from "../constants";
-import { Plus, Search, Filter, CheckCircle2, Clock, PlayCircle, CreditCard, X, Trash2, Users, Briefcase, Edit2, ChevronRight, ChevronDown, Printer, Package, MessageSquare, Mail, Phone } from "lucide-react";
+import { Plus, Search, Filter, CheckCircle2, Clock, PlayCircle, CreditCard, X, Trash2, Users, Briefcase, Edit2, ChevronRight, ChevronDown, Printer, Package, MessageSquare, Mail, Phone, Send } from "lucide-react";
 import QRCodeDisplay from "../components/QRCodeDisplay";
 import { collection, query, where, onSnapshot, doc, setDoc, updateDoc, deleteDoc, getDocs, writeBatch, serverTimestamp, orderBy } from "firebase/firestore";
 import { db, handleFirestoreError, OperationType } from "../lib/firebase";
@@ -16,6 +16,9 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'jobs' | 'customers' | 'messages'>(initialTab);
   const [messages, setMessages] = useState<any[]>([]);
+  const [selectedCustomerIdForChat, setSelectedCustomerIdForChat] = useState<string | null>(null);
+  const [newMessage, setNewMessage] = useState("");
+  const [sendingMessage, setSendingMessage] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<{ type: 'customer' | 'job' | 'racquet' | 'message', id: string, name?: string } | null>(null);
   const [customerSearch, setCustomerSearch] = useState("");
   const [jobSearch, setJobSearch] = useState("");
@@ -487,6 +490,34 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
       setDeleteConfirm(null);
     } catch (err) {
       handleFirestoreError(err, OperationType.DELETE, `messages/${messageId}`);
+    }
+  };
+
+  const handleSendMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedCustomerIdForChat || !newMessage.trim() || !user.shop_id) return;
+
+    setSendingMessage(true);
+    try {
+      const messageId = uuidv4();
+      const customer = customers.find(c => c.id === selectedCustomerIdForChat);
+      await setDoc(doc(db, "messages", messageId), {
+        id: messageId,
+        shop_id: user.shop_id,
+        customer_id: selectedCustomerIdForChat,
+        customer_email: customer?.email || "",
+        sender_id: user.uid,
+        sender_name: shop?.name || "Shop",
+        sender_role: 'stringer',
+        content: newMessage.trim(),
+        created_at: new Date().toISOString(),
+        read: false
+      });
+      setNewMessage("");
+    } catch (err) {
+      console.error("Error sending message:", err);
+    } finally {
+      setSendingMessage(false);
     }
   };
 
@@ -1598,16 +1629,29 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
                             </div>
                           </td>
                           <td className="px-6 py-4">
-                            <button 
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setDeleteConfirm({ type: 'customer', id: customer.id, name: customer.name });
-                              }}
-                              className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                              title="Delete Customer"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
+                            <div className="flex gap-2">
+                              <button 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedCustomerIdForChat(customer.id);
+                                  setActiveTab('messages');
+                                }}
+                                className="p-2 text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                                title="Message Customer"
+                              >
+                                <MessageSquare className="w-4 h-4" />
+                              </button>
+                              <button 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setDeleteConfirm({ type: 'customer', id: customer.id, name: customer.name });
+                                }}
+                                className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                                title="Delete Customer"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
                           </td>
                         </tr>
                         {expandedCustomerId === customer.id && (
@@ -1683,76 +1727,122 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
           )}
 
           {activeTab === 'messages' && (
-            <>
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-                <h2 className="text-lg font-semibold text-primary">Customer Inquiries</h2>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-neutral-500 font-medium bg-neutral-100 dark:bg-neutral-800 px-2 py-1 rounded-full uppercase tracking-wider">
-                    {messages.length} Total
-                  </span>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 h-[calc(100vh-12rem)] min-h-[500px]">
+              {/* Customer List */}
+              <div className="md:col-span-1 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-3xl overflow-hidden flex flex-col shadow-sm">
+                <div className="p-4 border-b border-neutral-100 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-800/50">
+                  <h3 className="font-bold text-primary">Conversations</h3>
+                </div>
+                <div className="flex-1 overflow-y-auto p-2 space-y-1">
+                  {/* Derive unique customers from messages or use existing customers list */}
+                  {customers.map(customer => {
+                    const lastMsg = [...messages].filter(m => m.customer_id === customer.id).sort((a,b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
+                    const unread = messages.filter(m => m.customer_id === customer.id && m.sender_role === 'customer' && !m.read).length;
+                    
+                    return (
+                      <button
+                        key={customer.id}
+                        onClick={() => setSelectedCustomerIdForChat(customer.id)}
+                        className={`w-full text-left p-3 rounded-2xl transition-all relative ${selectedCustomerIdForChat === customer.id ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'hover:bg-neutral-50 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300'}`}
+                      >
+                        <div className="flex justify-between items-start">
+                          <p className="font-bold text-sm truncate">{customer.name}</p>
+                          {unread > 0 && <span className="w-2 h-2 bg-red-500 rounded-full" />}
+                        </div>
+                        {lastMsg && (
+                          <p className={`text-[10px] truncate mt-0.5 ${selectedCustomerIdForChat === customer.id ? 'text-white/70' : 'text-neutral-400'}`}>
+                            {lastMsg.content}
+                          </p>
+                        )}
+                      </button>
+                    );
+                  })}
+                  {customers.length === 0 && (
+                    <p className="text-center text-xs text-neutral-400 p-4">No customers yet</p>
+                  )}
                 </div>
               </div>
 
-              <div className="space-y-4">
-                {messages.map((msg) => (
-                  <div key={msg.id} className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-6 shadow-sm hover:shadow-md transition-all group">
-                    <div className="flex flex-col md:flex-row justify-between gap-4">
-                      <div className="space-y-3 flex-1">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
-                            <Users className="w-5 h-5 text-primary" />
-                          </div>
-                          <div>
-                            <h4 className="font-bold text-neutral-900 dark:text-white leading-tight">{msg.name}</h4>
-                            <div className="flex items-center gap-3 mt-1">
-                              <a href={`mailto:${msg.email}`} className="text-xs text-neutral-500 hover:text-primary flex items-center gap-1 transition-colors">
-                                <Mail className="w-3 h-3" />
-                                {msg.email}
-                              </a>
-                              {msg.phone && (
-                                <a href={`tel:${msg.phone}`} className="text-xs text-neutral-500 hover:text-primary flex items-center gap-1 transition-colors">
-                                  <Phone className="w-3 h-3" />
-                                  {msg.phone}
-                                </a>
+              {/* Chat Area */}
+              <div className="md:col-span-3 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-3xl overflow-hidden flex flex-col shadow-sm">
+                {selectedCustomerIdForChat ? (
+                  <>
+                    <div className="p-4 border-b border-neutral-100 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-800/50 flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
+                          {customers.find(c => c.id === selectedCustomerIdForChat)?.name?.charAt(0)}
+                        </div>
+                        <div>
+                          <h3 className="font-bold text-primary">{customers.find(c => c.id === selectedCustomerIdForChat)?.name}</h3>
+                          <p className="text-[10px] text-neutral-400 uppercase tracking-widest">Customer</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button 
+                          onClick={() => setDeleteConfirm({ type: 'message', id: selectedCustomerIdForChat, name: `Conversation with ${customers.find(c => c.id === selectedCustomerIdForChat)?.name}` })}
+                          className="p-2 text-neutral-400 hover:text-red-600 transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-neutral-50/30 dark:bg-neutral-900/30">
+                      {[...messages].filter(m => m.customer_id === selectedCustomerIdForChat).sort((a,b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()).map((msg, idx) => (
+                        <div key={msg.id || idx} className={`flex ${msg.sender_role === 'stringer' ? 'justify-end' : 'justify-start'}`}>
+                          <div className={`max-w-[80%] p-4 rounded-2xl shadow-sm ${
+                            msg.sender_role === 'stringer' 
+                              ? 'bg-primary text-white rounded-tr-none' 
+                              : 'bg-white dark:bg-neutral-800 text-neutral-800 dark:text-neutral-200 border border-neutral-100 dark:border-neutral-700 rounded-tl-none'
+                          }`}>
+                            <p className="text-sm leading-relaxed">{msg.content}</p>
+                            <div className="flex items-center justify-between gap-4 mt-2">
+                              <p className={`text-[10px] ${msg.sender_role === 'stringer' ? 'text-white/60' : 'text-neutral-400'}`}>
+                                {safeFormatDate(msg.created_at, 'h:mm a')}
+                              </p>
+                              {msg.sender_role === 'stringer' && msg.read && (
+                                <CheckCircle2 className="w-3 h-3 text-white/60" />
                               )}
                             </div>
                           </div>
                         </div>
-                        <div className="bg-neutral-50 dark:bg-neutral-800/50 rounded-xl p-4 border border-neutral-100 dark:border-neutral-800">
-                          <p className="text-sm text-neutral-700 dark:text-neutral-300 whitespace-pre-wrap leading-relaxed">
-                            {msg.content}
-                          </p>
+                      ))}
+                      {messages.filter(m => m.customer_id === selectedCustomerIdForChat).length === 0 && (
+                        <div className="h-full flex flex-col items-center justify-center text-neutral-400 opacity-40">
+                          <MessageSquare className="w-12 h-12 mb-2" />
+                          <p className="text-sm">No messages yet. Start the conversation!</p>
                         </div>
-                        <div className="flex items-center gap-4 text-[10px] text-neutral-400 font-bold uppercase tracking-widest">
-                          <span className="flex items-center gap-1">
-                            <Clock className="w-3 h-3" />
-                            Received {safeFormatDate(msg.created_at, 'MMM d, h:mm a')}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="flex md:flex-col gap-2 justify-end">
-                        <button 
-                          onClick={() => setDeleteConfirm({ type: 'message', id: msg.id, name: `Message from ${msg.name}` })}
-                          className="p-3 text-neutral-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all"
-                          title="Delete Message"
+                      )}
+                    </div>
+
+                    <form onSubmit={handleSendMessage} className="p-4 border-t border-neutral-100 dark:border-neutral-800 bg-white dark:bg-neutral-900">
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={newMessage}
+                          onChange={(e) => setNewMessage(e.target.value)}
+                          placeholder="Type your message..."
+                          className="flex-1 bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                        />
+                        <button
+                          type="submit"
+                          disabled={sendingMessage || !newMessage.trim()}
+                          className="bg-primary text-white p-3 rounded-2xl hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 disabled:opacity-50 disabled:shadow-none active:scale-95"
                         >
-                          <Trash2 className="w-5 h-5" />
+                          <Send className="w-5 h-5" />
                         </button>
                       </div>
-                    </div>
-                  </div>
-                ))}
-                {messages.length === 0 && (
-                  <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-12 text-center">
-                    <div className="w-16 h-16 bg-neutral-100 dark:bg-neutral-800 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <MessageSquare className="w-8 h-8 text-neutral-400" />
-                    </div>
-                    <h3 className="text-lg font-bold text-neutral-900 dark:text-white mb-1">No messages yet</h3>
-                    <p className="text-sm text-neutral-500 dark:text-neutral-400">Inquiries from your public shop page will appear here.</p>
+                    </form>
+                  </>
+                ) : (
+                  <div className="flex-1 flex flex-col items-center justify-center text-neutral-400 p-8 text-center">
+                    <MessageSquare className="w-16 h-16 mb-4 opacity-10" />
+                    <h3 className="text-lg font-bold text-neutral-300 dark:text-neutral-600">Select a conversation</h3>
+                    <p className="text-sm max-w-xs">Choose a customer from the list to view your messages or start a new conversation.</p>
                   </div>
                 )}
               </div>
-            </>
+            </div>
           )}
         </div>
 

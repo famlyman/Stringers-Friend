@@ -120,18 +120,20 @@
     },
     "Message": {
       "title": "Message",
-      "description": "A message from a potential customer to a shop.",
+      "description": "A message between a customer and a shop.",
       "type": "object",
       "properties": {
         "id": { "type": "string" },
         "shop_id": { "type": "string" },
-        "name": { "type": "string" },
-        "email": { "type": "string", "format": "email" },
-        "phone": { "type": "string" },
+        "customer_id": { "type": "string", "description": "ID from the customers collection" },
+        "sender_id": { "type": "string", "description": "UID of the sender" },
+        "sender_name": { "type": "string" },
+        "sender_role": { "type": "string", "enum": ["stringer", "customer", "anonymous"] },
         "content": { "type": "string" },
+        "read": { "type": "boolean" },
         "created_at": { "type": "string", "format": "date-time" }
       },
-      "required": ["id", "shop_id", "name", "email", "content"]
+      "required": ["id", "shop_id", "content", "sender_role", "created_at"]
     }
   },
   "firestore": {

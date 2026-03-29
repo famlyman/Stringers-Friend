@@ -41,8 +41,14 @@ export default function PublicShop() {
       await setDoc(doc(db, "messages", messageId), {
         id: messageId,
         shop_id: shop.id,
-        ...contactForm,
-        created_at: new Date().toISOString()
+        sender_name: contactForm.name,
+        sender_role: 'anonymous',
+        content: contactForm.content,
+        created_at: new Date().toISOString(),
+        read: false,
+        // Keep these for backward compatibility or extra info
+        email: contactForm.email,
+        phone: contactForm.phone
       });
       setSubmitted(true);
       setContactForm({ name: "", email: "", phone: "", content: "" });

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Clock, CheckCircle2, CreditCard, Package, X, Users, Bell, BellDot, Plus } from "lucide-react";
+import { Clock, CheckCircle2, CreditCard, Package, X, Users, Bell, BellDot, Plus, MessageSquare, Send } from "lucide-react";
 import { safeFormatDate } from "../lib/utils";
 import { 
   collection, 
@@ -18,13 +18,19 @@ import {
 import { db, handleFirestoreError, OperationType } from "../lib/firebase";
 import { Save, Edit2 } from "lucide-react";
 import QRCodeDisplay from "../components/QRCodeDisplay";
+import { v4 as uuidv4 } from "uuid";
 
 export default function CustomerDashboard({ user }: { user: any }) {
   const [jobs, setJobs] = useState<any[]>([]);
   const [racquets, setRacquets] = useState<any[]>([]);
   const [customerInfo, setCustomerInfo] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'jobs' | 'racquets'>('jobs');
+  const [activeTab, setActiveTab] = useState<'jobs' | 'racquets' | 'messages'>('jobs');
+  const [messages, setMessages] = useState<any[]>([]);
+  const [shops, setShops] = useState<any[]>([]);
+  const [selectedShopId, setSelectedShopId] = useState<string | null>(null);
+  const [newMessage, setNewMessage] = useState("");
+  const [sendingMessage, setSendingMessage] = useState(false);
   const [showRequestModal, setShowRequestModal] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -141,6 +147,21 @@ export default function CustomerDashboard({ user }: { user: any }) {
       setNotifications(notificationList);
     });
 
+    // Fetch Messages
+    const qMessages = query(
+      collection(db, "messages"),
+      where("customer_email", "==", user.email),
+      orderBy("created_at", "asc")
+    );
+
+    const unsubscribeMessages = onSnapshot(qMessages, (snapshot) => {
+      const messageList = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setMessages(messageList);
+    });
+
     // Sync existing racquets and jobs that might be missing customer_email
     const syncExistingData = async () => {
       try {
@@ -191,8 +212,36 @@ export default function CustomerDashboard({ user }: { user: any }) {
       unsubscribeRacquets();
       unsubscribeCustomer();
       unsubscribeNotifications();
+      unsubscribeMessages();
     };
   }, [user.email]);
+
+  const handleSendMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedShopId || !newMessage.trim() || !user.email) return;
+
+    setSendingMessage(true);
+    try {
+      const messageId = uuidv4();
+      await setDoc(doc(db, "messages", messageId), {
+        id: messageId,
+        shop_id: selectedShopId,
+        customer_id: customerInfo?.id || "",
+        customer_email: user.email,
+        sender_id: user.uid,
+        sender_name: customerInfo?.name || user.email.split('@')[0],
+        sender_role: 'customer',
+        content: newMessage.trim(),
+        created_at: new Date().toISOString(),
+        read: false
+      });
+      setNewMessage("");
+    } catch (error) {
+      console.error("Error sending message:", error);
+    } finally {
+      setSendingMessage(false);
+    }
+  };
 
   const handleRequestSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -322,6 +371,12 @@ export default function CustomerDashboard({ user }: { user: any }) {
             >
               My Bag
             </button>
+            <button 
+              onClick={() => setActiveTab('messages')}
+              className={`flex-1 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all ${activeTab === 'messages' ? 'bg-white dark:bg-neutral-700 text-primary shadow-sm' : 'text-neutral-500 hover:text-primary'}`}
+            >
+              Messages
+            </button>
           </div>
 
           {/* Notifications Dropdown */}
@@ -436,7 +491,7 @@ export default function CustomerDashboard({ user }: { user: any }) {
             </div>
           )}
         </div>
-      ) : (
+      ) : activeTab === 'racquets' ? (
         <div className="space-y-6">
           <div className="flex justify-between items-center">
             <h2 className="text-xl font-bold text-primary">My Racquets</h2>
@@ -515,6 +570,97 @@ export default function CustomerDashboard({ user }: { user: any }) {
               </button>
             </div>
           )}
+          </div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 h-[600px]">
+          {/* Shop List */}
+          <div className="md:col-span-1 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-3xl overflow-hidden flex flex-col">
+            <div className="p-4 border-b border-neutral-100 dark:border-neutral-700">
+              <h3 className="font-bold text-primary">Shops</h3>
+            </div>
+            <div className="flex-1 overflow-y-auto p-2 space-y-1">
+              {shops.map(shop => (
+                <button
+                  key={shop.id}
+                  onClick={() => setSelectedShopId(shop.id)}
+                  className={`w-full text-left p-3 rounded-2xl transition-all ${selectedShopId === shop.id ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'hover:bg-neutral-50 dark:hover:bg-neutral-700 text-neutral-600 dark:text-neutral-300'}`}
+                >
+                  <p className="font-bold text-sm truncate">{shop.name}</p>
+                  <p className={`text-[10px] ${selectedShopId === shop.id ? 'text-white/70' : 'text-neutral-400'}`}>{shop.location}</p>
+                </button>
+              ))}
+              {shops.length === 0 && (
+                <p className="text-center text-xs text-neutral-400 p-4">No shops found</p>
+              )}
+            </div>
+          </div>
+
+          {/* Chat Area */}
+          <div className="md:col-span-3 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-3xl overflow-hidden flex flex-col shadow-sm">
+            {selectedShopId ? (
+              <>
+                <div className="p-4 border-b border-neutral-100 dark:border-neutral-700 bg-neutral-50/50 dark:bg-neutral-900/50 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
+                      {shops.find(s => s.id === selectedShopId)?.name?.charAt(0)}
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-primary">{shops.find(s => s.id === selectedShopId)?.name}</h3>
+                      <p className="text-[10px] text-neutral-400 uppercase tracking-widest">Stringer</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                  {messages.filter(m => m.shop_id === selectedShopId).map((msg, idx) => (
+                    <div key={msg.id || idx} className={`flex ${msg.sender_role === 'customer' ? 'justify-end' : 'justify-start'}`}>
+                      <div className={`max-w-[80%] p-4 rounded-2xl shadow-sm ${
+                        msg.sender_role === 'customer' 
+                          ? 'bg-primary text-white rounded-tr-none' 
+                          : 'bg-neutral-100 dark:bg-neutral-700 text-neutral-800 dark:text-neutral-200 rounded-tl-none'
+                      }`}>
+                        <p className="text-sm leading-relaxed">{msg.content}</p>
+                        <p className={`text-[10px] mt-2 ${msg.sender_role === 'customer' ? 'text-white/60' : 'text-neutral-400'}`}>
+                          {safeFormatDate(msg.created_at, 'h:mm a')}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                  {messages.filter(m => m.shop_id === selectedShopId).length === 0 && (
+                    <div className="h-full flex flex-col items-center justify-center text-neutral-400 opacity-40">
+                      <MessageSquare className="w-12 h-12 mb-2" />
+                      <p className="text-sm">No messages yet. Send a message to start the conversation!</p>
+                    </div>
+                  )}
+                </div>
+
+                <form onSubmit={handleSendMessage} className="p-4 border-t border-neutral-100 dark:border-neutral-700 bg-white dark:bg-neutral-800">
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={newMessage}
+                      onChange={(e) => setNewMessage(e.target.value)}
+                      placeholder="Type your message..."
+                      className="flex-1 bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                    />
+                    <button
+                      type="submit"
+                      disabled={sendingMessage || !newMessage.trim()}
+                      className="bg-primary text-white p-3 rounded-2xl hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 disabled:opacity-50 disabled:shadow-none active:scale-95"
+                    >
+                      <Send className="w-5 h-5" />
+                    </button>
+                  </div>
+                </form>
+              </>
+            ) : (
+              <div className="flex-1 flex flex-col items-center justify-center text-neutral-400 p-8 text-center">
+                <MessageSquare className="w-16 h-16 mb-4 opacity-10" />
+                <h3 className="text-lg font-bold text-neutral-300 dark:text-neutral-600">Select a shop</h3>
+                <p className="text-sm max-w-xs">Choose a shop from the list to view your messages or start a new conversation.</p>
+              </div>
+            )}
           </div>
         </div>
       )}
