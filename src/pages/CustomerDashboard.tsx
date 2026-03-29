@@ -487,14 +487,6 @@ export default function CustomerDashboard({ user }: { user: any }) {
                   <h3 className="font-bold text-primary truncate">{racquet.brand} {racquet.model}</h3>
                   <p className="text-[10px] text-neutral-400 font-mono uppercase">SN: {racquet.serial_number || 'N/A'}</p>
                 </div>
-                <div className="flex-shrink-0 ml-4">
-                  <QRCodeDisplay 
-                    value={racquet.qr_code} 
-                    label={`${racquet.brand} ${racquet.model}`} 
-                    serialNumber={racquet.serial_number}
-                    minimal={true}
-                  />
-                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4 mb-6">
@@ -520,12 +512,13 @@ export default function CustomerDashboard({ user }: { user: any }) {
                 <button 
                   onClick={() => {
                     setSelectedRacquet(racquet);
+                    const isNotStrung = racquet.current_string_main === "Not strung yet";
                     setRequestData({
                       ...requestData,
-                      string_main: racquet.current_string_main || '',
-                      string_cross: racquet.current_string_cross || '',
-                      tension_main: racquet.current_tension_main?.toString() || '',
-                      tension_cross: racquet.current_tension_cross?.toString() || ''
+                      string_main: isNotStrung ? '' : (racquet.current_string_main || ''),
+                      string_cross: isNotStrung ? '' : (racquet.current_string_cross || ''),
+                      tension_main: (isNotStrung || racquet.current_tension_main === 0) ? '' : racquet.current_tension_main?.toString() || '',
+                      tension_cross: (isNotStrung || racquet.current_tension_cross === 0) ? '' : racquet.current_tension_cross?.toString() || ''
                     });
                     setShowRequestModal(true);
                   }}

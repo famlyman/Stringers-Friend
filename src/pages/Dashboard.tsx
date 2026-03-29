@@ -321,6 +321,17 @@ export default function Dashboard({ user }: { user: any }) {
         updated_at: serverTimestamp()
       });
 
+      // Update racquet current setup if job is completed
+      if (status === 'completed' && job?.racquet_id) {
+        await updateDoc(doc(db, "racquets", job.racquet_id), {
+          current_string_main: job.string_main || "Not specified",
+          current_string_cross: job.string_cross || job.string_main || "Not specified",
+          current_tension_main: Number(job.tension_main) || 0,
+          current_tension_cross: Number(job.tension_cross || job.tension_main) || 0,
+          updated_at: new Date().toISOString()
+        });
+      }
+
       if (customer?.email) {
         const notificationId = uuidv4();
         await setDoc(doc(db, "notifications", notificationId), {
