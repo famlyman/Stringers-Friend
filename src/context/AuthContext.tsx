@@ -11,43 +11,56 @@ interface UserProfile {
 }
 
 interface AuthContextType {
-  user: (FirebaseUser & { profile?: UserProfile }) | null;
+  user: FirebaseUser | null;
+  profile: UserProfile | null;
   loading: boolean;
 }
 
-const AuthContext = createContext<AuthContextType>({ user: null, loading: true });
+const AuthContext = createContext<AuthContextType>({ user: null, profile: null, loading: true });
 
 export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<(FirebaseUser & { profile?: UserProfile }) | null>(null);
+  const [user, setUser] = useState<FirebaseUser | null>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let unsubscribeProfile: (() => void) | null = null;
 
     const unsubscribeAuth = onAuthStateChanged(auth, async (firebaseUser) => {
+      // Clean up previous profile listener
       if (unsubscribeProfile) {
         unsubscribeProfile();
         unsubscribeProfile = null;
       }
 
+      setUser(firebaseUser);
+
       if (firebaseUser) {
         const userDocRef = doc(db, 'users', firebaseUser.uid);
+        // Set a timeout as a fallback to prevent infinite loading
+        const timeoutId = setTimeout(() => {
+          setLoading(false);
+        }, 5000);
+
         unsubscribeProfile = onSnapshot(userDocRef, (docSnap) => {
+          clearTimeout(timeoutId);
           if (docSnap.exists()) {
-            setUser({ ...firebaseUser, profile: docSnap.data() as UserProfile });
+            setProfile(docSnap.data() as UserProfile);
           } else {
-            setUser(firebaseUser);
+            console.warn("User authenticated but no profile found in Firestore");
+            setProfile(null);
           }
           setLoading(false);
         }, (error) => {
+          clearTimeout(timeoutId);
           console.error("Error fetching user profile:", error);
-          setUser(firebaseUser);
+          setProfile(null);
           setLoading(false);
         });
       } else {
-        setUser(null);
+        setProfile(null);
         setLoading(false);
       }
     });
@@ -59,7 +72,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading }}>
+    <AuthContext.Provider value={{ user, profile, loading }}>
       {children}
     </AuthContext.Provider>
   );

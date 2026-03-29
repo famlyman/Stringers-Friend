@@ -17,12 +17,15 @@ import { signOut } from "firebase/auth";
 import { auth } from "./lib/firebase";
 
 function AppRoutes() {
-  const { user, loading } = useAuth();
+  const { user, profile, loading } = useAuth();
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-neutral-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-neutral-900"></div>
+      <div className="min-h-screen flex items-center justify-center bg-neutral-50 dark:bg-neutral-950 transition-colors duration-300">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-neutral-500 dark:text-neutral-400 font-medium">Initializing...</p>
+        </div>
       </div>
     );
   }
@@ -36,47 +39,63 @@ function AppRoutes() {
   };
 
   return (
-    <ErrorBoundary>
-      <Routes>
-        <Route path="/login" element={!user ? <Login /> : <Navigate to="/" />} />
-        <Route path="/register" element={!user ? <Register /> : <Navigate to="/" />} />
-        <Route path="/scan/:qrCode" element={<ScanResult />} />
-        
-        <Route element={user ? <Layout user={user?.profile || user} onLogout={handleLogout} /> : <Navigate to="/login" />}>
-          <Route path="/" element={
-            user?.profile ? (
-              user.profile.role === 'stringer' ? (
-                user.profile.shop_id ? <Dashboard user={user.profile} /> : <Navigate to="/setup" />
-              ) : <CustomerDashboard user={user.profile} />
-            ) : (
-              <div className="min-h-screen flex items-center justify-center bg-neutral-50 dark:bg-neutral-950">
-                <div className="text-center">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-                  <p className="text-neutral-500 dark:text-neutral-400">Loading profile...</p>
-                </div>
+    <Routes>
+      {/* Public Routes */}
+      <Route path="/login" element={!user ? <Login /> : <Navigate to="/" replace />} />
+      <Route path="/register" element={!user ? <Register /> : <Navigate to="/" replace />} />
+      <Route path="/scan/:qrCode" element={<ScanResult />} />
+      
+      {/* Protected Routes Wrapper */}
+      <Route element={user ? <Layout user={profile || user} onLogout={handleLogout} /> : <Navigate to="/login" replace />}>
+        <Route path="/" element={
+          profile ? (
+            profile.role === 'stringer' ? (
+              profile.shop_id ? <Dashboard user={profile} /> : <Navigate to="/setup" replace />
+            ) : <CustomerDashboard user={profile} />
+          ) : (
+            <div className="min-h-screen flex flex-col items-center justify-center bg-neutral-50 dark:bg-neutral-950 p-6">
+              <div className="text-center max-w-sm w-full bg-white dark:bg-neutral-900 rounded-[2.5rem] p-10 shadow-2xl border border-neutral-200 dark:border-neutral-800">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-6"></div>
+                <h2 className="text-xl font-black text-neutral-900 dark:text-white mb-2 tracking-tight">Loading Profile</h2>
+                <p className="text-neutral-500 dark:text-neutral-400 mb-8 text-sm">
+                  We're retrieving your account information. If this takes too long, your profile might be missing.
+                </p>
+                <button
+                  onClick={handleLogout}
+                  className="w-full py-4 bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-2xl font-bold hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-all active:scale-[0.98]"
+                >
+                  Sign Out
+                </button>
               </div>
-            )
-          } />
-          <Route path="/setup" element={user?.profile?.role === 'stringer' ? <ShopSetup user={user.profile} /> : <Navigate to="/" />} />
-          <Route path="/inventory" element={user?.profile?.role === 'stringer' ? <Inventory user={user.profile} /> : <Navigate to="/" />} />
-          <Route path="/customers" element={user?.profile?.role === 'stringer' ? <CustomerList user={user.profile} /> : <Navigate to="/" />} />
-          <Route path="/messages" element={user?.profile?.role === 'stringer' ? <Dashboard user={user.profile} initialTab="messages" /> : <Navigate to="/" />} />
-          <Route path="/profile" element={user?.profile ? <Profile user={user.profile} /> : <Navigate to="/" />} />
-        </Route>
-        <Route path="/:slug" element={<PublicShop />} />
-      </Routes>
-    </ErrorBoundary>
+            </div>
+          )
+        } />
+        <Route path="/setup" element={profile?.role === 'stringer' ? <ShopSetup user={profile} /> : <Navigate to="/" replace />} />
+        <Route path="/inventory" element={profile?.role === 'stringer' ? <Inventory user={profile} /> : <Navigate to="/" replace />} />
+        <Route path="/customers" element={profile?.role === 'stringer' ? <CustomerList user={profile} /> : <Navigate to="/" replace />} />
+        <Route path="/messages" element={profile?.role === 'stringer' ? <Dashboard user={profile} initialTab="messages" /> : <Navigate to="/" replace />} />
+        <Route path="/profile" element={profile ? <Profile user={profile} /> : <Navigate to="/" replace />} />
+      </Route>
+
+      {/* Public Shop Slug - Should be last */}
+      <Route path="/:slug" element={<PublicShop />} />
+      
+      {/* Fallback */}
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
   );
 }
 
 export default function App() {
   return (
-    <ThemeProvider>
-      <AuthProvider>
-        <BrowserRouter>
-          <AppRoutes />
-        </BrowserRouter>
-      </AuthProvider>
-    </ThemeProvider>
+    <ErrorBoundary>
+      <ThemeProvider>
+        <AuthProvider>
+          <BrowserRouter>
+            <AppRoutes />
+          </BrowserRouter>
+        </AuthProvider>
+      </ThemeProvider>
+    </ErrorBoundary>
   );
 }
