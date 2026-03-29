@@ -1752,7 +1752,7 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
                         </div>
                         {lastMsg && (
                           <p className={`text-[10px] truncate mt-0.5 ${selectedCustomerIdForChat === customer.id ? 'text-white/70' : 'text-neutral-400'}`}>
-                            {lastMsg.content}
+                            {lastMsg.content || lastMsg.message}
                           </p>
                         )}
                       </button>
@@ -1796,7 +1796,10 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
                               ? 'bg-primary text-white rounded-tr-none' 
                               : 'bg-white dark:bg-neutral-800 text-neutral-800 dark:text-neutral-200 border border-neutral-100 dark:border-neutral-700 rounded-tl-none'
                           }`}>
-                            <p className="text-sm leading-relaxed">{msg.content}</p>
+                            <p className="text-sm leading-relaxed">
+                              {msg.content || msg.message}
+                              {msg.title && <span className="block font-bold mt-1 text-xs opacity-80">{msg.title}</span>}
+                            </p>
                             <div className="flex items-center justify-between gap-4 mt-2">
                               <p className={`text-[10px] ${msg.sender_role === 'stringer' ? 'text-white/60' : 'text-neutral-400'}`}>
                                 {safeFormatDate(msg.created_at, 'h:mm a')}

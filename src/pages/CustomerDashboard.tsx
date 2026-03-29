@@ -636,7 +636,10 @@ export default function CustomerDashboard({ user, initialTab = 'jobs' }: { user:
                           ? 'bg-primary text-white rounded-tr-none' 
                           : 'bg-neutral-100 dark:bg-neutral-700 text-neutral-800 dark:text-neutral-200 rounded-tl-none'
                       }`}>
-                        <p className="text-sm leading-relaxed">{msg.content}</p>
+                        <p className="text-sm leading-relaxed">
+                          {msg.content || msg.message}
+                          {msg.title && <span className="block font-bold mt-1 text-xs opacity-80">{msg.title}</span>}
+                        </p>
                         <p className={`text-[10px] mt-2 ${msg.sender_role === 'customer' ? 'text-white/60' : 'text-neutral-400'}`}>
                           {safeFormatDate(msg.created_at, 'h:mm a')}
                         </p>

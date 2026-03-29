@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Plus, Search, Trash2, Edit2, AlertCircle } from "lucide-react";
+import { Plus, Search, Trash2, Edit2, AlertCircle, QrCode, X } from "lucide-react";
 import { 
   collection, 
   query, 
@@ -9,9 +9,12 @@ import {
   updateDoc, 
   deleteDoc, 
   doc, 
-  serverTimestamp 
+  serverTimestamp,
+  setDoc
 } from "firebase/firestore";
 import { db, handleFirestoreError, OperationType } from "../lib/firebase";
+import QRCodeDisplay from "../components/QRCodeDisplay";
+import { v4 as uuidv4 } from "uuid";
 
 export default function Inventory({ user }: { user: any }) {
   const [items, setItems] = useState<any[]>([]);
@@ -20,6 +23,7 @@ export default function Inventory({ user }: { user: any }) {
   const [editingItem, setEditingItem] = useState<any>(null);
   const [filterType, setFilterType] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [showQRCodeModal, setShowQRCodeModal] = useState<{ value: string, label: string } | null>(null);
   const [newItem, setNewItem] = useState({ 
     name: "", 
     brand: "", 
@@ -58,9 +62,12 @@ export default function Inventory({ user }: { user: any }) {
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await addDoc(collection(db, "inventory"), {
+      const itemId = uuidv4();
+      await setDoc(doc(db, "inventory", itemId), {
         ...newItem,
+        id: itemId,
         shop_id: user.shop_id,
+        qr_code: `inventory_${itemId}`,
         created_at: serverTimestamp(),
         updated_at: serverTimestamp()
       });
@@ -339,8 +346,15 @@ export default function Inventory({ user }: { user: any }) {
                 </td>
                 <td className="px-6 py-4 text-right">
                   <button 
-                    onClick={() => setEditingItem(item)}
+                    onClick={() => setShowQRCodeModal({ value: item.qr_code || `inventory_${item.id}`, label: `${item.brand} ${item.name}` })}
                     className="p-2 text-neutral-400 hover:text-primary transition-colors"
+                    title="Show QR Code"
+                  >
+                    <QrCode className="w-4 h-4" />
+                  </button>
+                  <button 
+                    onClick={() => setEditingItem(item)}
+                    className="p-2 text-neutral-400 hover:text-primary transition-colors ml-2"
                   >
                     <Edit2 className="w-4 h-4" />
                   </button>
@@ -504,6 +518,27 @@ export default function Inventory({ user }: { user: any }) {
                 <button type="button" onClick={() => setEditingItem(null)} className="flex-1 bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 py-3 rounded-xl font-bold hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors">Cancel</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* QR Code Modal */}
+      {showQRCodeModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-neutral-900 rounded-3xl p-8 max-w-sm w-full shadow-2xl relative border border-neutral-200 dark:border-neutral-800">
+            <button 
+              onClick={() => setShowQRCodeModal(null)}
+              className="absolute top-6 right-6 p-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full transition-colors"
+            >
+              <X className="w-6 h-6 text-neutral-400" />
+            </button>
+            <h2 className="text-xl font-bold text-primary mb-6">Inventory QR Code</h2>
+            <div className="flex justify-center">
+              <QRCodeDisplay 
+                value={showQRCodeModal.value} 
+                label={showQRCodeModal.label}
+              />
+            </div>
           </div>
         </div>
       )}
