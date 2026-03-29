@@ -20,12 +20,12 @@ import { Save, Edit2 } from "lucide-react";
 import QRCodeDisplay from "../components/QRCodeDisplay";
 import { v4 as uuidv4 } from "uuid";
 
-export default function CustomerDashboard({ user }: { user: any }) {
+export default function CustomerDashboard({ user, initialTab = 'jobs' }: { user: any, initialTab?: 'jobs' | 'racquets' | 'messages' }) {
   const [jobs, setJobs] = useState<any[]>([]);
   const [racquets, setRacquets] = useState<any[]>([]);
   const [customerInfo, setCustomerInfo] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'jobs' | 'racquets' | 'messages'>('jobs');
+  const [activeTab, setActiveTab] = useState<'jobs' | 'racquets' | 'messages'>(initialTab);
   const [messages, setMessages] = useState<any[]>([]);
   const [shops, setShops] = useState<any[]>([]);
   const [selectedShopId, setSelectedShopId] = useState<string | null>(null);
@@ -162,6 +162,21 @@ export default function CustomerDashboard({ user }: { user: any }) {
       setMessages(messageList);
     });
 
+    // Fetch Shops
+    const qShops = query(collection(db, "shops"));
+    const unsubscribeShops = onSnapshot(qShops, (snapshot) => {
+      const shopList = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setShops(shopList);
+      
+      // If no shop is selected, select the first one by default
+      if (shopList.length > 0 && !selectedShopId) {
+        setSelectedShopId(shopList[0].id);
+      }
+    });
+
     // Sync existing racquets and jobs that might be missing customer_email
     const syncExistingData = async () => {
       try {
@@ -213,6 +228,7 @@ export default function CustomerDashboard({ user }: { user: any }) {
       unsubscribeCustomer();
       unsubscribeNotifications();
       unsubscribeMessages();
+      unsubscribeShops();
     };
   }, [user.email]);
 

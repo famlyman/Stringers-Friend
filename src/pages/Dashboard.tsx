@@ -1434,7 +1434,7 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Main Content Area */}
         <div className="lg:col-span-2 space-y-4">
-          {activeTab === 'jobs' ? (
+          {activeTab === 'jobs' && (
             <>
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
                 <h2 className="text-lg font-semibold text-primary">Active Jobs</h2>
@@ -1571,7 +1571,8 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
                 </table>
               </div>
             </>
-          ) : (
+          )}
+          {activeTab === 'customers' && (
             <>
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
                 <h2 className="text-lg font-semibold text-primary">Customers</h2>
