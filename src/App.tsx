@@ -62,6 +62,7 @@ function AppRoutes() {
           <Route path="/setup" element={user?.profile?.role === 'stringer' ? <ShopSetup user={user.profile} /> : <Navigate to="/" />} />
           <Route path="/inventory" element={user?.profile?.role === 'stringer' ? <Inventory user={user.profile} /> : <Navigate to="/" />} />
           <Route path="/customers" element={user?.profile?.role === 'stringer' ? <CustomerList user={user.profile} /> : <Navigate to="/" />} />
+          <Route path="/messages" element={user?.profile?.role === 'stringer' ? <Dashboard user={user.profile} initialTab="messages" /> : <Navigate to="/" />} />
           <Route path="/profile" element={<Profile user={user.profile} />} />
         </Route>
         <Route path="/:slug" element={<PublicShop />} />

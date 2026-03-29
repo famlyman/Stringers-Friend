@@ -1,6 +1,6 @@
 import { ReactNode } from "react";
 import { Link, Outlet, useNavigate } from "react-router-dom";
-import { LayoutDashboard, Users, Package, LogOut, User, Sun, Moon } from "lucide-react";
+import { LayoutDashboard, Users, Package, LogOut, User, Sun, Moon, MessageSquare } from "lucide-react";
 import { useTheme } from "../context/ThemeContext";
 
 interface LayoutProps {
@@ -18,19 +18,23 @@ export default function Layout({ user, onLogout }: LayoutProps) {
     <>
       {user.role === 'stringer' && (
         <>
-          <Link to="/" className="flex flex-col md:flex-row items-center px-4 py-2 text-xs md:text-sm font-medium text-neutral-700 dark:text-neutral-300 rounded-lg hover:bg-primary/10 hover:text-primary dark:hover:text-primary transition-colors group">
+          <Link to="/" className="flex flex-col md:flex-row items-center px-4 py-2 text-xs md:text-sm font-medium text-neutral-700 dark:text-neutral-300 rounded-lg hover:bg-primary/10 hover:text-primary dark:hover:text-primary transition-colors group shrink-0">
             <LayoutDashboard className="w-5 h-5 md:w-4 md:h-4 md:mr-3 group-hover:text-primary" />
             <span className="mt-1 md:mt-0">Dashboard</span>
           </Link>
-          <Link to="/customers" className="flex flex-col md:flex-row items-center px-4 py-2 text-xs md:text-sm font-medium text-neutral-700 dark:text-neutral-300 rounded-lg hover:bg-primary/10 hover:text-primary dark:hover:text-primary transition-colors group">
+          <Link to="/customers" className="flex flex-col md:flex-row items-center px-4 py-2 text-xs md:text-sm font-medium text-neutral-700 dark:text-neutral-300 rounded-lg hover:bg-primary/10 hover:text-primary dark:hover:text-primary transition-colors group shrink-0">
             <Users className="w-5 h-5 md:w-4 md:h-4 md:mr-3 group-hover:text-primary" />
             <span className="mt-1 md:mt-0">Customers</span>
           </Link>
-          <Link to="/inventory" className="flex flex-col md:flex-row items-center px-4 py-2 text-xs md:text-sm font-medium text-neutral-700 dark:text-neutral-300 rounded-lg hover:bg-primary/10 hover:text-primary dark:hover:text-primary transition-colors group">
+          <Link to="/messages" className="flex flex-col md:flex-row items-center px-4 py-2 text-xs md:text-sm font-medium text-neutral-700 dark:text-neutral-300 rounded-lg hover:bg-primary/10 hover:text-primary dark:hover:text-primary transition-colors group shrink-0 md:hidden">
+            <MessageSquare className="w-5 h-5 md:w-4 md:h-4 md:mr-3 group-hover:text-primary" />
+            <span className="mt-1 md:mt-0">Messages</span>
+          </Link>
+          <Link to="/inventory" className="flex flex-col md:flex-row items-center px-4 py-2 text-xs md:text-sm font-medium text-neutral-700 dark:text-neutral-300 rounded-lg hover:bg-primary/10 hover:text-primary dark:hover:text-primary transition-colors group shrink-0">
             <Package className="w-5 h-5 md:w-4 md:h-4 md:mr-3 group-hover:text-primary" />
             <span className="mt-1 md:mt-0">Inventory</span>
           </Link>
-          <Link to="/profile" className="flex flex-col md:flex-row items-center px-4 py-2 text-xs md:text-sm font-medium text-neutral-700 dark:text-neutral-300 rounded-lg hover:bg-primary/10 hover:text-primary dark:hover:text-primary transition-colors group">
+          <Link to="/profile" className="flex flex-col md:flex-row items-center px-4 py-2 text-xs md:text-sm font-medium text-neutral-700 dark:text-neutral-300 rounded-lg hover:bg-primary/10 hover:text-primary dark:hover:text-primary transition-colors group shrink-0">
             <User className="w-5 h-5 md:w-4 md:h-4 md:mr-3 group-hover:text-primary" />
             <span className="mt-1 md:mt-0">Profile</span>
           </Link>
@@ -38,11 +42,11 @@ export default function Layout({ user, onLogout }: LayoutProps) {
       )}
       {user.role === 'customer' && (
         <>
-          <Link to="/" className="flex flex-col md:flex-row items-center px-4 py-2 text-xs md:text-sm font-medium text-neutral-700 dark:text-neutral-300 rounded-lg hover:bg-primary/10 hover:text-primary dark:hover:text-primary transition-colors group">
+          <Link to="/" className="flex flex-col md:flex-row items-center px-4 py-2 text-xs md:text-sm font-medium text-neutral-700 dark:text-neutral-300 rounded-lg hover:bg-primary/10 hover:text-primary dark:hover:text-primary transition-colors group shrink-0">
             <LayoutDashboard className="w-5 h-5 md:w-4 md:h-4 md:mr-3 group-hover:text-primary" />
             <span className="mt-1 md:mt-0">My Jobs</span>
           </Link>
-          <Link to="/profile" className="flex flex-col md:flex-row items-center px-4 py-2 text-xs md:text-sm font-medium text-neutral-700 dark:text-neutral-300 rounded-lg hover:bg-primary/10 hover:text-primary dark:hover:text-primary transition-colors group">
+          <Link to="/profile" className="flex flex-col md:flex-row items-center px-4 py-2 text-xs md:text-sm font-medium text-neutral-700 dark:text-neutral-300 rounded-lg hover:bg-primary/10 hover:text-primary dark:hover:text-primary transition-colors group shrink-0">
             <User className="w-5 h-5 md:w-4 md:h-4 md:mr-3 group-hover:text-primary" />
             <span className="mt-1 md:mt-0">Profile</span>
           </Link>
@@ -99,25 +103,27 @@ export default function Layout({ user, onLogout }: LayoutProps) {
       </aside>
 
       {/* Mobile Bottom Navigation */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-neutral-900 border-t border-neutral-200 dark:border-neutral-800 px-4 py-2 flex justify-around items-center z-50">
-        <NavLinks />
-        <button 
-          onClick={toggleDarkMode}
-          className="flex flex-col items-center px-4 py-2 text-xs font-medium text-neutral-700 dark:text-neutral-300"
-        >
-          {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-          <span className="mt-1">Theme</span>
-        </button>
-        <button
-          onClick={() => {
-            onLogout();
-            navigate("/login");
-          }}
-          className="flex flex-col items-center px-4 py-2 text-xs font-medium text-red-600"
-        >
-          <LogOut className="w-5 h-5" />
-          <span className="mt-1">Logout</span>
-        </button>
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-neutral-900 border-t border-neutral-200 dark:border-neutral-800 px-2 py-2 flex overflow-x-auto no-scrollbar items-center z-50 scroll-smooth">
+        <div className="flex flex-nowrap items-center space-x-1 min-w-max px-2">
+          <NavLinks />
+          <button 
+            onClick={toggleDarkMode}
+            className="flex flex-col items-center px-4 py-2 text-xs font-medium text-neutral-700 dark:text-neutral-300 shrink-0"
+          >
+            {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+            <span className="mt-1">Theme</span>
+          </button>
+          <button
+            onClick={() => {
+              onLogout();
+              navigate("/login");
+            }}
+            className="flex flex-col items-center px-4 py-2 text-xs font-medium text-red-600 shrink-0"
+          >
+            <LogOut className="w-5 h-5" />
+            <span className="mt-1">Logout</span>
+          </button>
+        </div>
       </nav>
 
       {/* Main Content */}

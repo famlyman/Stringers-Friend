@@ -7,14 +7,14 @@ import { db, handleFirestoreError, OperationType } from "../lib/firebase";
 import { v4 as uuidv4 } from "uuid";
 import { safeFormatDate } from "../lib/utils";
 
-export default function Dashboard({ user }: { user: any }) {
+export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, initialTab?: 'jobs' | 'customers' | 'messages' }) {
   const [jobs, setJobs] = useState<any[]>([]);
   const [shop, setShop] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [showNewJob, setShowNewJob] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'jobs' | 'customers' | 'messages'>('jobs');
+  const [activeTab, setActiveTab] = useState<'jobs' | 'customers' | 'messages'>(initialTab);
   const [messages, setMessages] = useState<any[]>([]);
   const [deleteConfirm, setDeleteConfirm] = useState<{ type: 'customer' | 'job' | 'racquet' | 'message', id: string, name?: string } | null>(null);
   const [customerSearch, setCustomerSearch] = useState("");
@@ -61,6 +61,10 @@ export default function Dashboard({ user }: { user: any }) {
     notes: "",
     keep_same_string: false
   });
+
+  useEffect(() => {
+    setActiveTab(initialTab);
+  }, [initialTab]);
 
   useEffect(() => {
     if (!user || !user.shop_id) return;
@@ -500,39 +504,6 @@ export default function Dashboard({ user }: { user: any }) {
           <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-1">Manage your shop operations</p>
         </div>
         <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
-          <div className="bg-neutral-100 dark:bg-neutral-800 p-1 rounded-xl flex flex-1 sm:flex-none">
-            <button 
-              onClick={() => setActiveTab('jobs')}
-              className={`flex-1 sm:flex-none flex items-center justify-center px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all relative ${activeTab === 'jobs' ? 'bg-white dark:bg-neutral-700 text-primary shadow-sm' : 'text-neutral-500 dark:text-neutral-400 hover:text-primary'}`}
-            >
-              <Briefcase className="w-4 h-4 mr-2" />
-              Jobs
-              {jobs.filter(j => j.status === 'pending').length > 0 && (
-                <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[10px] flex items-center justify-center rounded-full border-2 border-white dark:border-neutral-900 animate-pulse">
-                  {jobs.filter(j => j.status === 'pending').length}
-                </span>
-              )}
-            </button>
-            <button 
-              onClick={() => setActiveTab('customers')}
-              className={`flex-1 sm:flex-none flex items-center justify-center px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all ${activeTab === 'customers' ? 'bg-white dark:bg-neutral-700 text-primary shadow-sm' : 'text-neutral-500 dark:text-neutral-400 hover:text-primary'}`}
-            >
-              <Users className="w-4 h-4 mr-2" />
-              Customers
-            </button>
-            <button 
-              onClick={() => setActiveTab('messages')}
-              className={`flex-1 sm:flex-none flex items-center justify-center px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all relative ${activeTab === 'messages' ? 'bg-white dark:bg-neutral-700 text-primary shadow-sm' : 'text-neutral-500 dark:text-neutral-400 hover:text-primary'}`}
-            >
-              <MessageSquare className="w-4 h-4 mr-2" />
-              Messages
-              {messages.length > 0 && (
-                <span className="absolute -top-1 -right-1 w-4 h-4 bg-primary text-white text-[10px] flex items-center justify-center rounded-full border-2 border-white dark:border-neutral-900 animate-pulse">
-                  {messages.length}
-                </span>
-              )}
-            </button>
-          </div>
           <button 
             onClick={() => setShowNewJob(true)}
             className="flex items-center justify-center px-4 py-2 bg-primary text-white rounded-xl font-bold hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all active:scale-95 text-sm sm:text-base"
