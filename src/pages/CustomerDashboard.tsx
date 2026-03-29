@@ -13,7 +13,8 @@ import {
   getDocs,
   limit,
   setDoc,
-  writeBatch
+  writeBatch,
+  serverTimestamp
 } from "firebase/firestore";
 import { db, handleFirestoreError, OperationType } from "../lib/firebase";
 import { Save, Edit2 } from "lucide-react";
@@ -26,6 +27,11 @@ export default function CustomerDashboard({ user, initialTab = 'jobs' }: { user:
   const [customerInfo, setCustomerInfo] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'jobs' | 'racquets' | 'messages'>(initialTab);
+
+  useEffect(() => {
+    setActiveTab(initialTab);
+  }, [initialTab]);
+
   const [messages, setMessages] = useState<any[]>([]);
   const [shops, setShops] = useState<any[]>([]);
   const [selectedShopId, setSelectedShopId] = useState<string | null>(null);
@@ -160,6 +166,8 @@ export default function CustomerDashboard({ user, initialTab = 'jobs' }: { user:
         ...doc.data()
       }));
       setMessages(messageList);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, "messages");
     });
 
     // Fetch Shops
@@ -248,12 +256,12 @@ export default function CustomerDashboard({ user, initialTab = 'jobs' }: { user:
         sender_name: customerInfo?.name || user.email.split('@')[0],
         sender_role: 'customer',
         content: newMessage.trim(),
-        created_at: new Date().toISOString(),
+        created_at: serverTimestamp(),
         read: false
       });
       setNewMessage("");
     } catch (error) {
-      console.error("Error sending message:", error);
+      handleFirestoreError(error, OperationType.WRITE, "messages");
     } finally {
       setSendingMessage(false);
     }
@@ -279,8 +287,8 @@ export default function CustomerDashboard({ user, initialTab = 'jobs' }: { user:
         status: 'pending',
         payment_status: 'unpaid',
         price: 0, // To be set by shop
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        created_at: serverTimestamp(),
+        updated_at: serverTimestamp()
       };
 
       const jobDoc = await addDoc(collection(db, "jobs"), newJob);
@@ -295,7 +303,7 @@ export default function CustomerDashboard({ user, initialTab = 'jobs' }: { user:
         message: `A new stringing request has been submitted for a ${selectedRacquet.brand} ${selectedRacquet.model}.`,
         job_id: jobDoc.id,
         read: false,
-        created_at: new Date().toISOString()
+        created_at: serverTimestamp()
       });
 
       setShowRequestModal(false);

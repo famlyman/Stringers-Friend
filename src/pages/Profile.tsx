@@ -2,13 +2,15 @@ import React, { useState, useEffect } from "react";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { updatePassword, updateEmail, reauthenticateWithCredential, EmailAuthProvider } from "firebase/auth";
 import { db, auth } from "../lib/firebase";
-import { User, Mail, Phone, Lock, Store, Save, AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
+import { User, Mail, Phone, Lock, Store, Save, AlertCircle, CheckCircle2, Loader2, Sun, Moon } from "lucide-react";
+import { useTheme } from "../context/ThemeContext";
 
 interface ProfileProps {
   user: any;
 }
 
 export default function Profile({ user }: ProfileProps) {
+  const { darkMode, toggleDarkMode } = useTheme();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -349,6 +351,31 @@ export default function Profile({ user }: ProfileProps) {
 
         {/* Security / Password */}
         <div className="space-y-8">
+          <section className="bg-white dark:bg-neutral-900 rounded-3xl border border-neutral-200 dark:border-neutral-800 shadow-sm overflow-hidden">
+            <div className="p-6 border-b border-neutral-100 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-800/50 flex items-center gap-3">
+              <div className="p-2 bg-primary/10 rounded-lg">
+                <Sun className="w-5 h-5 text-primary" />
+              </div>
+              <h2 className="font-bold text-neutral-900 dark:text-white">Appearance</h2>
+            </div>
+            <div className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-bold text-neutral-900 dark:text-white">Dark Mode</p>
+                  <p className="text-xs text-neutral-500 dark:text-neutral-400">Switch between light and dark themes.</p>
+                </div>
+                <button
+                  onClick={toggleDarkMode}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary/20 ${darkMode ? 'bg-primary' : 'bg-neutral-200'}`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${darkMode ? 'translate-x-6' : 'translate-x-1'}`}
+                  />
+                </button>
+              </div>
+            </div>
+          </section>
+
           <section className="bg-white dark:bg-neutral-900 rounded-3xl border border-neutral-200 dark:border-neutral-800 shadow-sm overflow-hidden">
             <div className="p-6 border-b border-neutral-100 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-800/50 flex items-center gap-3">
               <div className="p-2 bg-primary/10 rounded-lg">

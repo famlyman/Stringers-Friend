@@ -510,12 +510,12 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
         sender_name: shop?.name || "Shop",
         sender_role: 'stringer',
         content: newMessage.trim(),
-        created_at: new Date().toISOString(),
+        created_at: serverTimestamp(),
         read: false
       });
       setNewMessage("");
     } catch (err) {
-      console.error("Error sending message:", err);
+      handleFirestoreError(err, OperationType.WRITE, "messages");
     } finally {
       setSendingMessage(false);
     }

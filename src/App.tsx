@@ -78,6 +78,11 @@ function AppRoutes() {
             profile.role === 'stringer' ? <Dashboard user={profile} initialTab="messages" /> : <CustomerDashboard user={profile} initialTab="messages" />
           ) : <Navigate to="/" replace />
         } />
+        <Route path="/racquets" element={
+          profile ? (
+            profile.role === 'stringer' ? <Dashboard user={profile} initialTab="customers" /> : <CustomerDashboard user={profile} initialTab="racquets" />
+          ) : <Navigate to="/" replace />
+        } />
         <Route path="/profile" element={profile ? <Profile user={profile} /> : <Navigate to="/" replace />} />
       </Route>
 

@@ -218,8 +218,8 @@ service cloud.firestore {
     function isValidMessage(data) {
       return data.id is string && data.id.size() > 0 &&
              data.shop_id is string && data.shop_id.size() > 0 &&
-             data.name is string && data.name.size() > 0 && data.name.size() <= 100 &&
-             data.email is string && isValidEmail(data.email) &&
+             data.sender_name is string && data.sender_name.size() > 0 && data.sender_name.size() <= 100 &&
+             data.customer_email is string && isValidEmail(data.customer_email) &&
              data.content is string && data.content.size() > 0 && data.content.size() <= 2000;
     }
 
@@ -245,12 +245,14 @@ service cloud.firestore {
       allow read: if isAuthenticated() && (
         isShopOwner(resource.data.shop_id) || 
         resource.data.uid == request.auth.uid || 
+        resource.data.email == request.auth.token.email ||
         isAdmin()
       );
       allow create: if isAuthenticated() && isValidCustomer(request.resource.data);
       allow update: if isAuthenticated() && (
         isShopOwner(resource.data.shop_id) || 
         resource.data.uid == request.auth.uid || 
+        resource.data.email == request.auth.token.email ||
         isAdmin()
       );
       allow delete: if isAdmin() || (isAuthenticated() && isShopOwner(resource.data.shop_id));
@@ -309,9 +311,17 @@ service cloud.firestore {
     }
 
     match /messages/{messageId} {
-      allow create: if isValidMessage(request.resource.data);
-      allow read: if isAuthenticated() && (resource.data.shop_id == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.shop_id || isAdmin());
-      allow delete: if isAuthenticated() && (resource.data.shop_id == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.shop_id || isAdmin());
+      allow create: if isAuthenticated() && isValidMessage(request.resource.data);
+      allow read: if isAuthenticated() && (
+        resource.data.customer_email == request.auth.token.email ||
+        resource.data.shop_id == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.shop_id || 
+        isAdmin()
+      );
+      allow delete: if isAuthenticated() && (
+        resource.data.customer_email == request.auth.token.email ||
+        resource.data.shop_id == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.shop_id || 
+        isAdmin()
+      );
     }
   }
 }
