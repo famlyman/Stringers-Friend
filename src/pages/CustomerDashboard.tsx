@@ -24,11 +24,8 @@ export default function CustomerDashboard({ user }: { user: any }) {
   const [racquets, setRacquets] = useState<any[]>([]);
   const [customerInfo, setCustomerInfo] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'jobs' | 'racquets' | 'profile'>('jobs');
+  const [activeTab, setActiveTab] = useState<'jobs' | 'racquets'>('jobs');
   const [showRequestModal, setShowRequestModal] = useState(false);
-  const [isEditingProfile, setIsEditingProfile] = useState(false);
-  const [editName, setEditName] = useState("");
-  const [editPhone, setEditPhone] = useState("");
   const [notifications, setNotifications] = useState<any[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showAddRacquetModal, setShowAddRacquetModal] = useState(false);
@@ -103,8 +100,6 @@ export default function CustomerDashboard({ user }: { user: any }) {
           id: snapshot.docs[0].id,
           ...data
         });
-        setEditName(data.name || "");
-        setEditPhone(data.phone || "");
       } else {
         // Create customer record if it doesn't exist
         try {
@@ -253,25 +248,6 @@ export default function CustomerDashboard({ user }: { user: any }) {
     }
   };
 
-  const handleProfileUpdate = async (e: React.FormEvent) => {
-    if (e && e.preventDefault) e.preventDefault();
-    if (!customerInfo?.id) {
-      console.error("No customer ID found for update");
-      return;
-    }
-
-    try {
-      await updateDoc(doc(db, "customers", customerInfo.id), {
-        name: editName,
-        phone: editPhone,
-        updated_at: new Date().toISOString()
-      });
-      setIsEditingProfile(false);
-    } catch (error) {
-      handleFirestoreError(error, OperationType.UPDATE, "customers");
-    }
-  };
-
   const handleAddRacquet = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!customerInfo?.id || !user.email) return;
@@ -345,12 +321,6 @@ export default function CustomerDashboard({ user }: { user: any }) {
               className={`flex-1 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all ${activeTab === 'racquets' ? 'bg-white dark:bg-neutral-700 text-primary shadow-sm' : 'text-neutral-500 hover:text-primary'}`}
             >
               My Bag
-            </button>
-            <button 
-              onClick={() => setActiveTab('profile')}
-              className={`flex-1 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all ${activeTab === 'profile' ? 'bg-white dark:bg-neutral-700 text-primary shadow-sm' : 'text-neutral-500 hover:text-primary'}`}
-            >
-              Profile
             </button>
           </div>
 
@@ -466,7 +436,7 @@ export default function CustomerDashboard({ user }: { user: any }) {
             </div>
           )}
         </div>
-      ) : activeTab === 'racquets' ? (
+      ) : (
         <div className="space-y-6">
           <div className="flex justify-between items-center">
             <h2 className="text-xl font-bold text-primary">My Racquets</h2>
@@ -545,89 +515,6 @@ export default function CustomerDashboard({ user }: { user: any }) {
               </button>
             </div>
           )}
-          </div>
-        </div>
-      ) : (
-        <div className="max-w-2xl mx-auto space-y-6">
-          <div className="bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-3xl p-8 shadow-sm">
-            <div className="flex items-center justify-between mb-8">
-              <div className="flex items-center gap-6">
-                <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center">
-                  <Users className="w-10 h-10 text-primary" />
-                </div>
-                <div>
-                  {isEditingProfile ? (
-                    <input
-                      type="text"
-                      value={editName}
-                      onChange={(e) => setEditName(e.target.value)}
-                      className="text-2xl font-bold text-primary bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-xl px-4 py-1 outline-none focus:ring-2 focus:ring-primary/20"
-                    />
-                  ) : (
-                    <h2 className="text-2xl font-bold text-primary">{customerInfo?.name || user.email?.split('@')[0]}</h2>
-                  )}
-                  <p className="text-neutral-500">{user.email}</p>
-                </div>
-              </div>
-              <button 
-                onClick={() => isEditingProfile ? handleProfileUpdate({ preventDefault: () => {} } as any) : setIsEditingProfile(true)}
-                className={`p-3 rounded-full transition-all ${isEditingProfile ? 'bg-primary text-white hover:bg-primary/90' : 'bg-neutral-100 dark:bg-neutral-700 text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200'}`}
-              >
-                {isEditingProfile ? <Save className="w-5 h-5" /> : <Edit2 className="w-5 h-5" />}
-              </button>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-1">
-                <p className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Phone Number</p>
-                {isEditingProfile ? (
-                  <input
-                    type="tel"
-                    value={editPhone}
-                    onChange={(e) => setEditPhone(e.target.value)}
-                    className="w-full text-neutral-900 dark:text-white font-medium bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-xl px-4 py-2 outline-none focus:ring-2 focus:ring-primary/20"
-                  />
-                ) : (
-                  <p className="text-neutral-900 dark:text-white font-medium">{customerInfo?.phone || 'Not provided'}</p>
-                )}
-              </div>
-              <div className="space-y-1">
-                <p className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Member Since</p>
-                <p className="text-neutral-900 dark:text-white font-medium">{safeFormatDate(user.metadata?.creationTime, 'MMMM d, yyyy')}</p>
-              </div>
-            </div>
-
-            {isEditingProfile && (
-              <div className="mt-8 flex gap-3">
-                <button 
-                  onClick={handleProfileUpdate}
-                  className="flex-1 bg-primary text-white py-3 rounded-xl font-bold hover:bg-primary/90 transition-all flex items-center justify-center gap-2"
-                >
-                  <Save className="w-4 h-4" />
-                  Save Changes
-                </button>
-                <button 
-                  onClick={() => {
-                    setIsEditingProfile(false);
-                    setEditName(customerInfo?.name || "");
-                    setEditPhone(customerInfo?.phone || "");
-                  }}
-                  className="px-6 bg-neutral-100 dark:bg-neutral-700 text-neutral-600 dark:text-neutral-300 py-3 rounded-xl font-bold hover:bg-neutral-200 transition-all"
-                >
-                  Cancel
-                </button>
-              </div>
-            )}
-          </div>
-
-          <div className="bg-primary/5 dark:bg-primary/10 border border-primary/10 rounded-2xl p-6">
-            <h3 className="font-bold text-primary mb-2 flex items-center gap-2">
-              <CheckCircle2 className="w-5 h-5" />
-              Account Connected
-            </h3>
-            <p className="text-sm text-neutral-600 dark:text-neutral-400">
-              Your account is linked to your email address. Your stringer uses this email to associate your racquets and jobs with your portal.
-            </p>
           </div>
         </div>
       )}

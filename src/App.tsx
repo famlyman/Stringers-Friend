@@ -8,6 +8,7 @@ import Inventory from "./pages/Inventory";
 import CustomerList from "./pages/CustomerList";
 import ScanResult from "./pages/ScanResult";
 import PublicShop from "./pages/PublicShop";
+import Profile from "./pages/Profile";
 import Layout from "./components/Layout";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { AuthProvider, useAuth } from "./context/AuthContext";
@@ -61,6 +62,7 @@ function AppRoutes() {
           <Route path="/setup" element={user?.profile?.role === 'stringer' ? <ShopSetup user={user.profile} /> : <Navigate to="/" />} />
           <Route path="/inventory" element={user?.profile?.role === 'stringer' ? <Inventory user={user.profile} /> : <Navigate to="/" />} />
           <Route path="/customers" element={user?.profile?.role === 'stringer' ? <CustomerList user={user.profile} /> : <Navigate to="/" />} />
+          <Route path="/profile" element={<Profile user={user.profile} />} />
         </Route>
         <Route path="/:slug" element={<PublicShop />} />
       </Routes>

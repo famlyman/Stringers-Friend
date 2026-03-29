@@ -30,13 +30,23 @@ export default function Layout({ user, onLogout }: LayoutProps) {
             <Package className="w-5 h-5 md:w-4 md:h-4 md:mr-3 group-hover:text-primary" />
             <span className="mt-1 md:mt-0">Inventory</span>
           </Link>
+          <Link to="/profile" className="flex flex-col md:flex-row items-center px-4 py-2 text-xs md:text-sm font-medium text-neutral-700 dark:text-neutral-300 rounded-lg hover:bg-primary/10 hover:text-primary dark:hover:text-primary transition-colors group">
+            <User className="w-5 h-5 md:w-4 md:h-4 md:mr-3 group-hover:text-primary" />
+            <span className="mt-1 md:mt-0">Profile</span>
+          </Link>
         </>
       )}
       {user.role === 'customer' && (
-        <Link to="/" className="flex flex-col md:flex-row items-center px-4 py-2 text-xs md:text-sm font-medium text-neutral-700 dark:text-neutral-300 rounded-lg hover:bg-primary/10 hover:text-primary dark:hover:text-primary transition-colors group">
-          <User className="w-5 h-5 md:w-4 md:h-4 md:mr-3 group-hover:text-primary" />
-          <span className="mt-1 md:mt-0">My Jobs</span>
-        </Link>
+        <>
+          <Link to="/" className="flex flex-col md:flex-row items-center px-4 py-2 text-xs md:text-sm font-medium text-neutral-700 dark:text-neutral-300 rounded-lg hover:bg-primary/10 hover:text-primary dark:hover:text-primary transition-colors group">
+            <LayoutDashboard className="w-5 h-5 md:w-4 md:h-4 md:mr-3 group-hover:text-primary" />
+            <span className="mt-1 md:mt-0">My Jobs</span>
+          </Link>
+          <Link to="/profile" className="flex flex-col md:flex-row items-center px-4 py-2 text-xs md:text-sm font-medium text-neutral-700 dark:text-neutral-300 rounded-lg hover:bg-primary/10 hover:text-primary dark:hover:text-primary transition-colors group">
+            <User className="w-5 h-5 md:w-4 md:h-4 md:mr-3 group-hover:text-primary" />
+            <span className="mt-1 md:mt-0">Profile</span>
+          </Link>
+        </>
       )}
     </>
   );
