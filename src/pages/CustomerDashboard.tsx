@@ -332,7 +332,7 @@ export default function CustomerDashboard({ user }: { user: any }) {
           <p className="text-neutral-500 dark:text-neutral-400 mt-1">Manage your racquets and track your stringing jobs.</p>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center justify-end gap-2 sm:gap-4 w-full md:w-auto">
           {/* Notifications Dropdown */}
           <div className="relative">
             <button 
@@ -352,7 +352,7 @@ export default function CustomerDashboard({ user }: { user: any }) {
             </button>
 
             {showNotifications && (
-              <div className="absolute right-0 mt-3 w-80 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-3xl shadow-2xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2">
+              <div className="absolute right-0 mt-3 w-[calc(100vw-2rem)] sm:w-80 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-3xl shadow-2xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2">
                 <div className="p-4 border-b border-neutral-100 dark:border-neutral-800 flex justify-between items-center">
                   <h3 className="font-bold text-primary">Notifications</h3>
                   <button 
@@ -393,22 +393,22 @@ export default function CustomerDashboard({ user }: { user: any }) {
             )}
           </div>
 
-          <div className="bg-neutral-100 dark:bg-neutral-800 p-1 rounded-xl flex">
+          <div className="bg-neutral-100 dark:bg-neutral-800 p-1 rounded-xl flex w-full sm:w-auto">
           <button 
             onClick={() => setActiveTab('jobs')}
-            className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'jobs' ? 'bg-white dark:bg-neutral-700 text-primary shadow-sm' : 'text-neutral-500 hover:text-primary'}`}
+            className={`flex-1 sm:flex-none px-2 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all ${activeTab === 'jobs' ? 'bg-white dark:bg-neutral-700 text-primary shadow-sm' : 'text-neutral-500 hover:text-primary'}`}
           >
             My Jobs
           </button>
           <button 
             onClick={() => setActiveTab('racquets')}
-            className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'racquets' ? 'bg-white dark:bg-neutral-700 text-primary shadow-sm' : 'text-neutral-500 hover:text-primary'}`}
+            className={`flex-1 sm:flex-none px-2 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all ${activeTab === 'racquets' ? 'bg-white dark:bg-neutral-700 text-primary shadow-sm' : 'text-neutral-500 hover:text-primary'}`}
           >
             My Bag
           </button>
           <button 
             onClick={() => setActiveTab('profile')}
-            className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'profile' ? 'bg-white dark:bg-neutral-700 text-primary shadow-sm' : 'text-neutral-500 hover:text-primary'}`}
+            className={`flex-1 sm:flex-none px-2 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all ${activeTab === 'profile' ? 'bg-white dark:bg-neutral-700 text-primary shadow-sm' : 'text-neutral-500 hover:text-primary'}`}
           >
             Profile
           </button>
