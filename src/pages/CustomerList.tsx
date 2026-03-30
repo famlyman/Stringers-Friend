@@ -95,7 +95,8 @@ export default function CustomerList({ user }: { user: any }) {
 
     const q = query(
       collection(db, "racquets"), 
-      where("customer_id", "==", selectedCustomer.id)
+      where("customer_id", "==", selectedCustomer.id),
+      where("shop_id", "==", user.shop_id)
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -217,13 +218,21 @@ export default function CustomerList({ user }: { user: any }) {
       batch.delete(doc(db, "customers", customerId));
       
       // Delete customer's racquets
-      const racquetsSnap = await getDocs(query(collection(db, "racquets"), where("customer_id", "==", customerId)));
+      const racquetsSnap = await getDocs(query(
+        collection(db, "racquets"), 
+        where("customer_id", "==", customerId),
+        where("shop_id", "==", user.shop_id)
+      ));
       racquetsSnap.forEach(rDoc => {
         batch.delete(doc(db, "racquets", rDoc.id));
       });
       
       // Delete customer's jobs
-      const jobsSnap = await getDocs(query(collection(db, "jobs"), where("customer_id", "==", customerId)));
+      const jobsSnap = await getDocs(query(
+        collection(db, "jobs"), 
+        where("customer_id", "==", customerId),
+        where("shop_id", "==", user.shop_id)
+      ));
       jobsSnap.forEach(jDoc => {
         batch.delete(doc(db, "jobs", jDoc.id));
       });

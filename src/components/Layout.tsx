@@ -42,15 +42,15 @@ export default function Layout({ user, onLogout }: LayoutProps) {
       )}
       {user.role === 'customer' && (
         <>
-          <Link to="/" className="flex flex-col md:flex-row items-center px-4 py-2 text-xs md:text-sm font-medium text-neutral-700 dark:text-neutral-300 rounded-lg hover:bg-primary/10 hover:text-primary dark:hover:text-primary transition-colors group shrink-0">
+          <Link to="/?tab=jobs" className="flex flex-col md:flex-row items-center px-4 py-2 text-xs md:text-sm font-medium text-neutral-700 dark:text-neutral-300 rounded-lg hover:bg-primary/10 hover:text-primary dark:hover:text-primary transition-colors group shrink-0">
             <Clock className="w-5 h-5 md:w-4 md:h-4 md:mr-3 group-hover:text-primary" />
             <span className="mt-1 md:mt-0">My Jobs</span>
           </Link>
-          <Link to="/racquets" className="flex flex-col md:flex-row items-center px-4 py-2 text-xs md:text-sm font-medium text-neutral-700 dark:text-neutral-300 rounded-lg hover:bg-primary/10 hover:text-primary dark:hover:text-primary transition-colors group shrink-0">
+          <Link to="/?tab=racquets" className="flex flex-col md:flex-row items-center px-4 py-2 text-xs md:text-sm font-medium text-neutral-700 dark:text-neutral-300 rounded-lg hover:bg-primary/10 hover:text-primary dark:hover:text-primary transition-colors group shrink-0">
             <Package className="w-5 h-5 md:w-4 md:h-4 md:mr-3 group-hover:text-primary" />
             <span className="mt-1 md:mt-0">My Bag</span>
           </Link>
-          <Link to="/messages" className="flex flex-col md:flex-row items-center px-4 py-2 text-xs md:text-sm font-medium text-neutral-700 dark:text-neutral-300 rounded-lg hover:bg-primary/10 hover:text-primary dark:hover:text-primary transition-colors group shrink-0">
+          <Link to="/?tab=messages" className="flex flex-col md:flex-row items-center px-4 py-2 text-xs md:text-sm font-medium text-neutral-700 dark:text-neutral-300 rounded-lg hover:bg-primary/10 hover:text-primary dark:hover:text-primary transition-colors group shrink-0">
             <MessageSquare className="w-5 h-5 md:w-4 md:h-4 md:mr-3 group-hover:text-primary" />
             <span className="mt-1 md:mt-0">Messages</span>
           </Link>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Clock, CheckCircle2, CreditCard, Package, X, Users, Bell, BellDot, Plus, MessageSquare, Send } from "lucide-react";
 import { safeFormatDate } from "../lib/utils";
+import { useSearchParams } from "react-router-dom";
 import { 
   collection, 
   query, 
@@ -17,20 +18,32 @@ import {
   serverTimestamp
 } from "firebase/firestore";
 import { db, handleFirestoreError, OperationType } from "../lib/firebase";
-import { Save, Edit2 } from "lucide-react";
+import { Save, Edit2, ChevronDown } from "lucide-react";
 import QRCodeDisplay from "../components/QRCodeDisplay";
 import { v4 as uuidv4 } from "uuid";
+import { RACQUET_BRANDS, RACQUET_MODELS, STRINGS } from "../constants";
 
 export default function CustomerDashboard({ user, initialTab = 'jobs' }: { user: any, initialTab?: 'jobs' | 'racquets' | 'messages' }) {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [jobs, setJobs] = useState<any[]>([]);
   const [racquets, setRacquets] = useState<any[]>([]);
   const [customerInfo, setCustomerInfo] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'jobs' | 'racquets' | 'messages'>(initialTab);
+  const [activeTab, setActiveTab] = useState<'jobs' | 'racquets' | 'messages'>(
+    (searchParams.get('tab') as any) || initialTab
+  );
 
   useEffect(() => {
-    setActiveTab(initialTab);
-  }, [initialTab]);
+    const tab = searchParams.get('tab');
+    if (tab && (tab === 'jobs' || tab === 'racquets' || tab === 'messages')) {
+      setActiveTab(tab as any);
+    }
+  }, [searchParams]);
+
+  const handleTabChange = (tab: 'jobs' | 'racquets' | 'messages') => {
+    setActiveTab(tab);
+    setSearchParams({ tab });
+  };
 
   const [messages, setMessages] = useState<any[]>([]);
   const [shops, setShops] = useState<any[]>([]);
@@ -300,7 +313,7 @@ export default function CustomerDashboard({ user, initialTab = 'jobs' }: { user:
         customer_email: user.email,
         customer_name: customerInfo?.name || user.email?.split('@')[0],
         title: "New Stringing Request",
-        message: `A new stringing request has been submitted for a ${selectedRacquet.brand} ${selectedRacquet.model}.`,
+        content: `A new stringing request has been submitted for a ${selectedRacquet.brand} ${selectedRacquet.model}.`,
         job_id: jobDoc.id,
         read: false,
         created_at: serverTimestamp()
@@ -315,7 +328,7 @@ export default function CustomerDashboard({ user, initialTab = 'jobs' }: { user:
         tension_cross: '',
         notes: ''
       });
-      setActiveTab('jobs');
+      handleTabChange('jobs');
     } catch (error) {
       handleFirestoreError(error, OperationType.CREATE, "jobs");
     }
@@ -384,19 +397,19 @@ export default function CustomerDashboard({ user, initialTab = 'jobs' }: { user:
         <div className="flex items-center justify-between gap-4 w-full mt-4">
           <div className="bg-neutral-100 dark:bg-neutral-800 p-1 rounded-xl flex flex-1 sm:flex-none">
             <button 
-              onClick={() => setActiveTab('jobs')}
+              onClick={() => handleTabChange('jobs')}
               className={`flex-1 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all ${activeTab === 'jobs' ? 'bg-white dark:bg-neutral-700 text-primary shadow-sm' : 'text-neutral-500 hover:text-primary'}`}
             >
               My Jobs
             </button>
             <button 
-              onClick={() => setActiveTab('racquets')}
+              onClick={() => handleTabChange('racquets')}
               className={`flex-1 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all ${activeTab === 'racquets' ? 'bg-white dark:bg-neutral-700 text-primary shadow-sm' : 'text-neutral-500 hover:text-primary'}`}
             >
               My Bag
             </button>
             <button 
-              onClick={() => setActiveTab('messages')}
+              onClick={() => handleTabChange('messages')}
               className={`flex-1 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all ${activeTab === 'messages' ? 'bg-white dark:bg-neutral-700 text-primary shadow-sm' : 'text-neutral-500 hover:text-primary'}`}
             >
               Messages
@@ -445,7 +458,7 @@ export default function CustomerDashboard({ user, initialTab = 'jobs' }: { user:
                         className={`p-4 border-b border-neutral-50 dark:border-neutral-800/50 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors cursor-pointer ${!n.read ? 'bg-primary/5 dark:bg-primary/10' : ''}`}
                         onClick={() => {
                           markAsRead(n.id);
-                          setActiveTab('jobs');
+                          handleTabChange('jobs');
                           setShowNotifications(false);
                         }}
                       >
@@ -536,6 +549,14 @@ export default function CustomerDashboard({ user, initialTab = 'jobs' }: { user:
                   <h3 className="font-bold text-primary truncate">{racquet.brand} {racquet.model}</h3>
                   <p className="text-[10px] text-neutral-400 font-mono uppercase">SN: {racquet.serial_number || 'N/A'}</p>
                 </div>
+              </div>
+
+              <div className="flex justify-center">
+                <QRCodeDisplay 
+                  value={racquet.qr_code || `racquet_${racquet.id}`} 
+                  label={`${racquet.brand} ${racquet.model}`}
+                  serialNumber={racquet.serial_number}
+                />
               </div>
 
               <div className="grid grid-cols-2 gap-4 mb-6">
@@ -710,24 +731,44 @@ export default function CustomerDashboard({ user, initialTab = 'jobs' }: { user:
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Main String</label>
-                  <input
-                    type="text"
+                  <select
                     required
                     value={requestData.string_main}
                     onChange={(e) => setRequestData({...requestData, string_main: e.target.value})}
-                    placeholder="e.g. RPM Blast"
-                    className="w-full px-4 py-2 rounded-xl bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 focus:ring-2 focus:ring-primary/20 outline-none transition-all text-sm"
-                  />
+                    className="w-full px-4 py-2 rounded-xl bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 focus:ring-2 focus:ring-primary/20 outline-none transition-all text-sm appearance-none"
+                  >
+                    <option value="">Select String</option>
+                    {STRINGS.map(brand => (
+                      <optgroup key={brand.brand} label={brand.brand}>
+                        {brand.models.map(model => (
+                          <option key={`${brand.brand} ${model}`} value={`${brand.brand} ${model}`}>
+                            {brand.brand} {model}
+                          </option>
+                        ))}
+                      </optgroup>
+                    ))}
+                    <option value="Other">Other (Specify in notes)</option>
+                  </select>
                 </div>
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Cross String</label>
-                  <input
-                    type="text"
+                  <select
                     value={requestData.string_cross}
                     onChange={(e) => setRequestData({...requestData, string_cross: e.target.value})}
-                    placeholder="Same as main"
-                    className="w-full px-4 py-2 rounded-xl bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 focus:ring-2 focus:ring-primary/20 outline-none transition-all text-sm"
-                  />
+                    className="w-full px-4 py-2 rounded-xl bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 focus:ring-2 focus:ring-primary/20 outline-none transition-all text-sm appearance-none"
+                  >
+                    <option value="">Same as main</option>
+                    {STRINGS.map(brand => (
+                      <optgroup key={brand.brand} label={brand.brand}>
+                        {brand.models.map(model => (
+                          <option key={`${brand.brand} ${model}`} value={`${brand.brand} ${model}`}>
+                            {brand.brand} {model}
+                          </option>
+                        ))}
+                      </optgroup>
+                    ))}
+                    <option value="Other">Other (Specify in notes)</option>
+                  </select>
                 </div>
               </div>
 
@@ -737,6 +778,8 @@ export default function CustomerDashboard({ user, initialTab = 'jobs' }: { user:
                   <input
                     type="number"
                     required
+                    min="10"
+                    max="80"
                     value={requestData.tension_main}
                     onChange={(e) => setRequestData({...requestData, tension_main: e.target.value})}
                     placeholder="52"
@@ -747,6 +790,8 @@ export default function CustomerDashboard({ user, initialTab = 'jobs' }: { user:
                   <label className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Cross Tension (lbs)</label>
                   <input
                     type="number"
+                    min="10"
+                    max="80"
                     value={requestData.tension_cross}
                     onChange={(e) => setRequestData({...requestData, tension_cross: e.target.value})}
                     placeholder="Same as main"
@@ -790,25 +835,44 @@ export default function CustomerDashboard({ user, initialTab = 'jobs' }: { user:
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Brand</label>
-                  <input
-                    type="text"
+                  <select
                     required
                     value={newRacquetData.brand}
-                    onChange={(e) => setNewRacquetData({...newRacquetData, brand: e.target.value})}
-                    placeholder="e.g. Wilson"
-                    className="w-full px-4 py-2 rounded-xl bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 focus:ring-2 focus:ring-primary/20 outline-none transition-all text-sm"
-                  />
+                    onChange={(e) => setNewRacquetData({...newRacquetData, brand: e.target.value, model: ''})}
+                    className="w-full px-4 py-2 rounded-xl bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 focus:ring-2 focus:ring-primary/20 outline-none transition-all text-sm appearance-none"
+                  >
+                    <option value="">Select Brand</option>
+                    {RACQUET_BRANDS.map(brand => (
+                      <option key={brand} value={brand}>{brand}</option>
+                    ))}
+                    <option value="Other">Other</option>
+                  </select>
                 </div>
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Model</label>
-                  <input
-                    type="text"
-                    required
-                    value={newRacquetData.model}
-                    onChange={(e) => setNewRacquetData({...newRacquetData, model: e.target.value})}
-                    placeholder="e.g. Pro Staff 97"
-                    className="w-full px-4 py-2 rounded-xl bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 focus:ring-2 focus:ring-primary/20 outline-none transition-all text-sm"
-                  />
+                  {newRacquetData.brand && RACQUET_MODELS[newRacquetData.brand] ? (
+                    <select
+                      required
+                      value={newRacquetData.model}
+                      onChange={(e) => setNewRacquetData({...newRacquetData, model: e.target.value})}
+                      className="w-full px-4 py-2 rounded-xl bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 focus:ring-2 focus:ring-primary/20 outline-none transition-all text-sm appearance-none"
+                    >
+                      <option value="">Select Model</option>
+                      {RACQUET_MODELS[newRacquetData.brand].map(model => (
+                        <option key={model} value={model}>{model}</option>
+                      ))}
+                      <option value="Other">Other</option>
+                    </select>
+                  ) : (
+                    <input
+                      type="text"
+                      required
+                      value={newRacquetData.model}
+                      onChange={(e) => setNewRacquetData({...newRacquetData, model: e.target.value})}
+                      placeholder="e.g. Pro Staff 97"
+                      className="w-full px-4 py-2 rounded-xl bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 focus:ring-2 focus:ring-primary/20 outline-none transition-all text-sm"
+                    />
+                  )}
                 </div>
               </div>
 

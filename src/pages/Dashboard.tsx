@@ -102,7 +102,8 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
 
     // Fetch Racquets
     const racquetsQuery = query(
-      collection(db, "racquets")
+      collection(db, "racquets"),
+      where("shop_id", "==", user.shop_id)
     );
     const unsubscribeRacquets = onSnapshot(racquetsQuery, (snapshot) => {
       setRacquets(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
@@ -396,10 +397,18 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
       batch.delete(doc(db, "customers", customerId));
       
       // Delete their racquets and jobs
-      const racquetsSnap = await getDocs(query(collection(db, "racquets"), where("customer_id", "==", customerId)));
+      const racquetsSnap = await getDocs(query(
+        collection(db, "racquets"), 
+        where("customer_id", "==", customerId),
+        where("shop_id", "==", user.shop_id)
+      ));
       for (const rDoc of racquetsSnap.docs) {
         batch.delete(doc(db, "racquets", rDoc.id));
-        const jobsSnap = await getDocs(query(collection(db, "jobs"), where("racquet_id", "==", rDoc.id)));
+        const jobsSnap = await getDocs(query(
+          collection(db, "jobs"), 
+          where("racquet_id", "==", rDoc.id),
+          where("shop_id", "==", user.shop_id)
+        ));
         for (const jDoc of jobsSnap.docs) {
           batch.delete(doc(db, "jobs", jDoc.id));
         }
@@ -473,7 +482,11 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
     try {
       const batch = writeBatch(db);
       batch.delete(doc(db, "racquets", racquetId));
-      const jobsSnap = await getDocs(query(collection(db, "jobs"), where("racquet_id", "==", racquetId)));
+      const jobsSnap = await getDocs(query(
+        collection(db, "jobs"), 
+        where("racquet_id", "==", racquetId),
+        where("shop_id", "==", user.shop_id)
+      ));
       for (const jDoc of jobsSnap.docs) {
         batch.delete(doc(db, "jobs", jDoc.id));
       }

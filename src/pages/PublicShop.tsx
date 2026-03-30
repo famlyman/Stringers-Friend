@@ -47,8 +47,9 @@ export default function PublicShop() {
         created_at: new Date().toISOString(),
         read: false,
         // Keep these for backward compatibility or extra info
-        email: contactForm.email,
-        phone: contactForm.phone
+        customer_email: contactForm.email,
+        phone: contactForm.phone,
+        title: `New Inquiry from ${contactForm.name}`
       });
       setSubmitted(true);
       setContactForm({ name: "", email: "", phone: "", content: "" });
