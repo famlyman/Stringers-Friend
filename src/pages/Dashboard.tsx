@@ -3,8 +3,8 @@ import { RACQUET_BRANDS, RACQUET_MODELS, STRINGS, GAUGES } from "../constants";
 import { racquetSpecsService } from "../services/racquetSpecsService";
 import { Plus, Search, Filter, CheckCircle2, Clock, PlayCircle, CreditCard, X, Trash2, Users, Briefcase, Edit2, ChevronRight, ChevronDown, Printer, Package, MessageSquare, Mail, Phone, Send } from "lucide-react";
 import QRCodeDisplay from "../components/QRCodeDisplay";
-import { collection, query, where, onSnapshot, doc, setDoc, updateDoc, deleteDoc, getDocs, writeBatch, serverTimestamp, orderBy } from "firebase/firestore";
-import { db, handleFirestoreError, OperationType } from "../lib/firebase";
+import { collection, query, where, onSnapshot, doc, setDoc, updateDoc, deleteDoc, getDocs, writeBatch, serverTimestamp, orderBy, getDoc } from "firebase/firestore";
+import { db, handleFirestoreError, OperationType, requestNotificationPermission } from "../lib/firebase";
 import { v4 as uuidv4 } from "uuid";
 import { safeFormatDate } from "../lib/utils";
 
@@ -135,6 +135,12 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
   useEffect(() => {
     setActiveTab(initialTab);
   }, [initialTab]);
+
+  useEffect(() => {
+    if (user?.uid) {
+      requestNotificationPermission(user.uid);
+    }
+  }, [user?.uid]);
 
   useEffect(() => {
     if (!user || !user.shop_id) return;
@@ -692,6 +698,27 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
         created_at: serverTimestamp(),
         read: false
       });
+
+      // Send Push Notification to Customer
+      try {
+        const customerDoc = await getDoc(doc(db, "users", selectedCustomerIdForChat));
+        const customerData = customerDoc.data();
+        if (customerData?.fcmToken) {
+          await fetch("/api/send-notification", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              token: customerData.fcmToken,
+              title: `New message from ${shop?.name || "your stringer"}`,
+              body: newMessage.trim(),
+              data: { type: "message", shop_id: user.shop_id }
+            })
+          });
+        }
+      } catch (pushErr) {
+        console.error("Error sending push notification:", pushErr);
+      }
+
       setNewMessage("");
     } catch (err) {
       handleFirestoreError(err, OperationType.WRITE, "messages");

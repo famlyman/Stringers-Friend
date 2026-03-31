@@ -15,9 +15,10 @@ import {
   limit,
   setDoc,
   writeBatch,
-  serverTimestamp
+  serverTimestamp,
+  getDoc
 } from "firebase/firestore";
-import { db, handleFirestoreError, OperationType } from "../lib/firebase";
+import { db, handleFirestoreError, OperationType, requestNotificationPermission } from "../lib/firebase";
 import { Save, Edit2, ChevronDown } from "lucide-react";
 import QRCodeDisplay from "../components/QRCodeDisplay";
 import { v4 as uuidv4 } from "uuid";
@@ -40,6 +41,12 @@ export default function CustomerDashboard({ user, initialTab = 'jobs' }: { user:
       setActiveTab(tab as any);
     }
   }, [searchParams]);
+
+  useEffect(() => {
+    if (user?.uid) {
+      requestNotificationPermission(user.uid);
+    }
+  }, [user?.uid]);
 
   const handleTabChange = (tab: 'jobs' | 'racquets' | 'messages') => {
     setActiveTab(tab);
@@ -392,6 +399,31 @@ export default function CustomerDashboard({ user, initialTab = 'jobs' }: { user:
         created_at: serverTimestamp(),
         read: false
       });
+
+      // Send Push Notification to Shop Owner
+      try {
+        const shopDoc = await getDoc(doc(db, "shops", selectedShopId));
+        const shopData = shopDoc.data();
+        if (shopData?.owner_id) {
+          const ownerDoc = await getDoc(doc(db, "users", shopData.owner_id));
+          const ownerData = ownerDoc.data();
+          if (ownerData?.fcmToken) {
+            await fetch("/api/send-notification", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                token: ownerData.fcmToken,
+                title: `New message from ${customerInfo?.name || user.email.split('@')[0]}`,
+                body: newMessage.trim(),
+                data: { type: "message", customer_id: user.uid }
+              })
+            });
+          }
+        }
+      } catch (pushErr) {
+        console.error("Error sending push notification:", pushErr);
+      }
+
       setNewMessage("");
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, "messages");
