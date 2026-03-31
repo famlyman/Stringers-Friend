@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
-import { QrCode, User, Info, History, AlertCircle } from "lucide-react";
+import { useParams, Link, useNavigate } from "react-router-dom";
+import { QrCode, User, Info, History, AlertCircle, CheckCircle2 } from "lucide-react";
 import { safeFormatDate } from "../lib/utils";
 import { 
   collection, 
@@ -10,15 +10,54 @@ import {
   orderBy,
   limit,
   doc,
-  getDoc
+  getDoc,
+  addDoc,
+  serverTimestamp
 } from "firebase/firestore";
 import { db, handleFirestoreError, OperationType } from "../lib/firebase";
+import { useAuth } from "../context/AuthContext";
 
 export default function ScanResult() {
   const { qrCode } = useParams();
+  const { user, profile } = useAuth();
+  const navigate = useNavigate();
   const [result, setResult] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [joining, setJoining] = useState(false);
+  const [joined, setJoined] = useState(false);
+
+  const handleJoinShop = async () => {
+    if (!user || !result || result.type !== 'shop' || joining) return;
+    
+    setJoining(true);
+    try {
+      const qShop = query(
+        collection(db, "customers"), 
+        where("email", "==", user.email),
+        where("shop_id", "==", result.data.id)
+      );
+      const shopSnap = await getDocs(qShop);
+      
+      if (shopSnap.empty) {
+        await addDoc(collection(db, "customers"), {
+          name: profile?.name || user.displayName || user.email?.split('@')[0] || "Customer",
+          email: user.email,
+          phone: profile?.phone || "",
+          shop_id: result.data.id,
+          uid: user.uid,
+          created_at: serverTimestamp()
+        });
+      }
+      setJoined(true);
+      setTimeout(() => navigate("/"), 1500);
+    } catch (err) {
+      console.error("Error joining shop:", err);
+      setError("Failed to join shop. Please try again.");
+    } finally {
+      setJoining(false);
+    }
+  };
 
   useEffect(() => {
     const fetchScan = async () => {
@@ -213,9 +252,38 @@ export default function ScanResult() {
             </div>
 
             <div className="mt-8 pt-8 border-t border-neutral-100 dark:border-neutral-700">
-              <Link to={`/register?shopId=${result.data.id}`} className="block w-full bg-primary text-white text-center py-3 rounded-xl font-bold hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all active:scale-[0.98]">
-                Register as Customer
-              </Link>
+              {user ? (
+                profile?.role === 'customer' ? (
+                  <button 
+                    onClick={handleJoinShop}
+                    disabled={joining || joined}
+                    className={`w-full py-3 rounded-xl font-bold transition-all flex items-center justify-center gap-2 ${
+                      joined 
+                        ? "bg-green-500 text-white" 
+                        : "bg-primary text-white hover:bg-primary/90 shadow-lg shadow-primary/20 active:scale-[0.98]"
+                    }`}
+                  >
+                    {joined ? (
+                      <>
+                        <CheckCircle2 className="w-5 h-5" />
+                        Joined Successfully!
+                      </>
+                    ) : joining ? (
+                      "Joining Shop..."
+                    ) : (
+                      "Join this Shop"
+                    )}
+                  </button>
+                ) : (
+                  <p className="text-center text-sm text-neutral-500 dark:text-neutral-400 italic">
+                    Logged in as a Stringer. Switch to a customer account to join this shop.
+                  </p>
+                )
+              ) : (
+                <Link to={`/register?shopId=${result.data.id}`} className="block w-full bg-primary text-white text-center py-3 rounded-xl font-bold hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all active:scale-[0.98]">
+                  Register as Customer
+                </Link>
+              )}
             </div>
           </div>
         ) : result.type === "inventory" ? (

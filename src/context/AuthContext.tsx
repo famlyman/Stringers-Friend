@@ -8,6 +8,8 @@ interface UserProfile {
   email: string;
   role: 'stringer' | 'customer';
   shop_id?: string;
+  name?: string;
+  phone?: string;
 }
 
 interface AuthContextType {
