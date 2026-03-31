@@ -196,7 +196,7 @@ service cloud.firestore {
              isValidOptionalString(data, 'phone', 0, 20) &&
              data.get('owner_id', '') is string && data.get('owner_id', '').size() > 0 &&
              isValidOptionalString(data, 'qr_code', 0, 100) &&
-             (!( 'created_at' in data) || data.get('created_at', request.time) is timestamp);
+             (!( 'created_at' in data) || data.get('created_at', request.time) is timestamp || data.get('created_at', '') is string);
     }
 
     function isValidCustomer(data) {
@@ -227,7 +227,8 @@ service cloud.firestore {
              (!( 'current_tension_main' in data) || (data.get('current_tension_main', 0) is number && data.get('current_tension_main', 0) >= 0 && data.get('current_tension_main', 0) <= 100)) &&
              (!( 'current_tension_cross' in data) || (data.get('current_tension_cross', 0) is number && data.get('current_tension_cross', 0) >= 0 && data.get('current_tension_cross', 0) <= 100)) &&
              data.get('shop_id', '') is string && data.get('shop_id', '').size() > 0 &&
-             (!( 'created_at' in data) || data.get('created_at', request.time) is timestamp);
+             (!( 'created_at' in data) || data.get('created_at', request.time) is timestamp) &&
+             (!( 'updated_at' in data) || data.get('updated_at', request.time) is timestamp);
     }
 
     function isValidJob(data) {
@@ -245,7 +246,8 @@ service cloud.firestore {
              (!( 'tension_cross' in data) || (data.get('tension_cross', 0) is number && data.get('tension_cross', 0) >= 0 && data.get('tension_cross', 0) <= 100)) &&
              (!( 'price' in data) || (data.get('price', 0) is number && data.get('price', 0) >= 0 && data.get('price', 0) <= 1000)) &&
              data.get('shop_id', '') is string && data.get('shop_id', '').size() > 0 &&
-             (!( 'created_at' in data) || data.get('created_at', request.time) is timestamp);
+             (!( 'created_at' in data) || data.get('created_at', request.time) is timestamp) &&
+             (!( 'updated_at' in data) || data.get('updated_at', request.time) is timestamp);
     }
 
     function isValidInventoryItem(data) {
@@ -259,7 +261,8 @@ service cloud.firestore {
              (!( 'quantity' in data) || (data.get('quantity', 0) is number && data.get('quantity', 0) >= 0 && data.get('quantity', 0) <= 10000)) &&
              (!( 'price' in data) || (data.get('price', 0) is number && data.get('price', 0) >= 0 && data.get('price', 0) <= 1000)) &&
              data.get('shop_id', '') is string && data.get('shop_id', '').size() > 0 &&
-             (!( 'created_at' in data) || data.get('created_at', request.time) is timestamp);
+             (!( 'created_at' in data) || data.get('created_at', request.time) is timestamp) &&
+             (!( 'updated_at' in data) || data.get('updated_at', request.time) is timestamp);
     }
 
     function isValidMessage(data) {
@@ -282,15 +285,18 @@ service cloud.firestore {
     }
 
     function isValidNotification(data) {
-      return hasOnlyAllowedFields(['id', 'shop_id', 'customer_id', 'customer_email', 'type', 'title', 'content', 'created_at', 'updated_at']) &&
+      return hasOnlyAllowedFields(['id', 'shop_id', 'customer_id', 'customer_email', 'type', 'title', 'content', 'message', 'job_id', 'read', 'created_at', 'updated_at']) &&
              data.get('id', '') is string && data.get('id', '').size() > 0 &&
              data.get('shop_id', '') is string && data.get('shop_id', '').size() > 0 &&
              isValidOptionalString(data, 'customer_id', 0, 50) &&
              isValidOptionalString(data, 'customer_email', 0, 100) &&
-             data.get('type', '') in ['job_completed', 'payment_received', 'message_received', 'other'] &&
+             (!( 'type' in data) || data.get('type', '') in ['job_completed', 'payment_received', 'message_received', 'other']) &&
              data.get('title', '') is string && data.get('title', '').size() > 0 && data.get('title', '').size() <= 100 &&
-             data.get('content', '') is string && data.get('content', '').size() > 0 && data.get('content', '').size() <= 1000 &&
-             (!( 'created_at' in data) || data.get('created_at', request.time) is timestamp);
+             isValidOptionalString(data, 'content', 0, 1000) &&
+             isValidOptionalString(data, 'message', 0, 1000) &&
+             isValidOptionalString(data, 'job_id', 0, 50) &&
+             (!( 'read' in data) || data.get('read', false) is bool) &&
+             (!( 'created_at' in data) || data.get('created_at', request.time) is timestamp || data.get('created_at', '') is string);
     }
 
     // ===============================================================

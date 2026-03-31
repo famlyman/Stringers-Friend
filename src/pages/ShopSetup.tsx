@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { doc, setDoc, updateDoc } from "firebase/firestore";
+import { doc, setDoc, updateDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { v4 as uuidv4 } from "uuid";
 
@@ -50,7 +50,7 @@ export default function ShopSetup({ user }: { user: any }) {
         phone,
         owner_id: user.uid,
         qr_code: qrCode,
-        created_at: new Date().toISOString()
+        created_at: serverTimestamp()
       });
 
       // Update user profile with shop_id

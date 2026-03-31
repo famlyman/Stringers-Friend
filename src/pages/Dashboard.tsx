@@ -251,13 +251,13 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
           brand,
           model,
           serial_number: newJob.racquet_serial,
-          head_size: newJob.racquet_head_size,
-          string_pattern_mains: newJob.racquet_mains,
-          string_pattern_crosses: newJob.racquet_crosses,
+          head_size: Number(newJob.racquet_head_size) || 0,
+          string_pattern_mains: Number(newJob.racquet_mains) || 0,
+          string_pattern_crosses: Number(newJob.racquet_crosses) || 0,
           current_string_main: stringMain,
           current_string_cross: stringCross,
-          current_tension_main: newJob.tension_main,
-          current_tension_cross: newJob.tension_cross,
+          current_tension_main: Number(newJob.tension_main) || 0,
+          current_tension_cross: Number(newJob.tension_cross) || 0,
           qr_code: `racquet_${finalRacquetId}`,
           created_at: serverTimestamp()
         });
@@ -284,8 +284,8 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
         batch.update(racquetRef, {
           current_string_main: stringMain,
           current_string_cross: stringCross,
-          current_tension_main: newJob.tension_main,
-          current_tension_cross: newJob.tension_cross,
+          current_tension_main: Number(newJob.tension_main) || 0,
+          current_tension_cross: Number(newJob.tension_cross) || 0,
           updated_at: serverTimestamp()
         });
       } else {
@@ -321,9 +321,9 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
         status: "pending",
         string_main: stringMain,
         string_cross: stringCross,
-        tension_main: newJob.tension_main,
-        tension_cross: newJob.tension_cross,
-        price: newJob.price,
+        tension_main: Number(newJob.tension_main) || 0,
+        tension_cross: Number(newJob.tension_cross) || 0,
+        price: Number(newJob.price) || 0,
         payment_status: "unpaid",
         notes: newJob.notes,
         created_at: serverTimestamp(),
@@ -339,10 +339,11 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
           customer_email: finalCustomerEmail,
           shop_id: user.shop_id,
           job_id: jobId,
+          type: "other",
           title: "New Job Created",
           message: `A new stringing job has been created for your ${racquet.brand} ${racquet.model}.`,
           read: false,
-          created_at: new Date().toISOString()
+          created_at: serverTimestamp()
         });
       }
 
@@ -437,10 +438,11 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
           customer_email: customer.email,
           shop_id: user.shop_id,
           job_id: jobId,
+          type: "other",
           title: `Job Status Updated: ${status.charAt(0).toUpperCase() + status.slice(1)}`,
           message: `Your ${racquet?.brand || 'racquet'} ${racquet?.model || ''} is now ${status}.`,
           read: false,
-          created_at: new Date().toISOString()
+          created_at: serverTimestamp()
         });
       }
     } catch (err) {
@@ -467,10 +469,11 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
             customer_email: customer.email,
             shop_id: user.shop_id,
             job_id: jobId,
+            type: "other",
             title: "Payment Received",
             message: `Payment for your ${racquet?.brand || 'racquet'} ${racquet?.model || ''} has been received. Thank you!`,
             read: false,
-            created_at: new Date().toISOString()
+            created_at: serverTimestamp()
           });
         }
       }

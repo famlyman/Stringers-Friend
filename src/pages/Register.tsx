@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { createUserWithEmailAndPassword } from "firebase/auth";
-import { doc, setDoc, query, collection, where, getDocs, updateDoc } from "firebase/firestore";
+import { doc, setDoc, query, collection, where, getDocs, updateDoc, serverTimestamp } from "firebase/firestore";
 import { auth, db } from "../lib/firebase";
 
 export default function Register() {
@@ -24,7 +24,8 @@ export default function Register() {
       await setDoc(doc(db, "users", user.uid), {
         uid: user.uid,
         email: user.email,
-        role: role
+        role: role,
+        created_at: serverTimestamp()
       });
 
       // If role is customer, link to existing customer records across all shops

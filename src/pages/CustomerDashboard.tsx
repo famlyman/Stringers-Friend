@@ -143,7 +143,7 @@ export default function CustomerDashboard({ user, initialTab = 'jobs' }: { user:
               name: user.email?.split('@')[0] || "New Customer",
               email: user.email,
               phone: "",
-              created_at: new Date().toISOString()
+              created_at: serverTimestamp()
             };
             await setDoc(doc(db, "customers", newCustomerId), newCustomer);
             // The onSnapshot will fire again with the new document
