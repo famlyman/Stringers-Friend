@@ -26,11 +26,17 @@ export const messaging = typeof window !== 'undefined' ? getMessaging(app) : nul
 export const requestNotificationPermission = async (userId: string) => {
   if (typeof window === 'undefined' || !messaging) return;
   
+  const vapidKey = import.meta.env.VITE_FIREBASE_VAPID_KEY;
+  if (!vapidKey) {
+    console.warn('VITE_FIREBASE_VAPID_KEY is missing. Push notifications will be disabled.');
+    return;
+  }
+  
   try {
     const permission = await Notification.requestPermission();
     if (permission === 'granted') {
       const token = await getToken(messaging, {
-        vapidKey: import.meta.env.VITE_FIREBASE_VAPID_KEY // We will need the user to provide this or use a default if possible
+        vapidKey: vapidKey
       });
       
       if (token) {
