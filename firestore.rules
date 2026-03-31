@@ -211,7 +211,7 @@ service cloud.firestore {
     }
 
     function isValidRacquet(data) {
-      return hasOnlyAllowedFields(['id', 'customer_id', 'customer_email', 'shop_id', 'brand', 'model', 'serial_number', 'head_size', 'string_pattern_mains', 'string_pattern_crosses', 'current_string_main', 'current_string_cross', 'current_tension_main', 'current_tension_cross', 'qr_code', 'created_at', 'updated_at']) &&
+      return hasOnlyAllowedFields(['id', 'customer_id', 'customer_email', 'shop_id', 'brand', 'model', 'serial_number', 'head_size', 'string_pattern_mains', 'string_pattern_crosses', 'mains_skip', 'mains_tie_off', 'crosses_start', 'crosses_tie_off', 'one_piece_length', 'two_piece_length', 'stringing_instructions', 'current_string_main', 'current_string_cross', 'current_tension_main', 'current_tension_cross', 'qr_code', 'created_at', 'updated_at']) &&
              data.get('id', '') is string && data.get('id', '').size() > 0 &&
              data.get('customer_id', '') is string && data.get('customer_id', '').size() > 0 &&
              data.get('brand', '') is string && data.get('brand', '').size() > 0 && data.get('brand', '').size() <= 100 &&
@@ -221,9 +221,16 @@ service cloud.firestore {
              isValidOptionalString(data, 'qr_code', 0, 100) &&
              isValidOptionalString(data, 'current_string_main', 0, 200) &&
              isValidOptionalString(data, 'current_string_cross', 0, 200) &&
+             isValidOptionalString(data, 'mains_skip', 0, 100) &&
+             isValidOptionalString(data, 'mains_tie_off', 0, 100) &&
+             isValidOptionalString(data, 'crosses_start', 0, 100) &&
+             isValidOptionalString(data, 'crosses_tie_off', 0, 100) &&
+             isValidOptionalString(data, 'stringing_instructions', 0, 2000) &&
              (!( 'head_size' in data) || (data.get('head_size', 0) is number && data.get('head_size', 0) >= 0 && data.get('head_size', 0) <= 200)) &&
              (!( 'string_pattern_mains' in data) || (data.get('string_pattern_mains', 0) is int && data.get('string_pattern_mains', 0) >= 0 && data.get('string_pattern_mains', 0) <= 30)) &&
              (!( 'string_pattern_crosses' in data) || (data.get('string_pattern_crosses', 0) is int && data.get('string_pattern_crosses', 0) >= 0 && data.get('string_pattern_crosses', 0) <= 30)) &&
+             (!( 'one_piece_length' in data) || (data.get('one_piece_length', 0) is number && data.get('one_piece_length', 0) >= 0 && data.get('one_piece_length', 0) <= 100)) &&
+             (!( 'two_piece_length' in data) || (data.get('two_piece_length', 0) is number && data.get('two_piece_length', 0) >= 0 && data.get('two_piece_length', 0) <= 100)) &&
              (!( 'current_tension_main' in data) || (data.get('current_tension_main', 0) is number && data.get('current_tension_main', 0) >= 0 && data.get('current_tension_main', 0) <= 100)) &&
              (!( 'current_tension_cross' in data) || (data.get('current_tension_cross', 0) is number && data.get('current_tension_cross', 0) >= 0 && data.get('current_tension_cross', 0) <= 100)) &&
              data.get('shop_id', '') is string && data.get('shop_id', '').size() > 0 &&

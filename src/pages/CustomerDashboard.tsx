@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Clock, CheckCircle2, CreditCard, Package, X, Users, Bell, BellDot, Plus, MessageSquare, Send } from "lucide-react";
 import { safeFormatDate } from "../lib/utils";
 import { useSearchParams } from "react-router-dom";
@@ -22,6 +22,7 @@ import { Save, Edit2, ChevronDown } from "lucide-react";
 import QRCodeDisplay from "../components/QRCodeDisplay";
 import { v4 as uuidv4 } from "uuid";
 import { RACQUET_BRANDS, RACQUET_MODELS, STRINGS, GAUGES } from "../constants";
+import { racquetSpecsService } from "../services/racquetSpecsService";
 
 export default function CustomerDashboard({ user, initialTab = 'jobs' }: { user: any, initialTab?: 'jobs' | 'racquets' | 'messages' }) {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -54,16 +55,112 @@ export default function CustomerDashboard({ user, initialTab = 'jobs' }: { user:
   const [notifications, setNotifications] = useState<any[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showAddRacquetModal, setShowAddRacquetModal] = useState(false);
+  const [fetchingSpecs, setFetchingSpecs] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [selectedRacquet, setSelectedRacquet] = useState<any>(null);
   const [inventoryStrings, setInventoryStrings] = useState<any[]>([]);
+  const [allRacquets, setAllRacquets] = useState<any[]>([]);
+
+  const customModels = useMemo(() => {
+    const models: Record<string, string[]> = {};
+    allRacquets.forEach(r => {
+      if (r.brand && r.model) {
+        if (!models[r.brand]) models[r.brand] = [];
+        if (!models[r.brand].includes(r.model)) {
+          if (!RACQUET_MODELS[r.brand]?.includes(r.model)) {
+            models[r.brand].push(r.model);
+          }
+        }
+      }
+    });
+    return models;
+  }, [allRacquets]);
+
   const [newRacquetData, setNewRacquetData] = useState({
     brand: '',
+    brand_custom: '',
     model: '',
+    model_custom: '',
     serial_number: '',
     head_size: '100',
     string_pattern_mains: '16',
-    string_pattern_crosses: '19'
+    string_pattern_crosses: '19',
+    mains_skip: '',
+    mains_tie_off: '',
+    crosses_start: '',
+    crosses_tie_off: '',
+    one_piece_length: '',
+    two_piece_length: '',
+    stringing_instructions: '',
+    string_main_brand: '',
+    string_main_model: '',
+    string_main_brand_custom: '',
+    string_main_model_custom: '',
+    string_main_gauge: '',
+    string_cross_brand: '',
+    string_cross_model: '',
+    string_cross_brand_custom: '',
+    string_cross_model_custom: '',
+    string_cross_gauge: '',
+    current_tension_main: '',
+    current_tension_cross: ''
   });
+
+  useEffect(() => {
+    if (!selectedShopId) {
+      setInventoryStrings([]);
+      return;
+    }
+
+    const inventoryQuery = query(
+      collection(db, "inventory"),
+      where("shop_id", "==", selectedShopId),
+      where("type", "==", "string")
+    );
+    const unsubscribeInventory = onSnapshot(inventoryQuery, (snapshot) => {
+      setInventoryStrings(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    });
+
+    return () => unsubscribeInventory();
+  }, [selectedShopId]);
+
+  const handleFetchSpecs = async () => {
+    const brand = newRacquetData.brand === "Other" ? newRacquetData.brand_custom : newRacquetData.brand;
+    const model = newRacquetData.model === "Other" ? newRacquetData.model_custom : newRacquetData.model;
+
+    if (!brand || !model) {
+      setError("Please select a brand and model first.");
+      return;
+    }
+
+    setFetchingSpecs(true);
+    setError(null);
+    try {
+      const specs = await racquetSpecsService.getSpecs(brand, model);
+      if (specs) {
+        setNewRacquetData(prev => ({
+          ...prev,
+          head_size: specs.headSize.toString(),
+          string_pattern_mains: specs.patternMains.toString(),
+          string_pattern_crosses: specs.patternCrosses.toString(),
+          mains_skip: specs.mainsSkip || '',
+          mains_tie_off: specs.mainsTieOff || '',
+          crosses_start: specs.crossesStart || '',
+          crosses_tie_off: specs.crossesTieOff || '',
+          one_piece_length: specs.onePieceLength?.toString() || '',
+          two_piece_length: specs.twoPieceLength?.toString() || '',
+          stringing_instructions: specs.stringingInstructions || '',
+        }));
+      } else {
+        setError("Could not find specifications for this model.");
+      }
+    } catch (err) {
+      console.error("Error fetching specs:", err);
+      setError("Failed to fetch specifications.");
+    } finally {
+      setFetchingSpecs(false);
+    }
+  };
   const [requestData, setRequestData] = useState({
     string_main: '',
     string_cross: '',
@@ -107,6 +204,7 @@ export default function CustomerDashboard({ user, initialTab = 'jobs' }: { user:
         ...doc.data()
       }));
       setRacquets(racquetList);
+      setAllRacquets(racquetList);
       setLoading(false);
     }, (error) => {
       // If customer_email index doesn't exist yet, it might fail. 
@@ -372,21 +470,39 @@ export default function CustomerDashboard({ user, initialTab = 'jobs' }: { user:
 
     try {
       const racquetId = `racq_${Date.now()}`;
+      const brand = newRacquetData.brand === "Other" ? newRacquetData.brand_custom : newRacquetData.brand;
+      const model = newRacquetData.model === "Other" ? newRacquetData.model_custom : newRacquetData.model;
+
+      const stringMain = newRacquetData.string_main_brand === "Other" 
+        ? `${newRacquetData.string_main_brand_custom} ${newRacquetData.string_main_model_custom} ${newRacquetData.string_main_gauge}`.trim()
+        : `${newRacquetData.string_main_brand} ${newRacquetData.string_main_model} ${newRacquetData.string_main_gauge}`.trim();
+      
+      const stringCross = newRacquetData.string_cross_brand === "Other"
+        ? `${newRacquetData.string_cross_brand_custom} ${newRacquetData.string_cross_model_custom} ${newRacquetData.string_cross_gauge}`.trim()
+        : (newRacquetData.string_cross_brand === "Same as Mains" ? stringMain : `${newRacquetData.string_cross_brand} ${newRacquetData.string_cross_model} ${newRacquetData.string_cross_gauge}`.trim());
+
       const newRacquet = {
         id: racquetId,
         customer_id: customerInfo.id,
         customer_email: user.email,
         shop_id: customerInfo.shop_id,
-        brand: newRacquetData.brand,
-        model: newRacquetData.model,
+        brand,
+        model,
         serial_number: newRacquetData.serial_number,
         head_size: Number(newRacquetData.head_size),
         string_pattern_mains: Number(newRacquetData.string_pattern_mains),
         string_pattern_crosses: Number(newRacquetData.string_pattern_crosses),
-        current_string_main: "Not strung yet",
-        current_string_cross: "Not strung yet",
-        current_tension_main: 0,
-        current_tension_cross: 0,
+        mains_skip: newRacquetData.mains_skip,
+        mains_tie_off: newRacquetData.mains_tie_off,
+        crosses_start: newRacquetData.crosses_start,
+        crosses_tie_off: newRacquetData.crosses_tie_off,
+        one_piece_length: Number(newRacquetData.one_piece_length) || 0,
+        two_piece_length: Number(newRacquetData.two_piece_length) || 0,
+        stringing_instructions: newRacquetData.stringing_instructions,
+        current_string_main: stringMain || "Not strung yet",
+        current_string_cross: stringCross || "Not strung yet",
+        current_tension_main: Number(newRacquetData.current_tension_main) || 0,
+        current_tension_cross: Number(newRacquetData.current_tension_cross) || 0,
         qr_code: `racquet_${racquetId}`,
         created_at: serverTimestamp()
       };
@@ -394,12 +510,13 @@ export default function CustomerDashboard({ user, initialTab = 'jobs' }: { user:
       await setDoc(doc(db, "racquets", racquetId), newRacquet);
       setShowAddRacquetModal(false);
       setNewRacquetData({
-        brand: '',
-        model: '',
-        serial_number: '',
-        head_size: '100',
-        string_pattern_mains: '16',
-        string_pattern_crosses: '19'
+        brand: '', brand_custom: '', model: '', model_custom: '', serial_number: '',
+        head_size: '100', string_pattern_mains: '16', string_pattern_crosses: '19',
+        mains_skip: '', mains_tie_off: '', crosses_start: '', crosses_tie_off: '',
+        one_piece_length: '', two_piece_length: '', stringing_instructions: '',
+        string_main_brand: '', string_main_model: '', string_main_brand_custom: '', string_main_model_custom: '', string_main_gauge: '',
+        string_cross_brand: '', string_cross_model: '', string_cross_brand_custom: '', string_cross_model_custom: '', string_cross_gauge: '',
+        current_tension_main: '', current_tension_cross: ''
       });
     } catch (error) {
       handleFirestoreError(error, OperationType.CREATE, "racquets");
@@ -942,20 +1059,23 @@ export default function CustomerDashboard({ user, initialTab = 'jobs' }: { user:
                 </div>
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Model</label>
-                  {newRacquetData.brand && RACQUET_MODELS[newRacquetData.brand] ? (
-                    <select
-                      required
-                      value={newRacquetData.model}
-                      onChange={(e) => setNewRacquetData({...newRacquetData, model: e.target.value})}
-                      className="w-full px-4 py-2 rounded-xl bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 focus:ring-2 focus:ring-primary/20 outline-none transition-all text-sm appearance-none"
-                    >
-                      <option value="">Select Model</option>
-                      {RACQUET_MODELS[newRacquetData.brand].map(model => (
-                        <option key={model} value={model}>{model}</option>
-                      ))}
-                      <option value="Other">Other</option>
-                    </select>
-                  ) : (
+                    {newRacquetData.brand && (RACQUET_MODELS[newRacquetData.brand] || customModels[newRacquetData.brand]) ? (
+                      <select
+                        required
+                        value={newRacquetData.model}
+                        onChange={(e) => setNewRacquetData({...newRacquetData, model: e.target.value})}
+                        className="w-full px-4 py-2 rounded-xl bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 focus:ring-2 focus:ring-primary/20 outline-none transition-all text-sm appearance-none"
+                      >
+                        <option value="">Select Model</option>
+                        {RACQUET_MODELS[newRacquetData.brand]?.map(model => (
+                          <option key={model} value={model}>{model}</option>
+                        ))}
+                        {customModels[newRacquetData.brand]?.map(model => (
+                          <option key={`custom-${model}`} value={model}>{model} (Custom)</option>
+                        ))}
+                        <option value="Other">Other</option>
+                      </select>
+                    ) : (
                     <input
                       type="text"
                       required
@@ -964,6 +1084,17 @@ export default function CustomerDashboard({ user, initialTab = 'jobs' }: { user:
                       placeholder="e.g. Pro Staff 97"
                       className="w-full px-4 py-2 rounded-xl bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 focus:ring-2 focus:ring-primary/20 outline-none transition-all text-sm"
                     />
+                  )}
+                  
+                  {(newRacquetData.brand && newRacquetData.model) && (
+                    <button
+                      type="button"
+                      onClick={handleFetchSpecs}
+                      disabled={fetchingSpecs}
+                      className="mt-1 text-xs font-bold text-primary hover:underline flex items-center gap-1 disabled:opacity-50"
+                    >
+                      {fetchingSpecs ? "Searching..." : "Search Technical Specs"}
+                    </button>
                   )}
                 </div>
               </div>
@@ -1008,6 +1139,304 @@ export default function CustomerDashboard({ user, initialTab = 'jobs' }: { user:
                     required
                     value={newRacquetData.string_pattern_crosses}
                     onChange={(e) => setNewRacquetData({...newRacquetData, string_pattern_crosses: e.target.value})}
+                    className="w-full px-4 py-2 rounded-xl bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 focus:ring-2 focus:ring-primary/20 outline-none transition-all text-sm"
+                  />
+                </div>
+              </div>
+
+              {/* Detailed Stringing Specs */}
+              <div className="space-y-4 border-t border-neutral-100 dark:border-neutral-800 pt-4">
+                <h4 className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Stringing Pattern & Specs</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-neutral-500 uppercase">Mains Skip</label>
+                    <input 
+                      type="text" 
+                      placeholder="7H, 9H, 7T, 9T" 
+                      value={newRacquetData.mains_skip}
+                      onChange={e => setNewRacquetData({...newRacquetData, mains_skip: e.target.value})}
+                      className="w-full px-3 py-1.5 text-sm border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-lg outline-none focus:ring-2 focus:ring-primary"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-neutral-500 uppercase">Mains Tie-off</label>
+                    <input 
+                      type="text" 
+                      placeholder="8T" 
+                      value={newRacquetData.mains_tie_off}
+                      onChange={e => setNewRacquetData({...newRacquetData, mains_tie_off: e.target.value})}
+                      className="w-full px-3 py-1.5 text-sm border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-lg outline-none focus:ring-2 focus:ring-primary"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-neutral-500 uppercase">Crosses Start</label>
+                    <input 
+                      type="text" 
+                      placeholder="Head" 
+                      value={newRacquetData.crosses_start}
+                      onChange={e => setNewRacquetData({...newRacquetData, crosses_start: e.target.value})}
+                      className="w-full px-3 py-1.5 text-sm border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-lg outline-none focus:ring-2 focus:ring-primary"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-neutral-500 uppercase">Crosses Tie-off</label>
+                    <input 
+                      type="text" 
+                      placeholder="5H, 11T" 
+                      value={newRacquetData.crosses_tie_off}
+                      onChange={e => setNewRacquetData({...newRacquetData, crosses_tie_off: e.target.value})}
+                      className="w-full px-3 py-1.5 text-sm border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-lg outline-none focus:ring-2 focus:ring-primary"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-neutral-500 uppercase">1-Piece (ft)</label>
+                    <input 
+                      type="number" 
+                      placeholder="33" 
+                      value={newRacquetData.one_piece_length}
+                      onChange={e => setNewRacquetData({...newRacquetData, one_piece_length: e.target.value})}
+                      className="w-full px-3 py-1.5 text-sm border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-lg outline-none focus:ring-2 focus:ring-primary"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-neutral-500 uppercase">2-Piece (ft)</label>
+                    <input 
+                      type="number" 
+                      placeholder="20/18" 
+                      value={newRacquetData.two_piece_length}
+                      onChange={e => setNewRacquetData({...newRacquetData, two_piece_length: e.target.value})}
+                      className="w-full px-3 py-1.5 text-sm border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-lg outline-none focus:ring-2 focus:ring-primary"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-1 mt-4">
+                <label className="text-[10px] font-bold text-neutral-500 uppercase">Detailed Stringing Instructions</label>
+                <textarea 
+                  placeholder="Additional pattern notes, mounting instructions, etc..." 
+                  value={newRacquetData.stringing_instructions}
+                  onChange={e => setNewRacquetData({...newRacquetData, stringing_instructions: e.target.value})}
+                  className="w-full px-3 py-2 text-sm border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-lg outline-none focus:ring-2 focus:ring-primary min-h-[120px] resize-y"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Mains String Brand</label>
+                  <select
+                    value={newRacquetData.string_main_brand}
+                    onChange={(e) => setNewRacquetData({...newRacquetData, string_main_brand: e.target.value, string_main_model: ''})}
+                    className="w-full px-4 py-2 rounded-xl bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 focus:ring-2 focus:ring-primary/20 outline-none transition-all text-sm appearance-none"
+                  >
+                    <option value="">Select Brand</option>
+                    {(() => {
+                      const allStrings = [...STRINGS];
+                      inventoryStrings.forEach(item => {
+                        const existingBrand = allStrings.find(s => s.brand === item.brand);
+                        if (existingBrand) {
+                          if (!existingBrand.models.includes(item.name)) {
+                            existingBrand.models.push(item.name);
+                          }
+                        } else {
+                          allStrings.push({ brand: item.brand, models: [item.name] });
+                        }
+                      });
+                      return allStrings.map(s => (
+                        <option key={s.brand} value={s.brand}>{s.brand}</option>
+                      ));
+                    })()}
+                    <option value="Other">Other</option>
+                  </select>
+                  {newRacquetData.string_main_brand === "Other" && (
+                    <input
+                      type="text"
+                      placeholder="Enter Brand"
+                      className="w-full px-4 py-2 rounded-xl bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 focus:ring-2 focus:ring-primary/20 outline-none transition-all text-sm"
+                      onChange={(e) => setNewRacquetData({...newRacquetData, string_main_brand_custom: e.target.value})}
+                    />
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Mains String Model</label>
+                  {newRacquetData.string_main_brand && newRacquetData.string_main_brand !== "Other" ? (
+                    <select
+                      value={newRacquetData.string_main_model}
+                      onChange={(e) => setNewRacquetData({...newRacquetData, string_main_model: e.target.value})}
+                      className="w-full px-4 py-2 rounded-xl bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 focus:ring-2 focus:ring-primary/20 outline-none transition-all text-sm appearance-none"
+                    >
+                      <option value="">Select Model</option>
+                      {(() => {
+                        const brand = STRINGS.find(s => s.brand === newRacquetData.string_main_brand);
+                        const models = brand ? [...brand.models] : [];
+                        
+                        // Add inventory models
+                        inventoryStrings.filter(s => s.brand === newRacquetData.string_main_brand).forEach(item => {
+                          if (!models.includes(item.name)) {
+                            models.push(item.name);
+                          }
+                        });
+
+                        return models.map(model => (
+                          <option key={model} value={model}>{model}</option>
+                        ));
+                      })()}
+                      <option value="Other">Other</option>
+                    </select>
+                  ) : (
+                    <input
+                      type="text"
+                      placeholder="Enter Model"
+                      value={newRacquetData.string_main_model}
+                      onChange={(e) => setNewRacquetData({...newRacquetData, string_main_model: e.target.value})}
+                      className="w-full px-4 py-2 rounded-xl bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 focus:ring-2 focus:ring-primary/20 outline-none transition-all text-sm"
+                    />
+                  )}
+                  {newRacquetData.string_main_model === "Other" && (
+                    <input
+                      type="text"
+                      placeholder="Enter Model"
+                      className="w-full px-4 py-2 rounded-xl bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 focus:ring-2 focus:ring-primary/20 outline-none transition-all text-sm"
+                      onChange={(e) => setNewRacquetData({...newRacquetData, string_main_model_custom: e.target.value})}
+                    />
+                  )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Crosses String Brand</label>
+                  <select
+                    value={newRacquetData.string_cross_brand}
+                    onChange={(e) => setNewRacquetData({...newRacquetData, string_cross_brand: e.target.value, string_cross_model: ''})}
+                    className="w-full px-4 py-2 rounded-xl bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 focus:ring-2 focus:ring-primary/20 outline-none transition-all text-sm appearance-none"
+                  >
+                    <option value="">Select Brand</option>
+                    <option value="Same as Mains">Same as Mains</option>
+                    {(() => {
+                      const allStrings = [...STRINGS];
+                      inventoryStrings.forEach(item => {
+                        const existingBrand = allStrings.find(s => s.brand === item.brand);
+                        if (existingBrand) {
+                          if (!existingBrand.models.includes(item.name)) {
+                            existingBrand.models.push(item.name);
+                          }
+                        } else {
+                          allStrings.push({ brand: item.brand, models: [item.name] });
+                        }
+                      });
+                      return allStrings.map(s => (
+                        <option key={s.brand} value={s.brand}>{s.brand}</option>
+                      ));
+                    })()}
+                    <option value="Other">Other</option>
+                  </select>
+                  {newRacquetData.string_cross_brand === "Other" && (
+                    <input
+                      type="text"
+                      placeholder="Enter Brand"
+                      className="w-full px-4 py-2 rounded-xl bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 focus:ring-2 focus:ring-primary/20 outline-none transition-all text-sm"
+                      onChange={(e) => setNewRacquetData({...newRacquetData, string_cross_brand_custom: e.target.value})}
+                    />
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Crosses String Model</label>
+                  {newRacquetData.string_cross_brand && newRacquetData.string_cross_brand !== "Other" && newRacquetData.string_cross_brand !== "Same as Mains" ? (
+                    <select
+                      value={newRacquetData.string_cross_model}
+                      onChange={(e) => setNewRacquetData({...newRacquetData, string_cross_model: e.target.value})}
+                      className="w-full px-4 py-2 rounded-xl bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 focus:ring-2 focus:ring-primary/20 outline-none transition-all text-sm appearance-none"
+                    >
+                      <option value="">Select Model</option>
+                      {(() => {
+                        const brand = STRINGS.find(s => s.brand === newRacquetData.string_cross_brand);
+                        const models = brand ? [...brand.models] : [];
+                        
+                        // Add inventory models
+                        inventoryStrings.filter(s => s.brand === newRacquetData.string_cross_brand).forEach(item => {
+                          if (!models.includes(item.name)) {
+                            models.push(item.name);
+                          }
+                        });
+
+                        return models.map(model => (
+                          <option key={model} value={model}>{model}</option>
+                        ));
+                      })()}
+                      <option value="Other">Other</option>
+                    </select>
+                  ) : (
+                    <input
+                      type="text"
+                      placeholder="Enter Model"
+                      disabled={newRacquetData.string_cross_brand === "Same as Mains"}
+                      value={newRacquetData.string_cross_brand === "Same as Mains" ? "Same as Mains" : newRacquetData.string_cross_model}
+                      onChange={(e) => setNewRacquetData({...newRacquetData, string_cross_model: e.target.value})}
+                      className="w-full px-4 py-2 rounded-xl bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 focus:ring-2 focus:ring-primary/20 outline-none transition-all text-sm disabled:opacity-50"
+                    />
+                  )}
+                  {newRacquetData.string_cross_model === "Other" && (
+                    <input
+                      type="text"
+                      placeholder="Enter Model"
+                      className="w-full px-4 py-2 rounded-xl bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 focus:ring-2 focus:ring-primary/20 outline-none transition-all text-sm"
+                      onChange={(e) => setNewRacquetData({...newRacquetData, string_cross_model_custom: e.target.value})}
+                    />
+                  )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Mains Gauge</label>
+                  <select
+                    value={newRacquetData.string_main_gauge}
+                    onChange={(e) => setNewRacquetData({...newRacquetData, string_main_gauge: e.target.value})}
+                    className="w-full px-4 py-2 rounded-xl bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 focus:ring-2 focus:ring-primary/20 outline-none transition-all text-sm appearance-none"
+                  >
+                    <option value="">Select Gauge</option>
+                    {GAUGES.map(g => (
+                      <option key={g} value={g}>{g}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Crosses Gauge</label>
+                  <select
+                    value={newRacquetData.string_cross_brand === "Same as Mains" ? newRacquetData.string_main_gauge : newRacquetData.string_cross_gauge}
+                    disabled={newRacquetData.string_cross_brand === "Same as Mains"}
+                    onChange={(e) => setNewRacquetData({...newRacquetData, string_cross_gauge: e.target.value})}
+                    className="w-full px-4 py-2 rounded-xl bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 focus:ring-2 focus:ring-primary/20 outline-none transition-all text-sm appearance-none disabled:opacity-50"
+                  >
+                    <option value="">Select Gauge</option>
+                    {GAUGES.map(g => (
+                      <option key={g} value={g}>{g}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Mains Tension (lbs)</label>
+                  <input
+                    type="number"
+                    value={newRacquetData.current_tension_main}
+                    onChange={(e) => setNewRacquetData({...newRacquetData, current_tension_main: e.target.value})}
+                    placeholder="52"
+                    className="w-full px-4 py-2 rounded-xl bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 focus:ring-2 focus:ring-primary/20 outline-none transition-all text-sm"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Crosses Tension (lbs)</label>
+                  <input
+                    type="number"
+                    value={newRacquetData.current_tension_cross}
+                    onChange={(e) => setNewRacquetData({...newRacquetData, current_tension_cross: e.target.value})}
+                    placeholder="52"
                     className="w-full px-4 py-2 rounded-xl bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 focus:ring-2 focus:ring-primary/20 outline-none transition-all text-sm"
                   />
                 </div>

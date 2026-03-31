@@ -1,0 +1,91 @@
+import { GoogleGenAI, Type } from "@google/genai";
+
+export interface RacquetSpec {
+  brand: string;
+  model: string;
+  headSize: number;
+  patternMains: number;
+  patternCrosses: number;
+  tensionRangeMin: number;
+  tensionRangeMax: number;
+  mainsSkip?: string;
+  mainsTieOff?: string;
+  crossesStart?: string;
+  crossesTieOff?: string;
+  onePieceLength?: number;
+  twoPieceLength?: number;
+  stringingInstructions?: string;
+  length?: number;
+  unstrungWeight?: number;
+  balance?: string;
+  swingweight?: number;
+  stiffness?: number;
+  beamWidth?: string;
+}
+
+const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
+
+export const racquetSpecsService = {
+  async getSpecs(brand: string, model: string): Promise<RacquetSpec | null> {
+    try {
+      const prompt = `Provide the technical stringing specifications for the following tennis racquet:
+      Brand: ${brand}
+      Model: ${model}
+      
+      Include head size (sq in), string pattern (mains x crosses), and recommended tension range (lbs).
+      Crucially, include detailed stringing instructions:
+      - Mains Skip: Which holes are skipped (e.g., 7H, 9H, 7T, 9T)
+      - Mains Tie-off: Where to tie off the mains (e.g., 8T)
+      - Crosses Start: Where the crosses start (e.g., Head or Throat)
+      - Crosses Tie-off: Where to tie off the crosses (e.g., 5H, 11T)
+      - One Piece Length: Total length for one-piece stringing (ft)
+      - Two Piece Length: Length for two-piece stringing (ft)
+      - General Instructions: Any other specific notes (e.g., "Start at Head", "No shared holes").
+
+      Use reliable sources like KlipperUSA, USRSA, or manufacturer technical manuals.
+      If you can find more details like length, weight, balance, swingweight, stiffness, and beam width, include them too.`;
+
+      const response = await ai.models.generateContent({
+        model: "gemini-3-flash-preview",
+        contents: prompt,
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              brand: { type: Type.STRING },
+              model: { type: Type.STRING },
+              headSize: { type: Type.NUMBER, description: "Head size in square inches" },
+              patternMains: { type: Type.NUMBER, description: "Number of main strings" },
+              patternCrosses: { type: Type.NUMBER, description: "Number of cross strings" },
+              tensionRangeMin: { type: Type.NUMBER, description: "Minimum recommended tension in lbs" },
+              tensionRangeMax: { type: Type.NUMBER, description: "Maximum recommended tension in lbs" },
+              mainsSkip: { type: Type.STRING, description: "Skipped holes for mains (e.g., 7H, 9H, 7T, 9T)" },
+              mainsTieOff: { type: Type.STRING, description: "Tie-off location for mains (e.g., 8T)" },
+              crossesStart: { type: Type.STRING, description: "Starting point for crosses (e.g., Head or Throat)" },
+              crossesTieOff: { type: Type.STRING, description: "Tie-off location for crosses (e.g., 5H, 11T)" },
+              onePieceLength: { type: Type.NUMBER, description: "Total length for one-piece stringing in feet" },
+              twoPieceLength: { type: Type.NUMBER, description: "Total length for two-piece stringing in feet" },
+              stringingInstructions: { type: Type.STRING, description: "General stringing instructions" },
+              length: { type: Type.NUMBER, description: "Length in inches" },
+              unstrungWeight: { type: Type.NUMBER, description: "Unstrung weight in grams" },
+              balance: { type: Type.STRING, description: "Balance point" },
+              swingweight: { type: Type.NUMBER, description: "Swingweight" },
+              stiffness: { type: Type.NUMBER, description: "Stiffness (RA)" },
+              beamWidth: { type: Type.STRING, description: "Beam width in mm" }
+            },
+            required: ["brand", "model", "headSize", "patternMains", "patternCrosses", "tensionRangeMin", "tensionRangeMax"]
+          }
+        }
+      });
+
+      if (response.text) {
+        return JSON.parse(response.text) as RacquetSpec;
+      }
+      return null;
+    } catch (error) {
+      console.error("Error fetching racquet specs:", error);
+      return null;
+    }
+  }
+};

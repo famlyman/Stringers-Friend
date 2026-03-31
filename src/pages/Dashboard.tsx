@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { RACQUET_BRANDS, RACQUET_MODELS, STRINGS, GAUGES } from "../constants";
+import { racquetSpecsService } from "../services/racquetSpecsService";
 import { Plus, Search, Filter, CheckCircle2, Clock, PlayCircle, CreditCard, X, Trash2, Users, Briefcase, Edit2, ChevronRight, ChevronDown, Printer, Package, MessageSquare, Mail, Phone, Send } from "lucide-react";
 import QRCodeDisplay from "../components/QRCodeDisplay";
 import { collection, query, where, onSnapshot, doc, setDoc, updateDoc, deleteDoc, getDocs, writeBatch, serverTimestamp, orderBy } from "firebase/firestore";
@@ -35,7 +36,24 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
   const [selectedRacquetId, setSelectedRacquetId] = useState("");
   const [isNewCustomer, setIsNewCustomer] = useState(false);
   const [isNewRacquet, setIsNewRacquet] = useState(false);
+  const [fetchingSpecs, setFetchingSpecs] = useState(false);
   const [inventoryStrings, setInventoryStrings] = useState<any[]>([]);
+
+  const customModels = useMemo(() => {
+    const models: Record<string, string[]> = {};
+    racquets.forEach(r => {
+      if (r.brand && r.model) {
+        if (!models[r.brand]) models[r.brand] = [];
+        if (!models[r.brand].includes(r.model)) {
+          // Only add if it's not already in the hardcoded list
+          if (!RACQUET_MODELS[r.brand]?.includes(r.model)) {
+            models[r.brand].push(r.model);
+          }
+        }
+      }
+    });
+    return models;
+  }, [racquets]);
 
   const [newJob, setNewJob] = useState({
     customer_name: "",
@@ -49,6 +67,13 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
     racquet_head_size: 0,
     racquet_mains: 0,
     racquet_crosses: 0,
+    racquet_mains_skip: "",
+    racquet_mains_tie_off: "",
+    racquet_crosses_start: "",
+    racquet_crosses_tie_off: "",
+    racquet_one_piece_length: 0,
+    racquet_two_piece_length: 0,
+    racquet_stringing_instructions: "",
     string_main_brand: "",
     string_main_model: "",
     string_main_gauge: "",
@@ -67,6 +92,45 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
     notes: "",
     keep_same_string: false
   });
+
+  const handleFetchSpecs = async () => {
+    const brand = newJob.racquet_brand === "Other" ? newJob.racquet_brand_custom : newJob.racquet_brand;
+    const model = newJob.racquet_model === "Other" ? newJob.racquet_model_custom : newJob.racquet_model;
+
+    if (!brand || !model) {
+      setError("Please select a brand and model first.");
+      return;
+    }
+
+    setFetchingSpecs(true);
+    setError(null);
+    try {
+      const specs = await racquetSpecsService.getSpecs(brand, model);
+      if (specs) {
+        setNewJob(prev => ({
+          ...prev,
+          racquet_head_size: specs.headSize,
+          racquet_mains: specs.patternMains,
+          racquet_crosses: specs.patternCrosses,
+          racquet_mains_skip: specs.mainsSkip || "",
+          racquet_mains_tie_off: specs.mainsTieOff || "",
+          racquet_crosses_start: specs.crossesStart || "",
+          racquet_crosses_tie_off: specs.crossesTieOff || "",
+          racquet_one_piece_length: specs.onePieceLength || 0,
+          racquet_two_piece_length: specs.twoPieceLength || 0,
+          racquet_stringing_instructions: specs.stringingInstructions || "",
+          notes: prev.notes + (prev.notes ? "\n" : "") + `Recommended Tension: ${specs.tensionRangeMin}-${specs.tensionRangeMax} lbs`
+        }));
+      } else {
+        setError("Could not find specifications for this model.");
+      }
+    } catch (err) {
+      console.error("Error fetching specs:", err);
+      setError("Failed to fetch specifications.");
+    } finally {
+      setFetchingSpecs(false);
+    }
+  };
 
   useEffect(() => {
     setActiveTab(initialTab);
@@ -254,6 +318,13 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
           head_size: Number(newJob.racquet_head_size) || 0,
           string_pattern_mains: Number(newJob.racquet_mains) || 0,
           string_pattern_crosses: Number(newJob.racquet_crosses) || 0,
+          mains_skip: newJob.racquet_mains_skip,
+          mains_tie_off: newJob.racquet_mains_tie_off,
+          crosses_start: newJob.racquet_crosses_start,
+          crosses_tie_off: newJob.racquet_crosses_tie_off,
+          one_piece_length: Number(newJob.racquet_one_piece_length) || 0,
+          two_piece_length: Number(newJob.racquet_two_piece_length) || 0,
+          stringing_instructions: newJob.racquet_stringing_instructions,
           current_string_main: stringMain,
           current_string_cross: stringCross,
           current_tension_main: Number(newJob.tension_main) || 0,
@@ -354,6 +425,8 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
         customer_name: "", customer_email: "", customer_phone: "",
         racquet_brand: "", racquet_model: "", racquet_brand_custom: "", racquet_model_custom: "", racquet_serial: "",
         racquet_head_size: 0, racquet_mains: 0, racquet_crosses: 0,
+        racquet_mains_skip: "", racquet_mains_tie_off: "", racquet_crosses_start: "", racquet_crosses_tie_off: "",
+        racquet_one_piece_length: 0, racquet_two_piece_length: 0, racquet_stringing_instructions: "",
         string_main_brand: "", string_main_model: "", string_main_gauge: "", string_main_brand_custom: "", string_main_model_custom: "",
         string_cross_brand: "", string_cross_model: "", string_cross_gauge: "", string_cross_brand_custom: "", string_cross_model_custom: "",
         string_main: "", string_cross: "", tension_main: 0, tension_cross: 0, price: 25, notes: "",
@@ -1222,6 +1295,9 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
                               {RACQUET_MODELS[newJob.racquet_brand]?.map(model => (
                                 <option key={model} value={model}>{model}</option>
                               ))}
+                              {customModels[newJob.racquet_brand]?.map(model => (
+                                <option key={`custom-${model}`} value={model}>{model} (Custom)</option>
+                              ))}
                               <option value="Other">Other</option>
                             </select>
                           ) : (
@@ -1242,6 +1318,17 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
                               className="w-full mt-2 px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-lg outline-none focus:ring-2 focus:ring-primary"
                               onChange={e => setNewJob({...newJob, racquet_model_custom: e.target.value})}
                             />
+                          )}
+                          
+                          {(newJob.racquet_brand && newJob.racquet_model) && (
+                            <button
+                              type="button"
+                              onClick={handleFetchSpecs}
+                              disabled={fetchingSpecs}
+                              className="mt-2 text-xs font-bold text-primary hover:underline flex items-center gap-1 disabled:opacity-50"
+                            >
+                              {fetchingSpecs ? "Searching..." : "Search Technical Specs"}
+                            </button>
                           )}
                         </div>
                       </div>
@@ -1275,6 +1362,86 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
                           value={newJob.racquet_crosses || ""}
                           onChange={e => setNewJob({...newJob, racquet_crosses: parseInt(e.target.value) || 0})}
                           className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-lg outline-none focus:ring-2 focus:ring-primary"
+                        />
+                      </div>
+
+                      {/* Detailed Stringing Specs */}
+                      <div className="space-y-4 border-t border-neutral-100 dark:border-neutral-800 pt-4">
+                        <h4 className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Stringing Pattern & Specs</h4>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-bold text-neutral-500 uppercase">Mains Skip</label>
+                            <input 
+                              type="text" 
+                              placeholder="e.g. 7H, 9H, 7T, 9T" 
+                              value={newJob.racquet_mains_skip}
+                              onChange={e => setNewJob({...newJob, racquet_mains_skip: e.target.value})}
+                              className="w-full px-3 py-1.5 text-sm border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-lg outline-none focus:ring-2 focus:ring-primary"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-bold text-neutral-500 uppercase">Mains Tie-off</label>
+                            <input 
+                              type="text" 
+                              placeholder="e.g. 8T" 
+                              value={newJob.racquet_mains_tie_off}
+                              onChange={e => setNewJob({...newJob, racquet_mains_tie_off: e.target.value})}
+                              className="w-full px-3 py-1.5 text-sm border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-lg outline-none focus:ring-2 focus:ring-primary"
+                            />
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-bold text-neutral-500 uppercase">Crosses Start</label>
+                            <input 
+                              type="text" 
+                              placeholder="e.g. Head" 
+                              value={newJob.racquet_crosses_start}
+                              onChange={e => setNewJob({...newJob, racquet_crosses_start: e.target.value})}
+                              className="w-full px-3 py-1.5 text-sm border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-lg outline-none focus:ring-2 focus:ring-primary"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-bold text-neutral-500 uppercase">Crosses Tie-off</label>
+                            <input 
+                              type="text" 
+                              placeholder="e.g. 5H, 11T" 
+                              value={newJob.racquet_crosses_tie_off}
+                              onChange={e => setNewJob({...newJob, racquet_crosses_tie_off: e.target.value})}
+                              className="w-full px-3 py-1.5 text-sm border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-lg outline-none focus:ring-2 focus:ring-primary"
+                            />
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-bold text-neutral-500 uppercase">1-Piece Length (ft)</label>
+                            <input 
+                              type="number" 
+                              placeholder="e.g. 33" 
+                              value={newJob.racquet_one_piece_length || ""}
+                              onChange={e => setNewJob({...newJob, racquet_one_piece_length: parseFloat(e.target.value) || 0})}
+                              className="w-full px-3 py-1.5 text-sm border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-lg outline-none focus:ring-2 focus:ring-primary"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-bold text-neutral-500 uppercase">2-Piece Length (ft)</label>
+                            <input 
+                              type="number" 
+                              placeholder="e.g. 20/18" 
+                              value={newJob.racquet_two_piece_length || ""}
+                              onChange={e => setNewJob({...newJob, racquet_two_piece_length: parseFloat(e.target.value) || 0})}
+                              className="w-full px-3 py-1.5 text-sm border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-lg outline-none focus:ring-2 focus:ring-primary"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                      <div className="space-y-1 mt-4">
+                        <label className="text-[10px] font-bold text-neutral-500 uppercase">Detailed Stringing Instructions</label>
+                        <textarea 
+                          placeholder="Additional pattern notes, mounting instructions, etc..." 
+                          value={newJob.racquet_stringing_instructions}
+                          onChange={e => setNewJob({...newJob, racquet_stringing_instructions: e.target.value})}
+                          className="w-full px-3 py-2 text-sm border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-lg outline-none focus:ring-2 focus:ring-primary min-h-[120px] resize-y"
                         />
                       </div>
                     </div>
@@ -1553,6 +1720,8 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
                       customer_name: "", customer_email: "", customer_phone: "",
                       racquet_brand: "", racquet_model: "", racquet_brand_custom: "", racquet_model_custom: "",
                       racquet_serial: "", racquet_head_size: 0, racquet_mains: 0, racquet_crosses: 0,
+                      racquet_mains_skip: "", racquet_mains_tie_off: "", racquet_crosses_start: "", racquet_crosses_tie_off: "",
+                      racquet_one_piece_length: 0, racquet_two_piece_length: 0, racquet_stringing_instructions: "",
                       string_main_brand: "", string_main_model: "", string_main_gauge: "", string_main_brand_custom: "", string_main_model_custom: "",
                       string_cross_brand: "", string_cross_model: "", string_cross_gauge: "", string_cross_brand_custom: "", string_cross_model_custom: "",
                       string_main: "", string_cross: "", tension_main: 0, tension_cross: 0, price: 25, notes: "",

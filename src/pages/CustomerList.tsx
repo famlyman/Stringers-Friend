@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from "react";
-import { RACQUET_BRANDS, RACQUET_MODELS, STRINGS } from "../constants";
-import { Plus, Search, UserPlus, Mail, Phone, ChevronRight, Edit2, Trash2, X, Printer } from "lucide-react";
+import React, { useState, useEffect, useMemo } from "react";
+import { RACQUET_BRANDS, RACQUET_MODELS, STRINGS, GAUGES } from "../constants";
+import { racquetSpecsService } from "../services/racquetSpecsService";
+import { Plus, Search, UserPlus, Mail, Phone, ChevronRight, Edit2, Trash2, X, Printer, Info } from "lucide-react";
 import QRCodeDisplay from "../components/QRCodeDisplay";
 import { 
   collection, 
@@ -37,16 +38,23 @@ export default function CustomerList({ user }: { user: any }) {
     head_size: "", 
     string_pattern_mains: "", 
     string_pattern_crosses: "",
+    mains_skip: "",
+    mains_tie_off: "",
+    crosses_start: "",
+    crosses_tie_off: "",
+    one_piece_length: "",
+    two_piece_length: "",
+    stringing_instructions: "",
     string_main_brand: "",
     string_main_model: "",
     string_main_brand_custom: "",
     string_main_model_custom: "",
+    string_main_gauge: "",
     string_cross_brand: "",
     string_cross_model: "",
     string_cross_brand_custom: "",
     string_cross_model_custom: "",
-    current_string_main: "",
-    current_string_cross: "",
+    string_cross_gauge: "",
     current_tension_main: "",
     current_tension_cross: ""
   });
@@ -54,6 +62,63 @@ export default function CustomerList({ user }: { user: any }) {
   const [editingRacquet, setEditingRacquet] = useState<any | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<{ type: 'customer' | 'racquet', id: string, name?: string } | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [fetchingSpecs, setFetchingSpecs] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [allRacquets, setAllRacquets] = useState<any[]>([]);
+  const [inventoryStrings, setInventoryStrings] = useState<any[]>([]);
+
+  const customModels = useMemo(() => {
+    const models: Record<string, string[]> = {};
+    allRacquets.forEach(r => {
+      if (r.brand && r.model) {
+        if (!models[r.brand]) models[r.brand] = [];
+        if (!models[r.brand].includes(r.model)) {
+          if (!RACQUET_MODELS[r.brand]?.includes(r.model)) {
+            models[r.brand].push(r.model);
+          }
+        }
+      }
+    });
+    return models;
+  }, [allRacquets]);
+
+  const handleFetchSpecs = async () => {
+    const brand = newRacquet.brand === "Other" ? newRacquet.brand_custom : newRacquet.brand;
+    const model = newRacquet.model === "Other" ? newRacquet.model_custom : newRacquet.model;
+
+    if (!brand || !model) {
+      setError("Please select a brand and model first.");
+      return;
+    }
+
+    setFetchingSpecs(true);
+    setError(null);
+    try {
+      const specs = await racquetSpecsService.getSpecs(brand, model);
+      if (specs) {
+        setNewRacquet(prev => ({
+          ...prev,
+          head_size: specs.headSize.toString(),
+          string_pattern_mains: specs.patternMains.toString(),
+          string_pattern_crosses: specs.patternCrosses.toString(),
+          mains_skip: specs.mainsSkip || "",
+          mains_tie_off: specs.mainsTieOff || "",
+          crosses_start: specs.crossesStart || "",
+          crosses_tie_off: specs.crossesTieOff || "",
+          one_piece_length: specs.onePieceLength?.toString() || "",
+          two_piece_length: specs.twoPieceLength?.toString() || "",
+          stringing_instructions: specs.stringingInstructions || "",
+        }));
+      } else {
+        setError("Could not find specifications for this model.");
+      }
+    } catch (err) {
+      console.error("Error fetching specs:", err);
+      setError("Failed to fetch specifications.");
+    } finally {
+      setFetchingSpecs(false);
+    }
+  };
 
   useEffect(() => {
     if (!user || !user.shop_id) return;
@@ -82,9 +147,30 @@ export default function CustomerList({ user }: { user: any }) {
       setLoading(false);
     });
 
+    // Fetch All Racquets for the shop to get custom models
+    const racquetsQuery = query(
+      collection(db, "racquets"),
+      where("shop_id", "==", user.shop_id)
+    );
+    const unsubscribeAllRacquets = onSnapshot(racquetsQuery, (snapshot) => {
+      setAllRacquets(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    });
+
+    // Fetch Inventory Strings
+    const inventoryQuery = query(
+      collection(db, "inventory"),
+      where("shop_id", "==", user.shop_id),
+      where("type", "==", "string")
+    );
+    const unsubscribeInventory = onSnapshot(inventoryQuery, (snapshot) => {
+      setInventoryStrings(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    });
+
     return () => {
       unsubscribeShop();
       unsubscribe();
+      unsubscribeAllRacquets();
+      unsubscribeInventory();
     };
   }, [user.shop_id]);
 
@@ -146,12 +232,12 @@ export default function CustomerList({ user }: { user: any }) {
       const model = newRacquet.model === "Other" ? newRacquet.model_custom : newRacquet.model;
 
       const stringMain = newRacquet.string_main_brand === "Other" 
-        ? `${newRacquet.string_main_brand_custom} ${newRacquet.string_main_model_custom}`
-        : `${newRacquet.string_main_brand} ${newRacquet.string_main_model}`;
+        ? `${newRacquet.string_main_brand_custom} ${newRacquet.string_main_model_custom} ${newRacquet.string_main_gauge}`.trim()
+        : `${newRacquet.string_main_brand} ${newRacquet.string_main_model} ${newRacquet.string_main_gauge}`.trim();
       
       const stringCross = newRacquet.string_cross_brand === "Other"
-        ? `${newRacquet.string_cross_brand_custom} ${newRacquet.string_cross_model_custom}`
-        : (newRacquet.string_cross_brand === "Same as Mains" ? stringMain : `${newRacquet.string_cross_brand} ${newRacquet.string_cross_model}`);
+        ? `${newRacquet.string_cross_brand_custom} ${newRacquet.string_cross_model_custom} ${newRacquet.string_cross_gauge}`.trim()
+        : (newRacquet.string_cross_brand === "Same as Mains" ? stringMain : `${newRacquet.string_cross_brand} ${newRacquet.string_cross_model} ${newRacquet.string_cross_gauge}`.trim());
 
       const racquetRef = doc(db, "racquets", racquetId);
       await setDoc(racquetRef, {
@@ -165,6 +251,13 @@ export default function CustomerList({ user }: { user: any }) {
         head_size: parseInt(newRacquet.head_size) || 0,
         string_pattern_mains: parseInt(newRacquet.string_pattern_mains) || 0,
         string_pattern_crosses: parseInt(newRacquet.string_pattern_crosses) || 0,
+        mains_skip: newRacquet.mains_skip,
+        mains_tie_off: newRacquet.mains_tie_off,
+        crosses_start: newRacquet.crosses_start,
+        crosses_tie_off: newRacquet.crosses_tie_off,
+        one_piece_length: parseFloat(newRacquet.one_piece_length) || 0,
+        two_piece_length: parseFloat(newRacquet.two_piece_length) || 0,
+        stringing_instructions: newRacquet.stringing_instructions,
         current_string_main: stringMain,
         current_string_cross: stringCross,
         current_tension_main: parseFloat(newRacquet.current_tension_main) || 0,
@@ -176,9 +269,10 @@ export default function CustomerList({ user }: { user: any }) {
       setNewRacquet({ 
         brand: "", brand_custom: "", model: "", model_custom: "", serial_number: "", head_size: "", 
         string_pattern_mains: "", string_pattern_crosses: "",
-        string_main_brand: "", string_main_model: "", string_main_brand_custom: "", string_main_model_custom: "",
-        string_cross_brand: "", string_cross_model: "", string_cross_brand_custom: "", string_cross_model_custom: "",
-        current_string_main: "", current_string_cross: "",
+        mains_skip: "", mains_tie_off: "", crosses_start: "", crosses_tie_off: "",
+        one_piece_length: "", two_piece_length: "", stringing_instructions: "",
+        string_main_brand: "", string_main_model: "", string_main_brand_custom: "", string_main_model_custom: "", string_main_gauge: "",
+        string_cross_brand: "", string_cross_model: "", string_cross_brand_custom: "", string_cross_model_custom: "", string_cross_gauge: "",
         current_tension_main: "", current_tension_cross: ""
       });
     } catch (err) {
@@ -718,6 +812,9 @@ export default function CustomerList({ user }: { user: any }) {
                             {RACQUET_MODELS[newRacquet.brand]?.map(model => (
                               <option key={model} value={model}>{model}</option>
                             ))}
+                            {customModels[newRacquet.brand]?.map(model => (
+                              <option key={`custom-${model}`} value={model}>{model} (Custom)</option>
+                            ))}
                             <option value="Other">Other</option>
                           </select>
                         ) : (
@@ -738,6 +835,17 @@ export default function CustomerList({ user }: { user: any }) {
                             className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white rounded-xl outline-none focus:ring-2 focus:ring-primary"
                             onChange={e => setNewRacquet({...newRacquet, model_custom: e.target.value})}
                           />
+                        )}
+                        
+                        {(newRacquet.brand && newRacquet.model) && (
+                          <button
+                            type="button"
+                            onClick={handleFetchSpecs}
+                            disabled={fetchingSpecs}
+                            className="mt-1 text-xs font-bold text-primary hover:underline flex items-center gap-1 disabled:opacity-50"
+                          >
+                            {fetchingSpecs ? "Searching..." : "Search Technical Specs"}
+                          </button>
                         )}
                       </div>
                       <input 
@@ -768,6 +876,85 @@ export default function CustomerList({ user }: { user: any }) {
                         onChange={e => setNewRacquet({...newRacquet, string_pattern_crosses: e.target.value})}
                         className="px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white rounded-xl outline-none focus:ring-2 focus:ring-primary"
                       />
+
+                      {/* Detailed Stringing Specs */}
+                      <div className="md:col-span-2 space-y-4 border-t border-neutral-100 dark:border-neutral-800 pt-4">
+                        <h4 className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Stringing Pattern & Specs</h4>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-bold text-neutral-500 uppercase">Mains Skip</label>
+                            <input 
+                              type="text" 
+                              placeholder="7H, 9H, 7T, 9T" 
+                              value={newRacquet.mains_skip}
+                              onChange={e => setNewRacquet({...newRacquet, mains_skip: e.target.value})}
+                              className="w-full px-3 py-1.5 text-sm border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white rounded-lg outline-none focus:ring-2 focus:ring-primary"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-bold text-neutral-500 uppercase">Mains Tie-off</label>
+                            <input 
+                              type="text" 
+                              placeholder="8T" 
+                              value={newRacquet.mains_tie_off}
+                              onChange={e => setNewRacquet({...newRacquet, mains_tie_off: e.target.value})}
+                              className="w-full px-3 py-1.5 text-sm border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white rounded-lg outline-none focus:ring-2 focus:ring-primary"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-bold text-neutral-500 uppercase">Crosses Start</label>
+                            <input 
+                              type="text" 
+                              placeholder="Head" 
+                              value={newRacquet.crosses_start}
+                              onChange={e => setNewRacquet({...newRacquet, crosses_start: e.target.value})}
+                              className="w-full px-3 py-1.5 text-sm border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white rounded-lg outline-none focus:ring-2 focus:ring-primary"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-bold text-neutral-500 uppercase">Crosses Tie-off</label>
+                            <input 
+                              type="text" 
+                              placeholder="5H, 11T" 
+                              value={newRacquet.crosses_tie_off}
+                              onChange={e => setNewRacquet({...newRacquet, crosses_tie_off: e.target.value})}
+                              className="w-full px-3 py-1.5 text-sm border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white rounded-lg outline-none focus:ring-2 focus:ring-primary"
+                            />
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-bold text-neutral-500 uppercase">1-Piece Length (ft)</label>
+                            <input 
+                              type="number" 
+                              placeholder="33" 
+                              value={newRacquet.one_piece_length}
+                              onChange={e => setNewRacquet({...newRacquet, one_piece_length: e.target.value})}
+                              className="w-full px-3 py-1.5 text-sm border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white rounded-lg outline-none focus:ring-2 focus:ring-primary"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-bold text-neutral-500 uppercase">2-Piece Length (ft)</label>
+                            <input 
+                              type="number" 
+                              placeholder="20/18" 
+                              value={newRacquet.two_piece_length}
+                              onChange={e => setNewRacquet({...newRacquet, two_piece_length: e.target.value})}
+                              className="w-full px-3 py-1.5 text-sm border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white rounded-lg outline-none focus:ring-2 focus:ring-primary"
+                            />
+                          </div>
+                        </div>
+                        <div className="space-y-1 mt-4">
+                          <label className="text-[10px] font-bold text-neutral-500 uppercase">Detailed Stringing Instructions</label>
+                          <textarea 
+                            placeholder="Additional pattern notes, mounting instructions, etc..." 
+                            value={newRacquet.stringing_instructions}
+                            onChange={e => setNewRacquet({...newRacquet, stringing_instructions: e.target.value})}
+                            className="w-full px-3 py-2 text-sm border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white rounded-lg outline-none focus:ring-2 focus:ring-primary min-h-[120px] resize-y"
+                          />
+                        </div>
+                      </div>
+
                       <div className="md:col-span-2 space-y-4">
                         <div className="grid grid-cols-2 gap-4">
                           <div className="space-y-2">
@@ -778,9 +965,22 @@ export default function CustomerList({ user }: { user: any }) {
                               className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white rounded-xl outline-none focus:ring-2 focus:ring-primary"
                             >
                               <option value="">Select Brand</option>
-                              {STRINGS.map(s => (
-                                <option key={s.brand} value={s.brand}>{s.brand}</option>
-                              ))}
+                              {(() => {
+                                const allStrings = [...STRINGS];
+                                inventoryStrings.forEach(item => {
+                                  const existingBrand = allStrings.find(s => s.brand === item.brand);
+                                  if (existingBrand) {
+                                    if (!existingBrand.models.includes(item.name)) {
+                                      existingBrand.models.push(item.name);
+                                    }
+                                  } else {
+                                    allStrings.push({ brand: item.brand, models: [item.name] });
+                                  }
+                                });
+                                return allStrings.map(s => (
+                                  <option key={s.brand} value={s.brand}>{s.brand}</option>
+                                ));
+                              })()}
                               <option value="Other">Other</option>
                             </select>
                             {newRacquet.string_main_brand === "Other" && (
@@ -801,9 +1001,21 @@ export default function CustomerList({ user }: { user: any }) {
                                 className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white rounded-xl outline-none focus:ring-2 focus:ring-primary"
                               >
                                 <option value="">Select Model</option>
-                                {STRINGS.find(s => s.brand === newRacquet.string_main_brand)?.models.map(model => (
-                                  <option key={model} value={model}>{model}</option>
-                                ))}
+                                {(() => {
+                                  const brand = STRINGS.find(s => s.brand === newRacquet.string_main_brand);
+                                  const models = brand ? [...brand.models] : [];
+                                  
+                                  // Add inventory models
+                                  inventoryStrings.filter(s => s.brand === newRacquet.string_main_brand).forEach(item => {
+                                    if (!models.includes(item.name)) {
+                                      models.push(item.name);
+                                    }
+                                  });
+
+                                  return models.map(model => (
+                                    <option key={model} value={model}>{model}</option>
+                                  ));
+                                })()}
                                 <option value="Other">Other</option>
                               </select>
                             ) : (
@@ -836,9 +1048,22 @@ export default function CustomerList({ user }: { user: any }) {
                             >
                               <option value="">Select Brand</option>
                               <option value="Same as Mains">Same as Mains</option>
-                              {STRINGS.map(s => (
-                                <option key={s.brand} value={s.brand}>{s.brand}</option>
-                              ))}
+                              {(() => {
+                                const allStrings = [...STRINGS];
+                                inventoryStrings.forEach(item => {
+                                  const existingBrand = allStrings.find(s => s.brand === item.brand);
+                                  if (existingBrand) {
+                                    if (!existingBrand.models.includes(item.name)) {
+                                      existingBrand.models.push(item.name);
+                                    }
+                                  } else {
+                                    allStrings.push({ brand: item.brand, models: [item.name] });
+                                  }
+                                });
+                                return allStrings.map(s => (
+                                  <option key={s.brand} value={s.brand}>{s.brand}</option>
+                                ));
+                              })()}
                               <option value="Other">Other</option>
                             </select>
                             {newRacquet.string_cross_brand === "Other" && (
@@ -859,9 +1084,21 @@ export default function CustomerList({ user }: { user: any }) {
                                 className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white rounded-xl outline-none focus:ring-2 focus:ring-primary"
                               >
                                 <option value="">Select Model</option>
-                                {STRINGS.find(s => s.brand === newRacquet.string_cross_brand)?.models.map(model => (
-                                  <option key={model} value={model}>{model}</option>
-                                ))}
+                                {(() => {
+                                  const brand = STRINGS.find(s => s.brand === newRacquet.string_cross_brand);
+                                  const models = brand ? [...brand.models] : [];
+                                  
+                                  // Add inventory models
+                                  inventoryStrings.filter(s => s.brand === newRacquet.string_cross_brand).forEach(item => {
+                                    if (!models.includes(item.name)) {
+                                      models.push(item.name);
+                                    }
+                                  });
+
+                                  return models.map(model => (
+                                    <option key={model} value={model}>{model}</option>
+                                  ));
+                                })()}
                                 <option value="Other">Other</option>
                               </select>
                             ) : (
@@ -884,20 +1121,59 @@ export default function CustomerList({ user }: { user: any }) {
                             )}
                           </div>
                         </div>
-                        <input 
-                          type="number" 
-                          placeholder="Current Main Tension" 
-                          value={newRacquet.current_tension_main}
-                          onChange={e => setNewRacquet({...newRacquet, current_tension_main: e.target.value})}
-                          className="px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white rounded-xl outline-none focus:ring-2 focus:ring-primary"
-                        />
-                        <input 
-                          type="number" 
-                          placeholder="Current Cross Tension" 
-                          value={newRacquet.current_tension_cross}
-                          onChange={e => setNewRacquet({...newRacquet, current_tension_cross: e.target.value})}
-                          className="px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white rounded-xl outline-none focus:ring-2 focus:ring-primary"
-                        />
+
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <label className="block text-xs font-medium text-neutral-500 uppercase tracking-wider">Mains Gauge</label>
+                            <select 
+                              value={newRacquet.string_main_gauge}
+                              onChange={e => setNewRacquet({...newRacquet, string_main_gauge: e.target.value})}
+                              className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white rounded-xl outline-none focus:ring-2 focus:ring-primary"
+                            >
+                              <option value="">Select Gauge</option>
+                              {GAUGES.map(g => (
+                                <option key={g} value={g}>{g}</option>
+                              ))}
+                            </select>
+                          </div>
+                          <div className="space-y-2">
+                            <label className="block text-xs font-medium text-neutral-500 uppercase tracking-wider">Crosses Gauge</label>
+                            <select 
+                              value={newRacquet.string_cross_brand === "Same as Mains" ? newRacquet.string_main_gauge : newRacquet.string_cross_gauge}
+                              disabled={newRacquet.string_cross_brand === "Same as Mains"}
+                              onChange={e => setNewRacquet({...newRacquet, string_cross_gauge: e.target.value})}
+                              className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white rounded-xl outline-none focus:ring-2 focus:ring-primary disabled:opacity-50"
+                            >
+                              <option value="">Select Gauge</option>
+                              {GAUGES.map(g => (
+                                <option key={g} value={g}>{g}</option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <label className="block text-xs font-medium text-neutral-500 uppercase tracking-wider">Mains Tension</label>
+                            <input 
+                              type="number" 
+                              placeholder="Current Main Tension" 
+                              value={newRacquet.current_tension_main}
+                              onChange={e => setNewRacquet({...newRacquet, current_tension_main: e.target.value})}
+                              className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white rounded-xl outline-none focus:ring-2 focus:ring-primary"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="block text-xs font-medium text-neutral-500 uppercase tracking-wider">Crosses Tension</label>
+                            <input 
+                              type="number" 
+                              placeholder="Current Cross Tension" 
+                              value={newRacquet.current_tension_cross}
+                              onChange={e => setNewRacquet({...newRacquet, current_tension_cross: e.target.value})}
+                              className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white rounded-xl outline-none focus:ring-2 focus:ring-primary"
+                            />
+                          </div>
+                        </div>
                       </div>
                       <div className="flex gap-2 md:col-span-2">
                         <button type="submit" className="flex-1 bg-primary text-white py-2 rounded-xl font-bold hover:bg-primary/90 transition-colors">Save</button>
