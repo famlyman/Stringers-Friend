@@ -113,8 +113,8 @@ export default function CustomerList({ user }: { user: any }) {
         setError("Could not find specifications for this model.");
       }
     } catch (err) {
-      console.error("Error fetching specs:", err);
-      setError("Failed to fetch specifications.");
+      console.error("Error fetching specs in handleFetchSpecs:", err);
+      setError(`Failed to fetch specifications: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setFetchingSpecs(false);
     }

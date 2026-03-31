@@ -12,8 +12,8 @@ export interface RacquetSpec {
   mainsTieOff?: string;
   crossesStart?: string;
   crossesTieOff?: string;
-  onePieceLength?: number;
-  twoPieceLength?: number;
+  onePieceLength?: string;
+  twoPieceLength?: string;
   stringingInstructions?: string;
   length?: number;
   unstrungWeight?: number;
@@ -23,10 +23,16 @@ export interface RacquetSpec {
   beamWidth?: string;
 }
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
-
 export const racquetSpecsService = {
   async getSpecs(brand: string, model: string): Promise<RacquetSpec | null> {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      console.error("GEMINI_API_KEY is not set");
+      return null;
+    }
+
+    const ai = new GoogleGenAI({ apiKey });
+
     try {
       const prompt = `Provide the technical stringing specifications for the following tennis racquet:
       Brand: ${brand}
@@ -43,7 +49,8 @@ export const racquetSpecsService = {
       - General Instructions: Any other specific notes (e.g., "Start at Head", "No shared holes").
 
       Use reliable sources like KlipperUSA, USRSA, or manufacturer technical manuals.
-      If you can find more details like length, weight, balance, swingweight, stiffness, and beam width, include them too.`;
+      If you can find more details like length, weight, balance, swingweight, stiffness, and beam width, include them too.
+      Return the response in JSON format.`;
 
       const response = await ai.models.generateContent({
         model: "gemini-3-flash-preview",
@@ -64,8 +71,8 @@ export const racquetSpecsService = {
               mainsTieOff: { type: Type.STRING, description: "Tie-off location for mains (e.g., 8T)" },
               crossesStart: { type: Type.STRING, description: "Starting point for crosses (e.g., Head or Throat)" },
               crossesTieOff: { type: Type.STRING, description: "Tie-off location for crosses (e.g., 5H, 11T)" },
-              onePieceLength: { type: Type.NUMBER, description: "Total length for one-piece stringing in feet" },
-              twoPieceLength: { type: Type.NUMBER, description: "Total length for two-piece stringing in feet" },
+              onePieceLength: { type: Type.STRING, description: "Total length for one-piece stringing in feet" },
+              twoPieceLength: { type: Type.STRING, description: "Total length for two-piece stringing in feet" },
               stringingInstructions: { type: Type.STRING, description: "General stringing instructions" },
               length: { type: Type.NUMBER, description: "Length in inches" },
               unstrungWeight: { type: Type.NUMBER, description: "Unstrung weight in grams" },
@@ -80,7 +87,13 @@ export const racquetSpecsService = {
       });
 
       if (response.text) {
-        return JSON.parse(response.text) as RacquetSpec;
+        try {
+          const cleanedText = response.text.trim().replace(/^```json\n?/, '').replace(/\n?```$/, '');
+          return JSON.parse(cleanedText) as RacquetSpec;
+        } catch (parseError) {
+          console.error("Error parsing racquet specs JSON:", parseError, response.text);
+          return null;
+        }
       }
       return null;
     } catch (error) {

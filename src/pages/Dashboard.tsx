@@ -71,8 +71,8 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
     racquet_mains_tie_off: "",
     racquet_crosses_start: "",
     racquet_crosses_tie_off: "",
-    racquet_one_piece_length: 0,
-    racquet_two_piece_length: 0,
+    racquet_one_piece_length: "",
+    racquet_two_piece_length: "",
     racquet_stringing_instructions: "",
     string_main_brand: "",
     string_main_model: "",
@@ -116,8 +116,8 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
           racquet_mains_tie_off: specs.mainsTieOff || "",
           racquet_crosses_start: specs.crossesStart || "",
           racquet_crosses_tie_off: specs.crossesTieOff || "",
-          racquet_one_piece_length: specs.onePieceLength || 0,
-          racquet_two_piece_length: specs.twoPieceLength || 0,
+          racquet_one_piece_length: specs.onePieceLength || "",
+          racquet_two_piece_length: specs.twoPieceLength || "",
           racquet_stringing_instructions: specs.stringingInstructions || "",
           notes: prev.notes + (prev.notes ? "\n" : "") + `Recommended Tension: ${specs.tensionRangeMin}-${specs.tensionRangeMax} lbs`
         }));
@@ -328,8 +328,8 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
           mains_tie_off: newJob.racquet_mains_tie_off,
           crosses_start: newJob.racquet_crosses_start,
           crosses_tie_off: newJob.racquet_crosses_tie_off,
-          one_piece_length: Number(newJob.racquet_one_piece_length) || 0,
-          two_piece_length: Number(newJob.racquet_two_piece_length) || 0,
+          one_piece_length: newJob.racquet_one_piece_length || "",
+          two_piece_length: newJob.racquet_two_piece_length || "",
           stringing_instructions: newJob.racquet_stringing_instructions,
           current_string_main: stringMain,
           current_string_cross: stringCross,
@@ -432,7 +432,7 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
         racquet_brand: "", racquet_model: "", racquet_brand_custom: "", racquet_model_custom: "", racquet_serial: "",
         racquet_head_size: 0, racquet_mains: 0, racquet_crosses: 0,
         racquet_mains_skip: "", racquet_mains_tie_off: "", racquet_crosses_start: "", racquet_crosses_tie_off: "",
-        racquet_one_piece_length: 0, racquet_two_piece_length: 0, racquet_stringing_instructions: "",
+        racquet_one_piece_length: "", racquet_two_piece_length: "", racquet_stringing_instructions: "",
         string_main_brand: "", string_main_model: "", string_main_gauge: "", string_main_brand_custom: "", string_main_model_custom: "",
         string_cross_brand: "", string_cross_model: "", string_cross_gauge: "", string_cross_brand_custom: "", string_cross_model_custom: "",
         string_main: "", string_cross: "", tension_main: 0, tension_cross: 0, price: 25, notes: "",
@@ -1445,18 +1445,18 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
                             <input 
                               type="number" 
                               placeholder="e.g. 33" 
-                              value={newJob.racquet_one_piece_length || ""}
-                              onChange={e => setNewJob({...newJob, racquet_one_piece_length: parseFloat(e.target.value) || 0})}
+                              value={newJob.racquet_one_piece_length}
+                              onChange={e => setNewJob({...newJob, racquet_one_piece_length: e.target.value})}
                               className="w-full px-3 py-1.5 text-sm border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-lg outline-none focus:ring-2 focus:ring-primary"
                             />
                           </div>
                           <div className="space-y-1">
                             <label className="text-[10px] font-bold text-neutral-500 uppercase">2-Piece Length (ft)</label>
                             <input 
-                              type="number" 
+                              type="text" 
                               placeholder="e.g. 20/18" 
-                              value={newJob.racquet_two_piece_length || ""}
-                              onChange={e => setNewJob({...newJob, racquet_two_piece_length: parseFloat(e.target.value) || 0})}
+                              value={newJob.racquet_two_piece_length}
+                              onChange={e => setNewJob({...newJob, racquet_two_piece_length: e.target.value})}
                               className="w-full px-3 py-1.5 text-sm border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-lg outline-none focus:ring-2 focus:ring-primary"
                             />
                           </div>
@@ -1748,7 +1748,7 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
                       racquet_brand: "", racquet_model: "", racquet_brand_custom: "", racquet_model_custom: "",
                       racquet_serial: "", racquet_head_size: 0, racquet_mains: 0, racquet_crosses: 0,
                       racquet_mains_skip: "", racquet_mains_tie_off: "", racquet_crosses_start: "", racquet_crosses_tie_off: "",
-                      racquet_one_piece_length: 0, racquet_two_piece_length: 0, racquet_stringing_instructions: "",
+                      racquet_one_piece_length: "", racquet_two_piece_length: "", racquet_stringing_instructions: "",
                       string_main_brand: "", string_main_model: "", string_main_gauge: "", string_main_brand_custom: "", string_main_model_custom: "",
                       string_cross_brand: "", string_cross_model: "", string_cross_gauge: "", string_cross_brand_custom: "", string_cross_model_custom: "",
                       string_main: "", string_cross: "", tension_main: 0, tension_cross: 0, price: 25, notes: "",
