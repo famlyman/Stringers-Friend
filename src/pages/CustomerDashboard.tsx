@@ -21,7 +21,7 @@ import { db, handleFirestoreError, OperationType } from "../lib/firebase";
 import { Save, Edit2, ChevronDown } from "lucide-react";
 import QRCodeDisplay from "../components/QRCodeDisplay";
 import { v4 as uuidv4 } from "uuid";
-import { RACQUET_BRANDS, RACQUET_MODELS, STRINGS } from "../constants";
+import { RACQUET_BRANDS, RACQUET_MODELS, STRINGS, GAUGES } from "../constants";
 
 export default function CustomerDashboard({ user, initialTab = 'jobs' }: { user: any, initialTab?: 'jobs' | 'racquets' | 'messages' }) {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -55,6 +55,7 @@ export default function CustomerDashboard({ user, initialTab = 'jobs' }: { user:
   const [showNotifications, setShowNotifications] = useState(false);
   const [showAddRacquetModal, setShowAddRacquetModal] = useState(false);
   const [selectedRacquet, setSelectedRacquet] = useState<any>(null);
+  const [inventoryStrings, setInventoryStrings] = useState<any[]>([]);
   const [newRacquetData, setNewRacquetData] = useState({
     brand: '',
     model: '',
@@ -66,6 +67,8 @@ export default function CustomerDashboard({ user, initialTab = 'jobs' }: { user:
   const [requestData, setRequestData] = useState({
     string_main: '',
     string_cross: '',
+    string_main_gauge: '',
+    string_cross_gauge: '',
     tension_main: '',
     tension_cross: '',
     notes: ''
@@ -253,6 +256,25 @@ export default function CustomerDashboard({ user, initialTab = 'jobs' }: { user:
     };
   }, [user.email]);
 
+  useEffect(() => {
+    if (!selectedRacquet?.shop_id) {
+      setInventoryStrings([]);
+      return;
+    }
+
+    const q = query(
+      collection(db, "inventory"),
+      where("shop_id", "==", selectedRacquet.shop_id),
+      where("type", "==", "string")
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      setInventoryStrings(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    });
+
+    return () => unsubscribe();
+  }, [selectedRacquet?.shop_id]);
+
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedShopId || !newMessage.trim() || !user.email) return;
@@ -285,6 +307,11 @@ export default function CustomerDashboard({ user, initialTab = 'jobs' }: { user:
     if (!selectedRacquet || !user.email) return;
 
     try {
+      const stringMain = `${requestData.string_main} ${requestData.string_main_gauge}`.trim();
+      const stringCross = requestData.string_cross 
+        ? `${requestData.string_cross} ${requestData.string_cross_gauge}`.trim()
+        : stringMain;
+
       const newJob = {
         customer_id: selectedRacquet.customer_id,
         customer_email: user.email,
@@ -292,8 +319,8 @@ export default function CustomerDashboard({ user, initialTab = 'jobs' }: { user:
         racquet_id: selectedRacquet.id,
         brand: selectedRacquet.brand,
         model: selectedRacquet.model,
-        string_main: requestData.string_main,
-        string_cross: requestData.string_cross || requestData.string_main,
+        string_main: stringMain,
+        string_cross: stringCross,
         tension_main: Number(requestData.tension_main),
         tension_cross: Number(requestData.tension_cross || requestData.tension_main),
         notes: requestData.notes,
@@ -324,6 +351,8 @@ export default function CustomerDashboard({ user, initialTab = 'jobs' }: { user:
       setRequestData({
         string_main: '',
         string_cross: '',
+        string_main_gauge: '',
+        string_cross_gauge: '',
         tension_main: '',
         tension_cross: '',
         notes: ''
@@ -587,6 +616,8 @@ export default function CustomerDashboard({ user, initialTab = 'jobs' }: { user:
                       ...requestData,
                       string_main: isNotStrung ? '' : (racquet.current_string_main || ''),
                       string_cross: isNotStrung ? '' : (racquet.current_string_cross || ''),
+                      string_main_gauge: '',
+                      string_cross_gauge: '',
                       tension_main: (isNotStrung || racquet.current_tension_main === 0) ? '' : racquet.current_tension_main?.toString() || '',
                       tension_cross: (isNotStrung || racquet.current_tension_cross === 0) ? '' : racquet.current_tension_cross?.toString() || ''
                     });
@@ -737,19 +768,49 @@ export default function CustomerDashboard({ user, initialTab = 'jobs' }: { user:
                     onChange={(e) => setRequestData({...requestData, string_main: e.target.value})}
                     className="w-full px-4 py-2 rounded-xl bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 focus:ring-2 focus:ring-primary/20 outline-none transition-all text-sm appearance-none"
                   >
-                    <option value="">Select String</option>
-                    {STRINGS.map(brand => (
-                      <optgroup key={brand.brand} label={brand.brand}>
-                        {brand.models.map(model => (
-                          <option key={`${brand.brand} ${model}`} value={`${brand.brand} ${model}`}>
-                            {brand.brand} {model}
-                          </option>
-                        ))}
-                      </optgroup>
-                    ))}
+                    <option value="">Select string</option>
+                    {(() => {
+                      const allStrings = JSON.parse(JSON.stringify(STRINGS));
+                      inventoryStrings.forEach(item => {
+                        const existingBrand = allStrings.find((s: any) => s.brand === item.brand);
+                        if (existingBrand) {
+                          if (!existingBrand.models.includes(item.name)) {
+                            existingBrand.models.push(item.name);
+                          }
+                        } else {
+                          allStrings.push({ brand: item.brand, models: [item.name] });
+                        }
+                      });
+                      return allStrings.map((brand: any) => (
+                        <optgroup key={brand.brand} label={brand.brand}>
+                          {brand.models.map((model: string) => (
+                            <option key={`${brand.brand} ${model}`} value={`${brand.brand} ${model}`}>
+                              {brand.brand} {model}
+                            </option>
+                          ))}
+                        </optgroup>
+                      ));
+                    })()}
                     <option value="Other">Other (Specify in notes)</option>
                   </select>
                 </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Main Gauge</label>
+                  <select
+                    required
+                    value={requestData.string_main_gauge}
+                    onChange={(e) => setRequestData({...requestData, string_main_gauge: e.target.value})}
+                    className="w-full px-4 py-2 rounded-xl bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 focus:ring-2 focus:ring-primary/20 outline-none transition-all text-sm appearance-none"
+                  >
+                    <option value="">Select Gauge</option>
+                    {GAUGES.map(g => (
+                      <option key={g} value={g}>{g}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Cross String</label>
                   <select
@@ -758,16 +819,44 @@ export default function CustomerDashboard({ user, initialTab = 'jobs' }: { user:
                     className="w-full px-4 py-2 rounded-xl bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 focus:ring-2 focus:ring-primary/20 outline-none transition-all text-sm appearance-none"
                   >
                     <option value="">Same as main</option>
-                    {STRINGS.map(brand => (
-                      <optgroup key={brand.brand} label={brand.brand}>
-                        {brand.models.map(model => (
-                          <option key={`${brand.brand} ${model}`} value={`${brand.brand} ${model}`}>
-                            {brand.brand} {model}
-                          </option>
-                        ))}
-                      </optgroup>
-                    ))}
+                    {(() => {
+                      const allStrings = JSON.parse(JSON.stringify(STRINGS));
+                      inventoryStrings.forEach(item => {
+                        const existingBrand = allStrings.find((s: any) => s.brand === item.brand);
+                        if (existingBrand) {
+                          if (!existingBrand.models.includes(item.name)) {
+                            existingBrand.models.push(item.name);
+                          }
+                        } else {
+                          allStrings.push({ brand: item.brand, models: [item.name] });
+                        }
+                      });
+                      return allStrings.map((brand: any) => (
+                        <optgroup key={brand.brand} label={brand.brand}>
+                          {brand.models.map((model: string) => (
+                            <option key={`${brand.brand} ${model}`} value={`${brand.brand} ${model}`}>
+                              {brand.brand} {model}
+                            </option>
+                          ))}
+                        </optgroup>
+                      ));
+                    })()}
                     <option value="Other">Other (Specify in notes)</option>
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Cross Gauge</label>
+                  <select
+                    required={!!requestData.string_cross}
+                    disabled={!requestData.string_cross}
+                    value={requestData.string_cross ? requestData.string_cross_gauge : requestData.string_main_gauge}
+                    onChange={(e) => setRequestData({...requestData, string_cross_gauge: e.target.value})}
+                    className="w-full px-4 py-2 rounded-xl bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 focus:ring-2 focus:ring-primary/20 outline-none transition-all text-sm appearance-none disabled:opacity-50"
+                  >
+                    <option value="">Select Gauge</option>
+                    {GAUGES.map(g => (
+                      <option key={g} value={g}>{g}</option>
+                    ))}
                   </select>
                 </div>
               </div>

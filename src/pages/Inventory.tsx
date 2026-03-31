@@ -15,6 +15,7 @@ import {
 import { db, handleFirestoreError, OperationType } from "../lib/firebase";
 import QRCodeDisplay from "../components/QRCodeDisplay";
 import { v4 as uuidv4 } from "uuid";
+import { GAUGES } from "../constants";
 
 export default function Inventory({ user }: { user: any }) {
   const [items, setItems] = useState<any[]>([]);
@@ -29,6 +30,7 @@ export default function Inventory({ user }: { user: any }) {
     brand: "", 
     type: "string", 
     sub_type: "set", 
+    gauge: "",
     length: 0, 
     grip_type: "tacky",
     quantity: 0, 
@@ -77,6 +79,7 @@ export default function Inventory({ user }: { user: any }) {
         brand: "", 
         type: "string", 
         sub_type: "set", 
+        gauge: "",
         length: 0, 
         grip_type: "tacky",
         quantity: 0, 
@@ -191,6 +194,22 @@ export default function Inventory({ user }: { user: any }) {
                   >
                     <option value="set">Individual Set</option>
                     <option value="reel">Reel</option>
+                  </select>
+                </div>
+              )}
+
+              {newItem.type === 'string' && (
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-neutral-500 uppercase ml-1">Gauge</label>
+                  <select 
+                    value={newItem.gauge || ""}
+                    onChange={e => setNewItem({...newItem, gauge: e.target.value})}
+                    className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-xl outline-none focus:ring-2 focus:ring-primary"
+                  >
+                    <option value="">Select Gauge</option>
+                    {GAUGES.map(g => (
+                      <option key={g} value={g}>{g}</option>
+                    ))}
                   </select>
                 </div>
               )}
@@ -408,6 +427,22 @@ export default function Inventory({ user }: { user: any }) {
                     >
                       <option value="set">Individual Set</option>
                       <option value="reel">Reel</option>
+                    </select>
+                  </div>
+                )}
+
+                {editingItem.type === 'string' && (
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-neutral-500 uppercase ml-1">Gauge</label>
+                    <select 
+                      value={editingItem.gauge || ""}
+                      onChange={e => setEditingItem({...editingItem, gauge: e.target.value})}
+                      className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-xl outline-none focus:ring-2 focus:ring-primary"
+                    >
+                      <option value="">Select Gauge</option>
+                      {GAUGES.map(g => (
+                        <option key={g} value={g}>{g}</option>
+                      ))}
                     </select>
                   </div>
                 )}

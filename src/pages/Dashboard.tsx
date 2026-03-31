@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { RACQUET_BRANDS, RACQUET_MODELS, STRINGS } from "../constants";
+import { RACQUET_BRANDS, RACQUET_MODELS, STRINGS, GAUGES } from "../constants";
 import { Plus, Search, Filter, CheckCircle2, Clock, PlayCircle, CreditCard, X, Trash2, Users, Briefcase, Edit2, ChevronRight, ChevronDown, Printer, Package, MessageSquare, Mail, Phone, Send } from "lucide-react";
 import QRCodeDisplay from "../components/QRCodeDisplay";
 import { collection, query, where, onSnapshot, doc, setDoc, updateDoc, deleteDoc, getDocs, writeBatch, serverTimestamp, orderBy } from "firebase/firestore";
@@ -35,6 +35,7 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
   const [selectedRacquetId, setSelectedRacquetId] = useState("");
   const [isNewCustomer, setIsNewCustomer] = useState(false);
   const [isNewRacquet, setIsNewRacquet] = useState(false);
+  const [inventoryStrings, setInventoryStrings] = useState<any[]>([]);
 
   const [newJob, setNewJob] = useState({
     customer_name: "",
@@ -50,10 +51,12 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
     racquet_crosses: 0,
     string_main_brand: "",
     string_main_model: "",
+    string_main_gauge: "",
     string_main_brand_custom: "",
     string_main_model_custom: "",
     string_cross_brand: "",
     string_cross_model: "",
+    string_cross_gauge: "",
     string_cross_brand_custom: "",
     string_cross_model_custom: "",
     string_main: "",
@@ -119,6 +122,16 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
       setMessages(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
     });
 
+    // Fetch Inventory Strings
+    const inventoryQuery = query(
+      collection(db, "inventory"),
+      where("shop_id", "==", user.shop_id),
+      where("type", "==", "string")
+    );
+    const unsubscribeInventory = onSnapshot(inventoryQuery, (snapshot) => {
+      setInventoryStrings(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    });
+
     setLoading(false);
 
     return () => {
@@ -127,6 +140,7 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
       unsubscribeCustomers();
       unsubscribeRacquets();
       unsubscribeMessages();
+      unsubscribeInventory();
     };
   }, [user.shop_id]);
 
@@ -135,12 +149,17 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
     setSubmitting(true);
     setError(null);
     try {
+      if (!user.shop_id) throw new Error("Shop ID is missing. Please check your profile.");
+
       const batch = writeBatch(db);
       let finalCustomerId = selectedCustomerId;
       let finalRacquetId = selectedRacquetId;
       let finalCustomerEmail = newJob.customer_email;
 
       if (isNewCustomer) {
+        if (!newJob.customer_name || !newJob.customer_email) {
+          throw new Error("Customer name and email are required.");
+        }
         // Check if a user with this email already exists as a customer
         const usersRef = collection(db, "users");
         const q = query(usersRef, where("email", "==", newJob.customer_email), where("role", "==", "customer"));
@@ -166,7 +185,33 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
         if (customer) {
           finalCustomerEmail = customer.email;
         }
+      } else {
+        throw new Error("Please select a customer or add a new one.");
       }
+
+      // Helper to handle "Other" string and add to inventory
+      const handleOtherString = async (brand: string, model: string, customBrand: string, customModel: string, gauge: string) => {
+        if (brand === "Other") {
+          const newId = uuidv4();
+          const stringName = `${customBrand} ${customModel} ${gauge}`.trim();
+          // Add to inventory batch
+          batch.set(doc(db, "inventory", newId), {
+            id: newId,
+            shop_id: user.shop_id,
+            brand: customBrand,
+            name: customModel,
+            gauge: gauge,
+            type: "string",
+            sub_type: "set",
+            quantity: 1,
+            price: 0,
+            created_at: serverTimestamp(),
+            updated_at: serverTimestamp()
+          });
+          return stringName;
+        }
+        return `${brand} ${model} ${gauge}`.trim();
+      };
 
       if (isNewRacquet || isNewCustomer) {
         finalRacquetId = uuidv4();
@@ -174,13 +219,25 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
         const brand = newJob.racquet_brand === "Other" ? newJob.racquet_brand_custom : newJob.racquet_brand;
         const model = newJob.racquet_model === "Other" ? newJob.racquet_model_custom : newJob.racquet_model;
         
-        const stringMain = newJob.string_main_brand === "Other" 
-          ? `${newJob.string_main_brand_custom} ${newJob.string_main_model_custom}`
-          : `${newJob.string_main_brand} ${newJob.string_main_model}`;
+        if (!brand || !model) throw new Error("Racquet brand and model are required.");
+
+        const stringMain = await handleOtherString(
+          newJob.string_main_brand, 
+          newJob.string_main_model, 
+          newJob.string_main_brand_custom, 
+          newJob.string_main_model_custom,
+          newJob.string_main_gauge
+        );
         
-        const stringCross = newJob.string_cross_brand === "Other"
-          ? `${newJob.string_cross_brand_custom} ${newJob.string_cross_model_custom}`
-          : (newJob.string_cross_brand === "Same as Mains" ? stringMain : `${newJob.string_cross_brand} ${newJob.string_cross_model}`);
+        const stringCross = newJob.string_cross_brand === "Same as Mains" 
+          ? stringMain 
+          : await handleOtherString(
+              newJob.string_cross_brand, 
+              newJob.string_cross_model, 
+              newJob.string_cross_brand_custom, 
+              newJob.string_cross_model_custom,
+              newJob.string_cross_gauge
+            );
 
         batch.set(racquetRef, {
           id: finalRacquetId,
@@ -203,15 +260,21 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
       } else if (selectedRacquetId) {
         // Update existing racquet with new string info
         const racquetRef = doc(db, "racquets", selectedRacquetId);
-        const stringMain = newJob.keep_same_string ? newJob.string_main : (
-          newJob.string_main_brand === "Other" 
-            ? `${newJob.string_main_brand_custom} ${newJob.string_main_model_custom}`
-            : `${newJob.string_main_brand} ${newJob.string_main_model}`
+        const stringMain = newJob.keep_same_string ? newJob.string_main : await handleOtherString(
+          newJob.string_main_brand, 
+          newJob.string_main_model, 
+          newJob.string_main_brand_custom, 
+          newJob.string_main_model_custom,
+          newJob.string_main_gauge
         );
         const stringCross = newJob.keep_same_string ? newJob.string_cross : (
-          newJob.string_cross_brand === "Other"
-            ? `${newJob.string_cross_brand_custom} ${newJob.string_cross_model_custom}`
-            : (newJob.string_cross_brand === "Same as Mains" ? stringMain : `${newJob.string_cross_brand} ${newJob.string_cross_model}`)
+          newJob.string_cross_brand === "Same as Mains" ? stringMain : await handleOtherString(
+            newJob.string_cross_brand, 
+            newJob.string_cross_model, 
+            newJob.string_cross_brand_custom, 
+            newJob.string_cross_model_custom,
+            newJob.string_cross_gauge
+          )
         );
 
         batch.update(racquetRef, {
@@ -221,20 +284,28 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
           current_tension_cross: newJob.tension_cross,
           updated_at: serverTimestamp()
         });
+      } else {
+        throw new Error("Please select a racquet or add a new one.");
       }
 
       const jobId = uuidv4();
       const jobRef = doc(db, "jobs", jobId);
       
-      const stringMain = newJob.keep_same_string ? newJob.string_main : (
-        newJob.string_main_brand === "Other" 
-          ? `${newJob.string_main_brand_custom} ${newJob.string_main_model_custom}`
-          : `${newJob.string_main_brand} ${newJob.string_main_model}`
+      const stringMain = newJob.keep_same_string ? newJob.string_main : await handleOtherString(
+        newJob.string_main_brand, 
+        newJob.string_main_model, 
+        newJob.string_main_brand_custom, 
+        newJob.string_main_model_custom,
+        newJob.string_main_gauge
       );
       const stringCross = newJob.keep_same_string ? newJob.string_cross : (
-        newJob.string_cross_brand === "Other"
-          ? `${newJob.string_cross_brand_custom} ${newJob.string_cross_model_custom}`
-          : (newJob.string_cross_brand === "Same as Mains" ? stringMain : `${newJob.string_cross_brand} ${newJob.string_cross_model}`)
+        newJob.string_cross_brand === "Same as Mains" ? stringMain : await handleOtherString(
+          newJob.string_cross_brand, 
+          newJob.string_cross_model, 
+          newJob.string_cross_brand_custom, 
+          newJob.string_cross_model_custom,
+          newJob.string_cross_gauge
+        )
       );
 
       batch.set(jobRef, {
@@ -278,8 +349,8 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
         customer_name: "", customer_email: "", customer_phone: "",
         racquet_brand: "", racquet_model: "", racquet_brand_custom: "", racquet_model_custom: "", racquet_serial: "",
         racquet_head_size: 0, racquet_mains: 0, racquet_crosses: 0,
-        string_main_brand: "", string_main_model: "", string_main_brand_custom: "", string_main_model_custom: "",
-        string_cross_brand: "", string_cross_model: "", string_cross_brand_custom: "", string_cross_model_custom: "",
+        string_main_brand: "", string_main_model: "", string_main_gauge: "", string_main_brand_custom: "", string_main_model_custom: "",
+        string_cross_brand: "", string_cross_model: "", string_cross_gauge: "", string_cross_brand_custom: "", string_cross_model_custom: "",
         string_main: "", string_cross: "", tension_main: 0, tension_cross: 0, price: 25, notes: "",
         keep_same_string: false
       });
@@ -288,6 +359,8 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
       setIsNewCustomer(false);
       setIsNewRacquet(false);
     } catch (err: any) {
+      console.error("Error creating job:", err);
+      setError(err.message || "Failed to create job. Please try again.");
       handleFirestoreError(err, OperationType.WRITE, "create_job");
     } finally {
       setSubmitting(false);
@@ -311,6 +384,19 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
     j.brand.toLowerCase().includes(jobSearch.toLowerCase()) ||
     j.model.toLowerCase().includes(jobSearch.toLowerCase())
   ).filter(j => jobStatusFilter === "all" ? true : j.status === jobStatusFilter);
+
+  // Combine static strings with inventory strings
+  const allStrings = JSON.parse(JSON.stringify(STRINGS)); // Deep clone to avoid mutating constant
+  inventoryStrings.forEach(item => {
+    const existingBrand = allStrings.find((s: any) => s.brand === item.brand);
+    if (existingBrand) {
+      if (!existingBrand.models.includes(item.name)) {
+        existingBrand.models.push(item.name);
+      }
+    } else {
+      allStrings.push({ brand: item.brand, models: [item.name] });
+    }
+  });
 
   const filteredCustomers = customers.filter(c => 
     c.name.toLowerCase().includes(customerSearch.toLowerCase()) ||
@@ -1240,10 +1326,10 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
                         required={!newJob.keep_same_string}
                         value={newJob.string_main_brand}
                         onChange={e => setNewJob({...newJob, string_main_brand: e.target.value, string_main_model: ""})}
-                        className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-lg outline-none focus:ring-2 focus:ring-primary"
+                        className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:white rounded-lg outline-none focus:ring-2 focus:ring-primary"
                       >
                         <option value="">Select Brand</option>
-                        {STRINGS.map(s => (
+                        {allStrings.map((s: any) => (
                           <option key={s.brand} value={s.brand}>{s.brand}</option>
                         ))}
                         <option value="Other">Other</option>
@@ -1253,6 +1339,7 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
                           type="text" 
                           placeholder="Enter Brand" 
                           required
+                          value={newJob.string_main_brand_custom}
                           className="w-full mt-2 px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-lg outline-none focus:ring-2 focus:ring-primary"
                           onChange={e => setNewJob({...newJob, string_main_brand_custom: e.target.value})}
                         />
@@ -1268,7 +1355,7 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
                           className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-lg outline-none focus:ring-2 focus:ring-primary"
                         >
                           <option value="">Select Model</option>
-                          {STRINGS.find(s => s.brand === newJob.string_main_brand)?.models.map(model => (
+                          {allStrings.find((s: any) => s.brand === newJob.string_main_brand)?.models.map((model: string) => (
                             <option key={model} value={model}>{model}</option>
                           ))}
                           <option value="Other">Other</option>
@@ -1288,10 +1375,43 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
                           type="text" 
                           placeholder="Enter Model" 
                           required
+                          value={newJob.string_main_model_custom}
                           className="w-full mt-2 px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-lg outline-none focus:ring-2 focus:ring-primary"
                           onChange={e => setNewJob({...newJob, string_main_model_custom: e.target.value})}
                         />
                       )}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-medium text-neutral-500 mb-1 uppercase tracking-wider">Main Gauge</label>
+                      <select 
+                        required={!newJob.keep_same_string}
+                        value={newJob.string_main_gauge}
+                        onChange={e => setNewJob({...newJob, string_main_gauge: e.target.value})}
+                        className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-lg outline-none focus:ring-2 focus:ring-primary"
+                      >
+                        <option value="">Select Gauge</option>
+                        {GAUGES.map(g => (
+                          <option key={g} value={g}>{g}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-neutral-500 mb-1 uppercase tracking-wider">Cross Gauge</label>
+                      <select 
+                        required={!newJob.keep_same_string && newJob.string_cross_brand !== "Same as Mains"}
+                        disabled={newJob.string_cross_brand === "Same as Mains"}
+                        value={newJob.string_cross_brand === "Same as Mains" ? newJob.string_main_gauge : newJob.string_cross_gauge}
+                        onChange={e => setNewJob({...newJob, string_cross_gauge: e.target.value})}
+                        className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-lg outline-none focus:ring-2 focus:ring-primary disabled:opacity-50"
+                      >
+                        <option value="">Select Gauge</option>
+                        {GAUGES.map(g => (
+                          <option key={g} value={g}>{g}</option>
+                        ))}
+                      </select>
                     </div>
                   </div>
 
@@ -1306,7 +1426,7 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
                       >
                         <option value="">Select Brand</option>
                         <option value="Same as Mains">Same as Mains</option>
-                        {STRINGS.map(s => (
+                        {allStrings.map((s: any) => (
                           <option key={s.brand} value={s.brand}>{s.brand}</option>
                         ))}
                         <option value="Other">Other</option>
@@ -1316,6 +1436,7 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
                           type="text" 
                           placeholder="Enter Brand" 
                           required
+                          value={newJob.string_cross_brand_custom}
                           className="w-full mt-2 px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-lg outline-none focus:ring-2 focus:ring-primary"
                           onChange={e => setNewJob({...newJob, string_cross_brand_custom: e.target.value})}
                         />
@@ -1331,7 +1452,7 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
                           className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-lg outline-none focus:ring-2 focus:ring-primary"
                         >
                           <option value="">Select Model</option>
-                          {STRINGS.find(s => s.brand === newJob.string_cross_brand)?.models.map(model => (
+                          {allStrings.find((s: any) => s.brand === newJob.string_cross_brand)?.models.map((model: string) => (
                             <option key={model} value={model}>{model}</option>
                           ))}
                           <option value="Other">Other</option>
@@ -1352,6 +1473,7 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
                           type="text" 
                           placeholder="Enter Model" 
                           required
+                          value={newJob.string_cross_model_custom}
                           className="w-full mt-2 px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-lg outline-none focus:ring-2 focus:ring-primary"
                           onChange={e => setNewJob({...newJob, string_cross_model_custom: e.target.value})}
                         />
@@ -1424,8 +1546,8 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
                       customer_name: "", customer_email: "", customer_phone: "",
                       racquet_brand: "", racquet_model: "", racquet_brand_custom: "", racquet_model_custom: "",
                       racquet_serial: "", racquet_head_size: 0, racquet_mains: 0, racquet_crosses: 0,
-                      string_main_brand: "", string_main_model: "", string_main_brand_custom: "", string_main_model_custom: "",
-                      string_cross_brand: "", string_cross_model: "", string_cross_brand_custom: "", string_cross_model_custom: "",
+                      string_main_brand: "", string_main_model: "", string_main_gauge: "", string_main_brand_custom: "", string_main_model_custom: "",
+                      string_cross_brand: "", string_cross_model: "", string_cross_gauge: "", string_cross_brand_custom: "", string_cross_model_custom: "",
                       string_main: "", string_cross: "", tension_main: 0, tension_cross: 0, price: 25, notes: "",
                       keep_same_string: false
                     });

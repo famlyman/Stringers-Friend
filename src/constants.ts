@@ -33,3 +33,14 @@ export const STRINGS = [
   { brand: "Solinco", models: ["Hyper-G", "Tour Bite", "Confidential", "Barb Wire", "Vanquish"] },
   { brand: "Tecnifibre", models: ["NRG2", "X-One Biphase", "Razor Code", "Black Code", "Triax"] }
 ];
+
+export const GAUGES = [
+  "15",
+  "15L",
+  "16",
+  "16L",
+  "17",
+  "17L",
+  "18",
+  "19"
+];
