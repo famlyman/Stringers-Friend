@@ -317,8 +317,6 @@ export default function CustomerDashboard({ user, initialTab = 'jobs' }: { user:
         customer_email: user.email,
         shop_id: selectedRacquet.shop_id,
         racquet_id: selectedRacquet.id,
-        brand: selectedRacquet.brand,
-        model: selectedRacquet.model,
         string_main: stringMain,
         string_cross: stringCross,
         tension_main: Number(requestData.tension_main),
@@ -334,11 +332,16 @@ export default function CustomerDashboard({ user, initialTab = 'jobs' }: { user:
       const jobDoc = await addDoc(collection(db, "jobs"), newJob);
 
       // Create message for shop
-      await addDoc(collection(db, "messages"), {
+      const messageId = uuidv4();
+      await setDoc(doc(db, "messages", messageId), {
+        id: messageId,
         shop_id: selectedRacquet.shop_id,
         customer_id: selectedRacquet.customer_id,
         customer_email: user.email,
         customer_name: customerInfo?.name || user.email?.split('@')[0],
+        sender_id: user.uid,
+        sender_name: customerInfo?.name || user.email?.split('@')[0],
+        sender_role: 'customer',
         title: "New Stringing Request",
         content: `A new stringing request has been submitted for a ${selectedRacquet.brand} ${selectedRacquet.model}.`,
         job_id: jobDoc.id,
@@ -385,7 +388,7 @@ export default function CustomerDashboard({ user, initialTab = 'jobs' }: { user:
         current_tension_main: 0,
         current_tension_cross: 0,
         qr_code: `racquet_${racquetId}`,
-        created_at: new Date().toISOString()
+        created_at: serverTimestamp()
       };
 
       await setDoc(doc(db, "racquets", racquetId), newRacquet);

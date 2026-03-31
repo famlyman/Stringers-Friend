@@ -191,15 +191,19 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
 
       // Helper to handle "Other" string and add to inventory
       const handleOtherString = async (brand: string, model: string, customBrand: string, customModel: string, gauge: string) => {
-        if (brand === "Other") {
+        const isOther = brand === "Other" || model === "Other";
+        const finalBrand = brand === "Other" ? customBrand : brand;
+        const finalModel = model === "Other" ? customModel : model;
+        const stringName = `${finalBrand} ${finalModel} ${gauge}`.trim();
+
+        if (isOther && finalBrand && finalModel) {
           const newId = uuidv4();
-          const stringName = `${customBrand} ${customModel} ${gauge}`.trim();
           // Add to inventory batch
           batch.set(doc(db, "inventory", newId), {
             id: newId,
             shop_id: user.shop_id,
-            brand: customBrand,
-            name: customModel,
+            brand: finalBrand,
+            name: finalModel,
             gauge: gauge,
             type: "string",
             sub_type: "set",
@@ -210,7 +214,7 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
           });
           return stringName;
         }
-        return `${brand} ${model} ${gauge}`.trim();
+        return stringName;
       };
 
       if (isNewRacquet || isNewCustomer) {

@@ -8,6 +8,7 @@ import {
   where, 
   onSnapshot, 
   addDoc, 
+  setDoc,
   updateDoc, 
   deleteDoc, 
   doc, 
@@ -152,13 +153,15 @@ export default function CustomerList({ user }: { user: any }) {
         ? `${newRacquet.string_cross_brand_custom} ${newRacquet.string_cross_model_custom}`
         : (newRacquet.string_cross_brand === "Same as Mains" ? stringMain : `${newRacquet.string_cross_brand} ${newRacquet.string_cross_model}`);
 
-      await addDoc(collection(db, "racquets"), {
-        ...newRacquet, 
-        brand,
-        model,
+      const racquetRef = doc(db, "racquets", racquetId);
+      await setDoc(racquetRef, {
+        id: racquetId,
         customer_id: selectedCustomer.id,
         customer_email: selectedCustomer.email,
         shop_id: user.shop_id,
+        brand,
+        model,
+        serial_number: newRacquet.serial_number,
         head_size: parseInt(newRacquet.head_size) || 0,
         string_pattern_mains: parseInt(newRacquet.string_pattern_mains) || 0,
         string_pattern_crosses: parseInt(newRacquet.string_pattern_crosses) || 0,
@@ -188,9 +191,17 @@ export default function CustomerList({ user }: { user: any }) {
     if (!editingRacquet) return;
     setSubmitting(true);
     try {
-      const { id, ...data } = editingRacquet;
-      await updateDoc(doc(db, "racquets", id), {
-        ...data,
+      await updateDoc(doc(db, "racquets", editingRacquet.id), {
+        brand: editingRacquet.brand,
+        model: editingRacquet.model,
+        serial_number: editingRacquet.serial_number,
+        head_size: editingRacquet.head_size,
+        string_pattern_mains: editingRacquet.string_pattern_mains,
+        string_pattern_crosses: editingRacquet.string_pattern_crosses,
+        current_string_main: editingRacquet.current_string_main,
+        current_string_cross: editingRacquet.current_string_cross,
+        current_tension_main: editingRacquet.current_tension_main,
+        current_tension_cross: editingRacquet.current_tension_cross,
         updated_at: serverTimestamp()
       });
       setEditingRacquet(null);
