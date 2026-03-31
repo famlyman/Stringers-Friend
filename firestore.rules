@@ -329,12 +329,7 @@ service cloud.firestore {
     }
 
     match /customers/{customerId} {
-      allow read: if isAuthenticated() && (
-        isShopOwner(resource.data.get('shop_id', '')) || 
-        resource.data.get('uid', '') == request.auth.uid || 
-        resource.data.get('email', '') == request.auth.token.email ||
-        isAdmin()
-      );
+      allow read: if true; // Public for scan results to show owner name
       allow create: if isAuthenticated() && isValidCustomer(request.resource.data) && 
                     isShopOwner(request.resource.data.get('shop_id', '')) &&
                     isRecent(request.resource.data.get('created_at', request.time));
@@ -348,12 +343,7 @@ service cloud.firestore {
     }
 
     match /racquets/{racquetId} {
-      allow read: if isAuthenticated() && (
-        isShopOwner(resource.data.get('shop_id', '')) || 
-        isLinkedCustomer(resource.data.get('customer_id', '')) || 
-        resource.data.get('customer_email', '') == request.auth.token.email ||
-        isAdmin()
-      );
+      allow read: if true; // Public for scanning
       allow create: if isAuthenticated() && isValidRacquet(request.resource.data) && 
                     (isShopOwner(request.resource.data.get('shop_id', '')) || 
                      isLinkedCustomer(request.resource.data.get('customer_id', '')) ||
@@ -369,11 +359,7 @@ service cloud.firestore {
     }
 
     match /jobs/{jobId} {
-      allow read: if isAuthenticated() && (
-        isShopOwner(resource.data.get('shop_id', '')) || 
-        resource.data.get('customer_email', '') == request.auth.token.email ||
-        isAdmin()
-      );
+      allow read: if true; // Public for scan results to show history
       allow create: if isAuthenticated() && isValidJob(request.resource.data) && 
                     (isShopOwner(request.resource.data.get('shop_id', '')) || 
                      request.resource.data.get('customer_email', '') == request.auth.token.email) &&

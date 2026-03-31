@@ -27,32 +27,62 @@ export default function ScanResult() {
       setError("");
 
       try {
-        if (qrCode.startsWith("shop_")) {
-          const q = query(collection(db, "shops"), where("qr_code", "==", qrCode));
-          const snap = await getDocs(q);
-          if (snap.empty) {
-            setError("Shop not found");
-          } else {
-            const shopDoc = snap.docs[0];
+        let cleanCode = qrCode.trim();
+        
+        // Handle case where full URL might be passed
+        if (cleanCode.includes("/scan/")) {
+          cleanCode = cleanCode.split("/scan/").pop() || cleanCode;
+        }
+
+        // Remove trailing slash
+        if (cleanCode.endsWith("/")) {
+          cleanCode = cleanCode.slice(0, -1);
+        }
+
+        console.log("Scanning code:", cleanCode);
+
+        if (cleanCode.startsWith("shop_")) {
+          const shopId = cleanCode.replace("shop_", "");
+          const shopDoc = await getDoc(doc(db, "shops", shopId));
+          
+          if (shopDoc.exists()) {
             setResult({
               type: "shop",
               data: { id: shopDoc.id, ...shopDoc.data() }
             });
-          }
-        } else if (qrCode.startsWith("racquet_")) {
-          const q = query(collection(db, "racquets"), where("qr_code", "==", qrCode));
-          const snap = await getDocs(q);
-          if (snap.empty) {
-            setError("Racquet not found");
           } else {
-            const racquetDoc = snap.docs[0];
-            const racquetData = { id: racquetDoc.id, ...racquetDoc.data() } as any;
-            
-            // Fetch customer info
+            const q = query(collection(db, "shops"), where("qr_code", "==", cleanCode));
+            const snap = await getDocs(q);
+            if (snap.empty) {
+              setError("Shop not found");
+            } else {
+              const shopDoc = snap.docs[0];
+              setResult({
+                type: "shop",
+                data: { id: shopDoc.id, ...shopDoc.data() }
+              });
+            }
+          }
+        } else if (cleanCode.startsWith("racquet_")) {
+          const racquetId = cleanCode.replace("racquet_", "");
+          const racquetDoc = await getDoc(doc(db, "racquets", racquetId));
+          
+          let racquetData: any = null;
+          if (racquetDoc.exists()) {
+            racquetData = { id: racquetDoc.id, ...racquetDoc.data() };
+          } else {
+            const q = query(collection(db, "racquets"), where("qr_code", "==", cleanCode));
+            const snap = await getDocs(q);
+            if (!snap.empty) {
+              const doc = snap.docs[0];
+              racquetData = { id: doc.id, ...doc.data() };
+            }
+          }
+
+          if (racquetData) {
             const customerDoc = await getDoc(doc(db, "customers", racquetData.customer_id));
             const customerData = customerDoc.exists() ? customerDoc.data() : { name: "Unknown", email: "Unknown" };
 
-            // Fetch job history
             const jobsQ = query(
               collection(db, "jobs"), 
               where("racquet_id", "==", racquetData.id),
@@ -71,9 +101,60 @@ export default function ScanResult() {
               },
               jobs
             });
+          } else {
+            setError("Racquet not found");
+          }
+        } else if (cleanCode.startsWith("inventory_")) {
+          const itemId = cleanCode.replace("inventory_", "");
+          const itemDoc = await getDoc(doc(db, "inventory", itemId));
+          
+          let itemData: any = null;
+          if (itemDoc.exists()) {
+            itemData = { id: itemDoc.id, ...itemDoc.data() };
+          } else {
+            const q = query(collection(db, "inventory"), where("qr_code", "==", cleanCode));
+            const snap = await getDocs(q);
+            if (!snap.empty) {
+              const doc = snap.docs[0];
+              itemData = { id: doc.id, ...doc.data() };
+            }
+          }
+
+          if (itemData) {
+            setResult({
+              type: "inventory",
+              data: itemData
+            });
+          } else {
+            setError("Inventory item not found");
           }
         } else {
-          setError("Invalid QR code format");
+          // Last resort: try to find by ID in all collections if no prefix
+          const shopDoc = await getDoc(doc(db, "shops", cleanCode));
+          if (shopDoc.exists()) {
+            setResult({ type: "shop", data: { id: shopDoc.id, ...shopDoc.data() } });
+            return;
+          }
+
+          const racquetDoc = await getDoc(doc(db, "racquets", cleanCode));
+          if (racquetDoc.exists()) {
+            const racquetData = { id: racquetDoc.id, ...racquetDoc.data() } as any;
+            const customerDoc = await getDoc(doc(db, "customers", racquetData.customer_id));
+            const customerData = customerDoc.exists() ? customerDoc.data() : { name: "Unknown", email: "Unknown" };
+            const jobsQ = query(collection(db, "jobs"), where("racquet_id", "==", racquetData.id), orderBy("created_at", "desc"), limit(10));
+            const jobsSnap = await getDocs(jobsQ);
+            const jobs = jobsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            setResult({ type: "racquet", data: { ...racquetData, customer_name: customerData.name, customer_email: customerData.email }, jobs });
+            return;
+          }
+
+          const itemDoc = await getDoc(doc(db, "inventory", cleanCode));
+          if (itemDoc.exists()) {
+            setResult({ type: "inventory", data: { id: itemDoc.id, ...itemDoc.data() } });
+            return;
+          }
+
+          setError("Invalid QR code format or item not found");
         }
       } catch (err) {
         console.error(err);
@@ -92,7 +173,10 @@ export default function ScanResult() {
       <div className="bg-white dark:bg-neutral-800 p-8 rounded-2xl border border-neutral-200 dark:border-neutral-700 text-center max-w-sm shadow-xl">
         <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
         <h1 className="text-xl font-bold mb-2 text-neutral-900 dark:text-white">Invalid QR Code</h1>
-        <p className="text-neutral-500 dark:text-neutral-400 mb-6">{error}</p>
+        <p className="text-neutral-500 dark:text-neutral-400 mb-2">{error}</p>
+        <div className="mb-6 p-3 bg-neutral-100 dark:bg-neutral-900 rounded-xl text-[10px] font-mono text-neutral-400 break-all">
+          Detected Code: {qrCode}
+        </div>
         <Link to="/" className="inline-block bg-primary text-white px-6 py-2 rounded-xl font-bold shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all active:scale-[0.98]">Go Home</Link>
       </div>
     </div>
@@ -132,6 +216,41 @@ export default function ScanResult() {
               <Link to="/register" className="block w-full bg-primary text-white text-center py-3 rounded-xl font-bold hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all active:scale-[0.98]">
                 Register as Customer
               </Link>
+            </div>
+          </div>
+        ) : result.type === "inventory" ? (
+          <div className="bg-white dark:bg-neutral-800 rounded-2xl border border-neutral-200 dark:border-neutral-700 p-8 shadow-sm">
+            <div className="flex justify-between items-start mb-6">
+              <div>
+                <h1 className="text-2xl font-bold text-primary">{result.data.brand} {result.data.name}</h1>
+                <p className="text-neutral-500 dark:text-neutral-400">Inventory Item</p>
+              </div>
+              <div className="bg-primary/10 dark:bg-primary/20 p-2 rounded-lg">
+                <QrCode className="w-6 h-6 text-primary" />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-neutral-50 dark:bg-neutral-900/50 p-4 rounded-xl border border-neutral-100 dark:border-neutral-700/50">
+                <p className="text-xs text-neutral-400 dark:text-neutral-500 uppercase tracking-wider font-bold">Type</p>
+                <p className="text-sm font-medium text-neutral-900 dark:text-white capitalize">{result.data.type} ({result.data.sub_type})</p>
+              </div>
+              <div className="bg-neutral-50 dark:bg-neutral-900/50 p-4 rounded-xl border border-neutral-100 dark:border-neutral-700/50">
+                <p className="text-xs text-neutral-400 dark:text-neutral-500 uppercase tracking-wider font-bold">Price</p>
+                <p className="text-sm font-medium text-neutral-900 dark:text-white">${result.data.price}</p>
+              </div>
+              <div className="bg-neutral-50 dark:bg-neutral-900/50 p-4 rounded-xl border border-neutral-100 dark:border-neutral-700/50">
+                <p className="text-xs text-neutral-400 dark:text-neutral-500 uppercase tracking-wider font-bold">Stock Level</p>
+                <p className={`text-sm font-medium ${result.data.quantity <= (result.data.low_stock_threshold || 0) ? 'text-red-500' : 'text-neutral-900 dark:text-white'}`}>
+                  {result.data.quantity} in stock
+                </p>
+              </div>
+              {result.data.gauge && (
+                <div className="bg-neutral-50 dark:bg-neutral-900/50 p-4 rounded-xl border border-neutral-100 dark:border-neutral-700/50">
+                  <p className="text-xs text-neutral-400 dark:text-neutral-500 uppercase tracking-wider font-bold">Gauge</p>
+                  <p className="text-sm font-medium text-neutral-900 dark:text-white">{result.data.gauge}</p>
+                </div>
+              )}
             </div>
           </div>
         ) : (
