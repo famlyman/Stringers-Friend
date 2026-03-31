@@ -1,7 +1,8 @@
 import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
-import { auth } from "../lib/firebase";
+import { auth, db } from "../lib/firebase";
+import { doc, getDoc, setDoc, query, collection, where, getDocs, addDoc, serverTimestamp } from "firebase/firestore";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -9,13 +10,43 @@ export default function Login() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const shopId = searchParams.get("shopId");
+
+  const ensureCustomerRecord = async (user: any) => {
+    if (!shopId) return;
+    
+    try {
+      const qShop = query(
+        collection(db, "customers"), 
+        where("email", "==", user.email),
+        where("shop_id", "==", shopId)
+      );
+      const shopSnap = await getDocs(qShop);
+      
+      if (shopSnap.empty) {
+        // Create a new customer record for this shop
+        await addDoc(collection(db, "customers"), {
+          name: user.displayName || user.email.split('@')[0],
+          email: user.email,
+          phone: user.phoneNumber || "",
+          shop_id: shopId,
+          uid: user.uid,
+          created_at: serverTimestamp()
+        });
+      }
+    } catch (err) {
+      console.error("Error ensuring customer record:", err);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError("");
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      const result = await signInWithEmailAndPassword(auth, email, password);
+      await ensureCustomerRecord(result.user);
       navigate("/");
     } catch (err: any) {
       setError(err.message || "Failed to sign in");
@@ -32,10 +63,6 @@ export default function Login() {
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
 
-      // Check if profile exists
-      const { doc, getDoc, setDoc } = await import("firebase/firestore");
-      const { db } = await import("../lib/firebase");
-      
       const userDocRef = doc(db, "users", user.uid);
       const userDoc = await getDoc(userDocRef);
       
@@ -48,6 +75,7 @@ export default function Login() {
         });
       }
 
+      await ensureCustomerRecord(user);
       navigate("/");
     } catch (err: any) {
       console.error("Google Sign-In Error:", err);
@@ -135,7 +163,7 @@ export default function Login() {
 
         <p className="mt-8 text-center text-sm text-neutral-500 dark:text-neutral-400">
           Don't have an account?{" "}
-          <Link to="/register" className="text-primary font-bold hover:underline">
+          <Link to={shopId ? `/register?shopId=${shopId}` : "/register"} className="text-primary font-bold hover:underline">
             Register now
           </Link>
         </p>

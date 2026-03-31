@@ -1,7 +1,7 @@
-import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { createUserWithEmailAndPassword } from "firebase/auth";
-import { doc, setDoc, query, collection, where, getDocs, updateDoc, serverTimestamp } from "firebase/firestore";
+import { doc, setDoc, query, collection, where, getDocs, updateDoc, serverTimestamp, addDoc } from "firebase/firestore";
 import { auth, db } from "../lib/firebase";
 
 export default function Register() {
@@ -11,6 +11,14 @@ export default function Register() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const shopId = searchParams.get("shopId");
+
+  useEffect(() => {
+    if (shopId) {
+      setRole("customer");
+    }
+  }, [shopId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,6 +38,28 @@ export default function Register() {
 
       // If role is customer, link to existing customer records across all shops
       if (role === "customer") {
+        // If we have a shopId from QR code, ensure a customer record exists for THIS shop
+        if (shopId) {
+          const qShop = query(
+            collection(db, "customers"), 
+            where("email", "==", user.email),
+            where("shop_id", "==", shopId)
+          );
+          const shopSnap = await getDocs(qShop);
+          
+          if (shopSnap.empty) {
+            // Create a new customer record for this shop
+            await addDoc(collection(db, "customers"), {
+              name: user.email.split('@')[0], // Default name
+              email: user.email,
+              phone: "",
+              shop_id: shopId,
+              uid: user.uid,
+              created_at: serverTimestamp()
+            });
+          }
+        }
+
         const q = query(collection(db, "customers"), where("email", "==", user.email));
         const querySnapshot = await getDocs(q);
         
@@ -150,7 +180,7 @@ export default function Register() {
 
         <p className="mt-8 text-center text-sm text-neutral-500 dark:text-neutral-400">
           Already have an account?{" "}
-          <Link to="/login" className="text-primary font-bold hover:underline">
+          <Link to={shopId ? `/login?shopId=${shopId}` : "/login"} className="text-primary font-bold hover:underline">
             Sign in
           </Link>
         </p>

@@ -213,7 +213,7 @@ export default function ScanResult() {
             </div>
 
             <div className="mt-8 pt-8 border-t border-neutral-100 dark:border-neutral-700">
-              <Link to="/register" className="block w-full bg-primary text-white text-center py-3 rounded-xl font-bold hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all active:scale-[0.98]">
+              <Link to={`/register?shopId=${result.data.id}`} className="block w-full bg-primary text-white text-center py-3 rounded-xl font-bold hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all active:scale-[0.98]">
                 Register as Customer
               </Link>
             </div>
