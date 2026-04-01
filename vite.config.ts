@@ -14,8 +14,8 @@ export default defineConfig(({mode}) => {
         registerType: 'autoUpdate',
         includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
         manifest: {
-          name: 'StringerPro',
-          short_name: 'StringerPro',
+          name: 'StringersFriend',
+          short_name: 'StringersFriend',
           description: 'Professional Tennis Stringing Shop Management',
           theme_color: '#2563eb',
           icons: [
