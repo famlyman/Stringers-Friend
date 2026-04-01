@@ -100,5 +100,47 @@ export const racquetSpecsService = {
       console.error("Error fetching racquet specs:", error);
       return null;
     }
+  },
+
+  async searchModels(brand: string, query: string): Promise<string[]> {
+    const apiKey = process.env.GEMINI_API_KEY || import.meta.env.VITE_GEMINI_API_KEY;
+    if (!apiKey) {
+      console.error("GEMINI_API_KEY is not set");
+      return [];
+    }
+
+    const ai = new GoogleGenAI({ apiKey });
+
+    try {
+      const prompt = `List the specific tennis racquet models for the brand "${brand}" that match or are related to "${query}".
+      Include all sub-models (e.g., Pro, MP, Team, Lite, Tour).
+      Return only a JSON array of strings containing the full model names.`;
+
+      const response = await ai.models.generateContent({
+        model: "gemini-3-flash-preview",
+        contents: prompt,
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.ARRAY,
+            items: { type: Type.STRING }
+          }
+        }
+      });
+
+      if (response.text) {
+        try {
+          const cleanedText = response.text.trim().replace(/^```json\n?/, '').replace(/\n?```$/, '');
+          return JSON.parse(cleanedText) as string[];
+        } catch (parseError) {
+          console.error("Error parsing racquet models JSON:", parseError, response.text);
+          return [];
+        }
+      }
+      return [];
+    } catch (error) {
+      console.error("Error searching racquet models:", error);
+      return [];
+    }
   }
 };

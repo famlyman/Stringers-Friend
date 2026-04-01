@@ -37,6 +37,9 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
   const [isNewCustomer, setIsNewCustomer] = useState(false);
   const [isNewRacquet, setIsNewRacquet] = useState(false);
   const [fetchingSpecs, setFetchingSpecs] = useState(false);
+  const [searchingModels, setSearchingModels] = useState(false);
+  const [modelSuggestions, setModelSuggestions] = useState<string[]>([]);
+  const [showModelSuggestions, setShowModelSuggestions] = useState(false);
   const [inventoryStrings, setInventoryStrings] = useState<any[]>([]);
 
   const customModels = useMemo(() => {
@@ -93,9 +96,13 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
     keep_same_string: false
   });
 
-  const handleFetchSpecs = async () => {
-    const brand = newJob.racquet_brand === "Other" ? newJob.racquet_brand_custom : newJob.racquet_brand;
-    const model = newJob.racquet_model === "Other" ? newJob.racquet_model_custom : newJob.racquet_model;
+  const handleFetchSpecs = async (brandParam?: string, modelParam?: string, isEditing: boolean = false) => {
+    const brand = brandParam || (isEditing 
+      ? editingRacquet.brand 
+      : (newJob.racquet_brand === "Other" ? newJob.racquet_brand_custom : newJob.racquet_brand));
+    const model = modelParam || (isEditing 
+      ? editingRacquet.model 
+      : (newJob.racquet_model === "Other" ? newJob.racquet_model_custom : newJob.racquet_model));
 
     if (!brand || !model) {
       setError("Please select a brand and model first.");
@@ -107,20 +114,36 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
     try {
       const specs = await racquetSpecsService.getSpecs(brand, model);
       if (specs) {
-        setNewJob(prev => ({
-          ...prev,
-          racquet_head_size: specs.headSize,
-          racquet_mains: specs.patternMains,
-          racquet_crosses: specs.patternCrosses,
-          racquet_mains_skip: specs.mainsSkip || "",
-          racquet_mains_tie_off: specs.mainsTieOff || "",
-          racquet_crosses_start: specs.crossesStart || "",
-          racquet_crosses_tie_off: specs.crossesTieOff || "",
-          racquet_one_piece_length: specs.onePieceLength || "",
-          racquet_two_piece_length: specs.twoPieceLength || "",
-          racquet_stringing_instructions: specs.stringingInstructions || "",
-          notes: prev.notes + (prev.notes ? "\n" : "") + `Recommended Tension: ${specs.tensionRangeMin}-${specs.tensionRangeMax} lbs`
-        }));
+        if (isEditing) {
+          setEditingRacquet(prev => ({
+            ...prev,
+            head_size: specs.headSize,
+            string_pattern_mains: specs.patternMains,
+            string_pattern_crosses: specs.patternCrosses,
+            mains_skip: specs.mainsSkip || "",
+            mains_tie_off: specs.mainsTieOff || "",
+            crosses_start: specs.crossesStart || "",
+            crosses_tie_off: specs.crossesTieOff || "",
+            one_piece_length: specs.onePieceLength || "",
+            two_piece_length: specs.twoPieceLength || "",
+            stringing_instructions: specs.stringingInstructions || ""
+          }));
+        } else {
+          setNewJob(prev => ({
+            ...prev,
+            racquet_head_size: specs.headSize,
+            racquet_mains: specs.patternMains,
+            racquet_crosses: specs.patternCrosses,
+            racquet_mains_skip: specs.mainsSkip || "",
+            racquet_mains_tie_off: specs.mainsTieOff || "",
+            racquet_crosses_start: specs.crossesStart || "",
+            racquet_crosses_tie_off: specs.crossesTieOff || "",
+            racquet_one_piece_length: specs.onePieceLength || "",
+            racquet_two_piece_length: specs.twoPieceLength || "",
+            racquet_stringing_instructions: specs.stringingInstructions || "",
+            notes: prev.notes + (prev.notes ? "\n" : "") + `Recommended Tension: ${specs.tensionRangeMin}-${specs.tensionRangeMax} lbs`
+          }));
+        }
       } else {
         setError("Could not find specifications for this model.");
       }
@@ -129,6 +152,24 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
       setError("Failed to fetch specifications.");
     } finally {
       setFetchingSpecs(false);
+    }
+  };
+
+  const handleSearchModels = async (query: string, isEditing = false) => {
+    const brand = isEditing 
+      ? editingRacquet.brand 
+      : (newJob.racquet_brand === "Other" ? newJob.racquet_brand_custom : newJob.racquet_brand);
+    if (!brand || query.length < 2) return;
+
+    setSearchingModels(true);
+    try {
+      const models = await racquetSpecsService.searchModels(brand, query);
+      setModelSuggestions(models);
+      setShowModelSuggestions(true);
+    } catch (err) {
+      console.error("Error searching models:", err);
+    } finally {
+      setSearchingModels(false);
     }
   };
 
@@ -954,48 +995,55 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
                     />
                   )}
                 </div>
-                <div>
+                <div className="relative">
                   <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">Model</label>
-                  {RACQUET_BRANDS.includes(editingRacquet.brand) ? (
-                    <select 
+                  <div className="relative">
+                    <input 
+                      type="text" 
+                      placeholder="Search or enter model" 
                       required
-                      value={RACQUET_MODELS[editingRacquet.brand]?.includes(editingRacquet.model) ? editingRacquet.model : "Other"}
+                      value={editingRacquet.model}
                       onChange={e => {
-                        const val = e.target.value;
-                        if (val === "Other") {
-                          setEditingRacquet({...editingRacquet, model: ""});
-                        } else {
-                          setEditingRacquet({...editingRacquet, model: val});
-                        }
+                        setEditingRacquet({...editingRacquet, model: e.target.value});
+                        handleSearchModels(e.target.value, true);
                       }}
+                      onFocus={() => editingRacquet.model.length >= 2 && setShowModelSuggestions(true)}
                       className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-xl outline-none focus:ring-2 focus:ring-primary"
-                    >
-                      <option value="">Select Model</option>
-                      {RACQUET_MODELS[editingRacquet.brand]?.map(model => (
-                        <option key={model} value={model}>{model}</option>
+                    />
+                    {searchingModels && (
+                      <div className="absolute right-3 top-2.5">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {showModelSuggestions && modelSuggestions.length > 0 && (
+                    <div className="absolute z-50 w-full mt-1 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl shadow-lg max-h-60 overflow-y-auto">
+                      {modelSuggestions.map((suggestion, index) => (
+                        <button
+                          key={index}
+                          type="button"
+                          className="w-full text-left px-4 py-2 hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-900 dark:text-white transition-colors"
+                          onClick={() => {
+                            setEditingRacquet({...editingRacquet, model: suggestion});
+                            setShowModelSuggestions(false);
+                          }}
+                        >
+                          {suggestion}
+                        </button>
                       ))}
-                      <option value="Other">Other</option>
-                    </select>
-                  ) : (
-                    <input 
-                      type="text" 
-                      placeholder="Enter Model" 
-                      required
-                      value={editingRacquet.model}
-                      onChange={e => setEditingRacquet({...editingRacquet, model: e.target.value})}
-                      className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-xl outline-none focus:ring-2 focus:ring-primary"
-                    />
+                    </div>
                   )}
-                  {RACQUET_BRANDS.includes(editingRacquet.brand) && (!RACQUET_MODELS[editingRacquet.brand]?.includes(editingRacquet.model) || editingRacquet.model === "") && (
-                    <input 
-                      type="text" 
-                      placeholder="Enter Model" 
-                      required
-                      value={editingRacquet.model}
-                      onChange={e => setEditingRacquet({...editingRacquet, model: e.target.value})}
-                      className="w-full mt-2 px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-xl outline-none focus:ring-2 focus:ring-primary"
-                    />
-                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => handleFetchSpecs(editingRacquet.brand, editingRacquet.model, true)}
+                    disabled={!editingRacquet.brand || !editingRacquet.model || fetchingSpecs}
+                    className="mt-2 text-xs text-primary hover:text-primary/80 flex items-center gap-1 disabled:opacity-50"
+                  >
+                    <Search className="w-3 h-3" />
+                    {fetchingSpecs ? "Searching..." : "Search Technical Specs"}
+                  </button>
                 </div>
               </div>
               <div>
@@ -1309,48 +1357,58 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
                             />
                           )}
                         </div>
-                        <div>
+                        <div className="relative">
                           <label className="block text-xs font-medium text-neutral-500 mb-1 uppercase tracking-wider">Model</label>
-                          {newJob.racquet_brand && newJob.racquet_brand !== "Other" ? (
-                            <select 
-                              required
-                              value={newJob.racquet_model}
-                              onChange={e => setNewJob({...newJob, racquet_model: e.target.value})}
-                              className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-lg outline-none focus:ring-2 focus:ring-primary"
-                            >
-                              <option value="">Select Model</option>
-                              {RACQUET_MODELS[newJob.racquet_brand]?.map(model => (
-                                <option key={model} value={model}>{model}</option>
-                              ))}
-                              {customModels[newJob.racquet_brand]?.map(model => (
-                                <option key={`custom-${model}`} value={model}>{model} (Custom)</option>
-                              ))}
-                              <option value="Other">Other</option>
-                            </select>
-                          ) : (
-                            <input 
-                              type="text" 
-                              placeholder="Enter Model" 
-                              required
-                              value={newJob.racquet_model}
-                              onChange={e => setNewJob({...newJob, racquet_model: e.target.value})}
-                              className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-lg outline-none focus:ring-2 focus:ring-primary"
-                            />
-                          )}
-                          {newJob.racquet_model === "Other" && (
-                            <input 
-                              type="text" 
-                              placeholder="Enter Model" 
-                              required
-                              className="w-full mt-2 px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-lg outline-none focus:ring-2 focus:ring-primary"
-                              onChange={e => setNewJob({...newJob, racquet_model_custom: e.target.value})}
-                            />
-                          )}
+                          <div className="flex gap-2">
+                            <div className="relative flex-1">
+                              <input 
+                                type="text" 
+                                placeholder="Search or Enter Model" 
+                                required
+                                value={newJob.racquet_model === "Other" ? newJob.racquet_model_custom : newJob.racquet_model}
+                                onChange={e => {
+                                  const val = e.target.value;
+                                  if (newJob.racquet_brand && newJob.racquet_brand !== "Other") {
+                                    setNewJob({...newJob, racquet_model: val, racquet_model_custom: val});
+                                    if (val.length >= 2) handleSearchModels(val);
+                                  } else {
+                                    setNewJob({...newJob, racquet_model: val, racquet_model_custom: val});
+                                  }
+                                }}
+                                onFocus={() => {
+                                  if (modelSuggestions.length > 0) setShowModelSuggestions(true);
+                                }}
+                                className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-lg outline-none focus:ring-2 focus:ring-primary"
+                              />
+                              {showModelSuggestions && modelSuggestions.length > 0 && (
+                                <div className="absolute z-50 w-full mt-1 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                                  {modelSuggestions.map((suggestion, idx) => (
+                                    <button
+                                      key={idx}
+                                      type="button"
+                                      onClick={() => {
+                                        setNewJob({...newJob, racquet_model: suggestion, racquet_model_custom: suggestion});
+                                        setShowModelSuggestions(false);
+                                      }}
+                                      className="w-full px-4 py-2 text-left hover:bg-neutral-100 dark:hover:bg-neutral-700 text-sm text-neutral-900 dark:text-white"
+                                    >
+                                      {suggestion}
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                            {searchingModels && (
+                              <div className="flex items-center">
+                                <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                              </div>
+                            )}
+                          </div>
                           
-                          {(newJob.racquet_brand && newJob.racquet_model) && (
+                          {(newJob.racquet_brand && (newJob.racquet_model || newJob.racquet_model_custom)) && (
                             <button
                               type="button"
-                              onClick={handleFetchSpecs}
+                              onClick={() => handleFetchSpecs()}
                               disabled={fetchingSpecs}
                               className="mt-2 px-3 py-1.5 bg-primary/10 text-primary text-xs font-bold rounded-lg hover:bg-primary/20 transition-colors flex items-center gap-1.5 disabled:opacity-50"
                             >

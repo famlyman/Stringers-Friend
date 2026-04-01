@@ -63,6 +63,9 @@ export default function CustomerDashboard({ user, initialTab = 'jobs' }: { user:
   const [showNotifications, setShowNotifications] = useState(false);
   const [showAddRacquetModal, setShowAddRacquetModal] = useState(false);
   const [fetchingSpecs, setFetchingSpecs] = useState(false);
+  const [searchingModels, setSearchingModels] = useState(false);
+  const [modelSuggestions, setModelSuggestions] = useState<string[]>([]);
+  const [showModelSuggestions, setShowModelSuggestions] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedRacquet, setSelectedRacquet] = useState<any>(null);
   const [inventoryStrings, setInventoryStrings] = useState<any[]>([]);
@@ -166,6 +169,22 @@ export default function CustomerDashboard({ user, initialTab = 'jobs' }: { user:
       setError("Failed to fetch specifications.");
     } finally {
       setFetchingSpecs(false);
+    }
+  };
+
+  const handleSearchModels = async (query: string) => {
+    const brand = newRacquetData.brand === "Other" ? newRacquetData.brand_custom : newRacquetData.brand;
+    if (!brand || query.length < 2) return;
+
+    setSearchingModels(true);
+    try {
+      const models = await racquetSpecsService.searchModels(brand, query);
+      setModelSuggestions(models);
+      setShowModelSuggestions(true);
+    } catch (err) {
+      console.error("Error searching models:", err);
+    } finally {
+      setSearchingModels(false);
     }
   };
   const [requestData, setRequestData] = useState({
@@ -1089,36 +1108,55 @@ export default function CustomerDashboard({ user, initialTab = 'jobs' }: { user:
                     <option value="Other">Other</option>
                   </select>
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-2 relative">
                   <label className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Model</label>
-                    {newRacquetData.brand && (RACQUET_MODELS[newRacquetData.brand] || customModels[newRacquetData.brand]) ? (
-                      <select
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <input 
+                        type="text" 
+                        placeholder="Search or Enter Model" 
                         required
-                        value={newRacquetData.model}
-                        onChange={(e) => setNewRacquetData({...newRacquetData, model: e.target.value})}
-                        className="w-full px-4 py-2 rounded-xl bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 focus:ring-2 focus:ring-primary/20 outline-none transition-all text-sm appearance-none"
-                      >
-                        <option value="">Select Model</option>
-                        {RACQUET_MODELS[newRacquetData.brand]?.map(model => (
-                          <option key={model} value={model}>{model}</option>
-                        ))}
-                        {customModels[newRacquetData.brand]?.map(model => (
-                          <option key={`custom-${model}`} value={model}>{model} (Custom)</option>
-                        ))}
-                        <option value="Other">Other</option>
-                      </select>
-                    ) : (
-                    <input
-                      type="text"
-                      required
-                      value={newRacquetData.model}
-                      onChange={(e) => setNewRacquetData({...newRacquetData, model: e.target.value})}
-                      placeholder="e.g. Pro Staff 97"
-                      className="w-full px-4 py-2 rounded-xl bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 focus:ring-2 focus:ring-primary/20 outline-none transition-all text-sm"
-                    />
-                  )}
+                        value={newRacquetData.model === "Other" ? newRacquetData.model_custom : newRacquetData.model}
+                        onChange={e => {
+                          const val = e.target.value;
+                          if (newRacquetData.brand && newRacquetData.brand !== "Other") {
+                            setNewRacquetData({...newRacquetData, model: val, model_custom: val});
+                            if (val.length >= 2) handleSearchModels(val);
+                          } else {
+                            setNewRacquetData({...newRacquetData, model: val, model_custom: val});
+                          }
+                        }}
+                        onFocus={() => {
+                          if (modelSuggestions.length > 0) setShowModelSuggestions(true);
+                        }}
+                        className="w-full px-4 py-2 rounded-xl bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 focus:ring-2 focus:ring-primary/20 outline-none transition-all text-sm"
+                      />
+                      {showModelSuggestions && modelSuggestions.length > 0 && (
+                        <div className="absolute z-50 w-full mt-1 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                          {modelSuggestions.map((suggestion, idx) => (
+                            <button
+                              key={idx}
+                              type="button"
+                              onClick={() => {
+                                setNewRacquetData({...newRacquetData, model: suggestion, model_custom: suggestion});
+                                setShowModelSuggestions(false);
+                              }}
+                              className="w-full px-4 py-2 text-left hover:bg-neutral-100 dark:hover:bg-neutral-700 text-sm text-neutral-900 dark:text-white"
+                            >
+                              {suggestion}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    {searchingModels && (
+                      <div className="flex items-center">
+                        <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                      </div>
+                    )}
+                  </div>
                   
-                  {(newRacquetData.brand && newRacquetData.model) && (
+                  {(newRacquetData.brand && (newRacquetData.model || newRacquetData.model_custom)) && (
                     <button
                       type="button"
                       onClick={handleFetchSpecs}
