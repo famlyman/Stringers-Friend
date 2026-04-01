@@ -48,7 +48,7 @@ export const racquetSpecsService = {
       - Two Piece Length: Length for two-piece stringing (ft)
       - General Instructions: Any other specific notes (e.g., "Start at Head", "No shared holes").
 
-      Use reliable sources like KlipperUSA, USRSA, or manufacturer technical manuals.
+      Use reliable sources like KlipperUSA (https://klipperusa.com/pages/racquet-stringing-patterns), USRSA, or manufacturer technical manuals.
       If you can find more details like length, weight, balance, swingweight, stiffness, and beam width, include them too.
       Return the response in JSON format.`;
 
@@ -56,6 +56,7 @@ export const racquetSpecsService = {
         model: "gemini-3-flash-preview",
         contents: prompt,
         config: {
+          tools: [{ googleSearch: {} }],
           responseMimeType: "application/json",
           responseSchema: {
             type: Type.OBJECT,
@@ -113,13 +114,15 @@ export const racquetSpecsService = {
 
     try {
       const prompt = `List the specific tennis racquet models for the brand "${brand}" that match or are related to "${query}".
-      Include all sub-models (e.g., Pro, MP, Team, Lite, Tour).
+      Include all sub-models (e.g., Pro, MP, Team, Lite, Tour, S, L, etc.).
+      Search through reliable sources like KlipperUSA (https://klipperusa.com/pages/racquet-stringing-patterns), USRSA, and manufacturer sites to find all variations.
       Return only a JSON array of strings containing the full model names.`;
 
       const response = await ai.models.generateContent({
         model: "gemini-3-flash-preview",
         contents: prompt,
         config: {
+          tools: [{ googleSearch: {} }],
           responseMimeType: "application/json",
           responseSchema: {
             type: Type.ARRAY,

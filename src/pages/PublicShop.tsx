@@ -49,7 +49,9 @@ export default function PublicShop() {
       const snap = await getDocs(q);
       
       if (snap.empty) {
-        await addDoc(collection(db, "customers"), {
+        const customerId = uuidv4();
+        await setDoc(doc(db, "customers", customerId), {
+          id: customerId,
           name: profile?.name || user.email?.split('@')[0] || "New Customer",
           email: user.email,
           phone: profile?.phone || "",

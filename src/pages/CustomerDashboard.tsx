@@ -8,7 +8,6 @@ import {
   where, 
   onSnapshot, 
   orderBy,
-  addDoc,
   updateDoc,
   doc,
   getDocs,
@@ -478,7 +477,11 @@ export default function CustomerDashboard({ user, initialTab = 'jobs' }: { user:
         updated_at: serverTimestamp()
       };
 
-      const jobDoc = await addDoc(collection(db, "jobs"), newJob);
+      const jobId = uuidv4();
+      await setDoc(doc(db, "jobs", jobId), {
+        id: jobId,
+        ...newJob
+      });
 
       // Create message for shop
       const messageId = uuidv4();
@@ -493,7 +496,7 @@ export default function CustomerDashboard({ user, initialTab = 'jobs' }: { user:
         sender_role: 'customer',
         title: "New Stringing Request",
         content: `A new stringing request has been submitted for a ${selectedRacquet.brand} ${selectedRacquet.model}.`,
-        job_id: jobDoc.id,
+        job_id: jobId,
         read: false,
         created_at: serverTimestamp()
       });

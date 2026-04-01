@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { createUserWithEmailAndPassword } from "firebase/auth";
-import { doc, setDoc, query, collection, where, getDocs, updateDoc, serverTimestamp, addDoc } from "firebase/firestore";
+import { doc, setDoc, query, collection, where, getDocs, updateDoc, serverTimestamp } from "firebase/firestore";
+import { v4 as uuidv4 } from "uuid";
 import { auth, db } from "../lib/firebase";
 
 export default function Register() {
@@ -49,7 +50,9 @@ export default function Register() {
           
           if (shopSnap.empty) {
             // Create a new customer record for this shop
-            await addDoc(collection(db, "customers"), {
+            const customerId = uuidv4();
+            await setDoc(doc(db, "customers", customerId), {
+              id: customerId,
               name: user.email.split('@')[0], // Default name
               email: user.email,
               phone: "",

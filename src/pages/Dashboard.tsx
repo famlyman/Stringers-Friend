@@ -505,9 +505,9 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
       model: racquet?.model || ""
     };
   }).filter(j => 
-    j.customer_name.toLowerCase().includes(jobSearch.toLowerCase()) ||
-    j.brand.toLowerCase().includes(jobSearch.toLowerCase()) ||
-    j.model.toLowerCase().includes(jobSearch.toLowerCase())
+    (j.customer_name || "").toLowerCase().includes(jobSearch.toLowerCase()) ||
+    (j.brand || "").toLowerCase().includes(jobSearch.toLowerCase()) ||
+    (j.model || "").toLowerCase().includes(jobSearch.toLowerCase())
   ).filter(j => jobStatusFilter === "all" ? true : j.status === jobStatusFilter);
 
   // Combine static strings with inventory strings
@@ -524,7 +524,7 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
   });
 
   const filteredCustomers = customers.filter(c => 
-    c.name.toLowerCase().includes(customerSearch.toLowerCase()) ||
+    (c.name || "").toLowerCase().includes(customerSearch.toLowerCase()) ||
     (c.email && c.email.toLowerCase().includes(customerSearch.toLowerCase())) ||
     (c.phone && c.phone.includes(customerSearch))
   );

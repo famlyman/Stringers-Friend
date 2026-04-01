@@ -11,9 +11,10 @@ import {
   limit,
   doc,
   getDoc,
-  addDoc,
+  setDoc,
   serverTimestamp
 } from "firebase/firestore";
+import { v4 as uuidv4 } from "uuid";
 import { db, handleFirestoreError, OperationType } from "../lib/firebase";
 import { useAuth } from "../context/AuthContext";
 
@@ -40,7 +41,9 @@ export default function ScanResult() {
       const shopSnap = await getDocs(qShop);
       
       if (shopSnap.empty) {
-        await addDoc(collection(db, "customers"), {
+        const customerId = uuidv4();
+        await setDoc(doc(db, "customers", customerId), {
+          id: customerId,
           name: profile?.name || user.displayName || user.email?.split('@')[0] || "Customer",
           email: user.email,
           phone: profile?.phone || "",

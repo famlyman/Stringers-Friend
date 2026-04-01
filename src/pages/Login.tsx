@@ -2,7 +2,8 @@ import React, { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
 import { auth, db } from "../lib/firebase";
-import { doc, getDoc, setDoc, query, collection, where, getDocs, addDoc, serverTimestamp } from "firebase/firestore";
+import { doc, getDoc, setDoc, query, collection, where, getDocs, serverTimestamp } from "firebase/firestore";
+import { v4 as uuidv4 } from "uuid";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -26,7 +27,9 @@ export default function Login() {
       
       if (shopSnap.empty) {
         // Create a new customer record for this shop
-        await addDoc(collection(db, "customers"), {
+        const customerId = uuidv4();
+        await setDoc(doc(db, "customers", customerId), {
+          id: customerId,
           name: user.displayName || user.email.split('@')[0],
           email: user.email,
           phone: user.phoneNumber || "",

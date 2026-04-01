@@ -248,7 +248,9 @@ export default function CustomerList({ user }: { user: any }) {
         linkedUid = userSnap.docs[0].id;
       }
 
-      await addDoc(collection(db, "customers"), {
+      const customerId = uuidv4();
+      await setDoc(doc(db, "customers", customerId), {
+        id: customerId,
         ...newCustomer,
         shop_id: user.shop_id,
         uid: linkedUid,
@@ -388,7 +390,7 @@ export default function CustomerList({ user }: { user: any }) {
   };
 
   const filteredCustomers = customers.filter(c => 
-    c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (c.name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
     (c.email && c.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
     (c.phone && c.phone.includes(searchTerm))
   );
