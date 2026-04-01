@@ -70,7 +70,7 @@ export default function Layout({ user, onLogout }: LayoutProps) {
         <div className="p-6 bg-primary">
           <div className="flex justify-between items-center">
             <div>
-              <h1 className="text-xl font-bold text-white tracking-tight">StringerPro</h1>
+              <h1 className="text-xl font-bold text-white tracking-tight">Stringers Friend</h1>
               <p className="text-[10px] text-secondary font-bold uppercase tracking-widest mt-1">Shop Management</p>
             </div>
           </div>

@@ -299,7 +299,7 @@ export default function PublicShop() {
       <footer className="bg-white dark:bg-neutral-900 border-t border-neutral-200 dark:border-neutral-800 py-12">
         <div className="max-w-5xl mx-auto px-4 text-center">
           <p className="text-sm text-neutral-500 dark:text-neutral-400">
-            &copy; {new Date().getFullYear()} {shop.name}. Powered by Stringer's Friend.
+            &copy; {new Date().getFullYear()} {shop.name}. Powered by Stringers Friend.
           </p>
         </div>
       </footer>
