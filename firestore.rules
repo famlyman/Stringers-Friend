@@ -292,7 +292,7 @@ service cloud.firestore {
              isValidOptionalString(data, 'title', 0, 200) &&
              isValidOptionalString(data, 'job_id', 0, 50) &&
              (!( 'read' in data) || data.get('read', false) is bool) &&
-             (!( 'created_at' in data) || data.get('created_at', request.time) is timestamp);
+             (!( 'created_at' in data) || data.get('created_at', request.time) is timestamp || data.get('created_at', '') is string);
     }
 
     function isValidNotification(data) {
@@ -401,10 +401,17 @@ service cloud.firestore {
         isAdmin()
       );
       allow create: if isAuthenticated() && isValidNotification(request.resource.data) && (isShopOwner(request.resource.data.get('shop_id', '')) || isAdmin());
-      allow update: if isAuthenticated() && isValidNotification(request.resource.data) && (
-        resource.data.get('customer_email', '') == request.auth.token.email || 
-        isShopOwner(resource.data.get('shop_id', '')) || 
-        isAdmin()
+      allow update: if isAuthenticated() && (
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read']) && (
+          resource.data.get('customer_email', '') == request.auth.token.email || 
+          isShopOwner(resource.data.get('shop_id', '')) || 
+          isAdmin()
+        )) ||
+        (isValidNotification(request.resource.data) && (
+          resource.data.get('customer_email', '') == request.auth.token.email || 
+          isShopOwner(resource.data.get('shop_id', '')) || 
+          isAdmin()
+        ) && areImmutableFieldsUnchanged(['id', 'shop_id', 'created_at']))
       );
       allow delete: if isAdmin() || (isAuthenticated() && isShopOwner(resource.data.get('shop_id', '')));
     }
@@ -414,13 +421,27 @@ service cloud.firestore {
       allow read: if isAuthenticated() && (
         resource.data.get('customer_email', '') == request.auth.token.email ||
         isLinkedCustomer(resource.data.get('customer_id', '')) ||
-        resource.data.get('shop_id', '') == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('shop_id', '') || 
+        isShopOwner(resource.data.get('shop_id', '')) || 
         isAdmin()
+      );
+      allow update: if isAuthenticated() && (
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read']) && (
+          resource.data.get('customer_email', '') == request.auth.token.email ||
+          isLinkedCustomer(resource.data.get('customer_id', '')) ||
+          isShopOwner(resource.data.get('shop_id', '')) || 
+          isAdmin()
+        )) ||
+        (isValidMessage(request.resource.data) && (
+          resource.data.get('customer_email', '') == request.auth.token.email ||
+          isLinkedCustomer(resource.data.get('customer_id', '')) ||
+          isShopOwner(resource.data.get('shop_id', '')) || 
+          isAdmin()
+        ) && areImmutableFieldsUnchanged(['id', 'shop_id', 'sender_id', 'created_at']))
       );
       allow delete: if isAuthenticated() && (
         resource.data.get('customer_email', '') == request.auth.token.email ||
         isLinkedCustomer(resource.data.get('customer_id', '')) ||
-        resource.data.get('shop_id', '') == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('shop_id', '') || 
+        isShopOwner(resource.data.get('shop_id', '')) || 
         isAdmin()
       );
     }
