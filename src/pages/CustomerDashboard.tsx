@@ -1079,7 +1079,10 @@ export default function CustomerDashboard({ user, initialTab = 'jobs' }: { user:
                   <select
                     required
                     value={newRacquetData.brand}
-                    onChange={(e) => setNewRacquetData({...newRacquetData, brand: e.target.value, model: ''})}
+                    onChange={(e) => {
+                      setNewRacquetData({...newRacquetData, brand: e.target.value, model: ''});
+                      setError(null);
+                    }}
                     className="w-full px-4 py-2 rounded-xl bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 focus:ring-2 focus:ring-primary/20 outline-none transition-all text-sm appearance-none"
                   >
                     <option value="">Select Brand</option>
@@ -1095,7 +1098,10 @@ export default function CustomerDashboard({ user, initialTab = 'jobs' }: { user:
                       <select
                         required
                         value={newRacquetData.model}
-                        onChange={(e) => setNewRacquetData({...newRacquetData, model: e.target.value})}
+                        onChange={(e) => {
+                          setNewRacquetData({...newRacquetData, model: e.target.value});
+                          setError(null);
+                        }}
                         className="w-full px-4 py-2 rounded-xl bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 focus:ring-2 focus:ring-primary/20 outline-none transition-all text-sm appearance-none"
                       >
                         <option value="">Select Model</option>
@@ -1112,7 +1118,10 @@ export default function CustomerDashboard({ user, initialTab = 'jobs' }: { user:
                       type="text"
                       required
                       value={newRacquetData.model}
-                      onChange={(e) => setNewRacquetData({...newRacquetData, model: e.target.value})}
+                      onChange={(e) => {
+                        setNewRacquetData({...newRacquetData, model: e.target.value});
+                        setError(null);
+                      }}
                       placeholder="e.g. Pro Staff 97"
                       className="w-full px-4 py-2 rounded-xl bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 focus:ring-2 focus:ring-primary/20 outline-none transition-all text-sm"
                     />
@@ -1127,6 +1136,9 @@ export default function CustomerDashboard({ user, initialTab = 'jobs' }: { user:
                     >
                       {fetchingSpecs ? "Searching..." : "Search Technical Specs"}
                     </button>
+                  )}
+                  {error && (
+                    <p className="mt-1 text-xs text-red-500">{error}</p>
                   )}
                 </div>
               </div>
