@@ -141,6 +141,19 @@
         "created_at": { "type": "string", "format": "date-time" }
       },
       "required": ["id", "shop_id", "content", "sender_role", "created_at"]
+    },
+    "RacquetSpecCache": {
+      "title": "RacquetSpecCache",
+      "description": "Cached racquet specifications to reduce API calls.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "brand_model slug" },
+        "brand": { "type": "string" },
+        "model": { "type": "string" },
+        "specs": { "type": "object", "description": "The full specs object from Gemini" },
+        "created_at": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "brand", "model", "specs", "created_at"]
     }
   },
   "firestore": {
@@ -151,6 +164,7 @@
     "/jobs/{jobId}": { "schema": "Job", "description": "Stringing jobs" },
     "/inventory/{itemId}": { "schema": "InventoryItem", "description": "Inventory items" },
     "/notifications/{notificationId}": { "schema": "Notification", "description": "User notifications" },
-    "/messages/{messageId}": { "schema": "Message", "description": "Shop messages" }
+    "/messages/{messageId}": { "schema": "Message", "description": "Shop messages" },
+    "/racquet_specs_cache/{cacheId}": { "schema": "RacquetSpecCache", "description": "Cached racquet specs" }
   }
 }

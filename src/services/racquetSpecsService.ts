@@ -1,4 +1,6 @@
 import { GoogleGenAI, Type } from "@google/genai";
+import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
+import { db } from "../lib/firebase";
 
 export interface RacquetSpec {
   brand: string;
@@ -25,6 +27,20 @@ export interface RacquetSpec {
 
 export const racquetSpecsService = {
   async getSpecs(brand: string, model: string): Promise<RacquetSpec | null> {
+    // 1. Check Cache First
+    const cacheId = `${brand.toLowerCase().replace(/\s+/g, '_')}_${model.toLowerCase().replace(/\s+/g, '_')}`;
+    try {
+      const cacheRef = doc(db, "racquet_specs_cache", cacheId);
+      const cacheSnap = await getDoc(cacheRef);
+      if (cacheSnap.exists()) {
+        console.log("Returning cached racquet specs for:", brand, model);
+        return cacheSnap.data().specs as RacquetSpec;
+      }
+    } catch (cacheError) {
+      console.warn("Error checking racquet specs cache:", cacheError);
+    }
+
+    // 2. Call Gemini if not in cache
     const apiKey = process.env.GEMINI_API_KEY || import.meta.env.VITE_GEMINI_API_KEY;
     if (!apiKey) {
       console.error("GEMINI_API_KEY is not set");
@@ -90,7 +106,22 @@ export const racquetSpecsService = {
       if (response.text) {
         try {
           const cleanedText = response.text.trim().replace(/^```json\n?/, '').replace(/\n?```$/, '');
-          return JSON.parse(cleanedText) as RacquetSpec;
+          const specs = JSON.parse(cleanedText) as RacquetSpec;
+
+          // 3. Save to Cache
+          try {
+            await setDoc(doc(db, "racquet_specs_cache", cacheId), {
+              id: cacheId,
+              brand: specs.brand || brand,
+              model: specs.model || model,
+              specs: specs,
+              created_at: serverTimestamp()
+            });
+          } catch (cacheSaveError) {
+            console.warn("Error saving racquet specs to cache:", cacheSaveError);
+          }
+
+          return specs;
         } catch (parseError) {
           console.error("Error parsing racquet specs JSON:", parseError, response.text);
           return null;
@@ -104,6 +135,19 @@ export const racquetSpecsService = {
   },
 
   async searchModels(brand: string, query: string): Promise<string[]> {
+    // 1. Check Cache First
+    const cacheId = `search_${brand.toLowerCase().replace(/\s+/g, '_')}_${query.toLowerCase().replace(/\s+/g, '_')}`;
+    try {
+      const cacheRef = doc(db, "racquet_specs_cache", cacheId);
+      const cacheSnap = await getDoc(cacheRef);
+      if (cacheSnap.exists()) {
+        console.log("Returning cached model search results for:", brand, query);
+        return cacheSnap.data().results as string[];
+      }
+    } catch (cacheError) {
+      console.warn("Error checking model search cache:", cacheError);
+    }
+
     const apiKey = process.env.GEMINI_API_KEY || import.meta.env.VITE_GEMINI_API_KEY;
     if (!apiKey) {
       console.error("GEMINI_API_KEY is not set");
@@ -134,7 +178,22 @@ export const racquetSpecsService = {
       if (response.text) {
         try {
           const cleanedText = response.text.trim().replace(/^```json\n?/, '').replace(/\n?```$/, '');
-          return JSON.parse(cleanedText) as string[];
+          const results = JSON.parse(cleanedText) as string[];
+
+          // 2. Save to Cache
+          try {
+            await setDoc(doc(db, "racquet_specs_cache", cacheId), {
+              id: cacheId,
+              brand: brand,
+              query: query,
+              results: results,
+              created_at: serverTimestamp()
+            });
+          } catch (cacheSaveError) {
+            console.warn("Error saving model search to cache:", cacheSaveError);
+          }
+
+          return results;
         } catch (parseError) {
           console.error("Error parsing racquet models JSON:", parseError, response.text);
           return [];

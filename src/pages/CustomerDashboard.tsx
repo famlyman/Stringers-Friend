@@ -379,6 +379,25 @@ export default function CustomerDashboard({ user, initialTab = 'jobs' }: { user:
     };
   }, [user.email]);
 
+  // Mark messages as read when a shop is selected
+  useEffect(() => {
+    if (selectedShopId && activeTab === 'messages') {
+      const unreadMessages = messages.filter(
+        m => m.shop_id === selectedShopId && m.sender_role === 'stringer' && !m.read
+      );
+      
+      if (unreadMessages.length > 0) {
+        unreadMessages.forEach(async (msg) => {
+          try {
+            await updateDoc(doc(db, "messages", msg.id), { read: true });
+          } catch (err) {
+            console.error("Error marking message as read:", err);
+          }
+        });
+      }
+    }
+  }, [selectedShopId, activeTab, messages]);
+
   useEffect(() => {
     if (!selectedRacquet?.shop_id) {
       setInventoryStrings([]);
@@ -830,16 +849,22 @@ export default function CustomerDashboard({ user, initialTab = 'jobs' }: { user:
               <h3 className="font-bold text-primary">Shops</h3>
             </div>
             <div className="flex-1 overflow-y-auto p-2 space-y-1">
-              {shops.map(shop => (
-                <button
-                  key={shop.id}
-                  onClick={() => setSelectedShopId(shop.id)}
-                  className={`w-full text-left p-3 rounded-2xl transition-all ${selectedShopId === shop.id ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'hover:bg-neutral-50 dark:hover:bg-neutral-700 text-neutral-600 dark:text-neutral-300'}`}
-                >
-                  <p className="font-bold text-sm truncate">{shop.name}</p>
-                  <p className={`text-[10px] ${selectedShopId === shop.id ? 'text-white/70' : 'text-neutral-400'}`}>{shop.location}</p>
-                </button>
-              ))}
+              {shops.map(shop => {
+                const unread = messages.filter(m => m.shop_id === shop.id && m.sender_role === 'stringer' && !m.read).length;
+                return (
+                  <button
+                    key={shop.id}
+                    onClick={() => setSelectedShopId(shop.id)}
+                    className={`w-full text-left p-3 rounded-2xl transition-all relative ${selectedShopId === shop.id ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'hover:bg-neutral-50 dark:hover:bg-neutral-700 text-neutral-600 dark:text-neutral-300'}`}
+                  >
+                    <div className="flex justify-between items-start">
+                      <p className="font-bold text-sm truncate">{shop.name}</p>
+                      {unread > 0 && <span className="w-2 h-2 bg-red-500 rounded-full" />}
+                    </div>
+                    <p className={`text-[10px] ${selectedShopId === shop.id ? 'text-white/70' : 'text-neutral-400'}`}>{shop.location}</p>
+                  </button>
+                );
+              })}
               {shops.length === 0 && (
                 <p className="text-center text-xs text-neutral-400 p-4">No shops found</p>
               )}

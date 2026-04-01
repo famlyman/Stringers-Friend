@@ -1,7 +1,9 @@
-import { ReactNode } from "react";
+import { ReactNode, useState, useEffect } from "react";
 import { Link, Outlet, useNavigate } from "react-router-dom";
 import { LayoutDashboard, Users, Package, LogOut, User, Sun, Moon, MessageSquare, Clock } from "lucide-react";
 import { useTheme } from "../context/ThemeContext";
+import { collection, query, where, onSnapshot } from "firebase/firestore";
+import { db } from "../lib/firebase";
 
 interface LayoutProps {
   user: any;
@@ -11,6 +13,21 @@ interface LayoutProps {
 export default function Layout({ user, onLogout }: LayoutProps) {
   const navigate = useNavigate();
   const { darkMode, toggleDarkMode } = useTheme();
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    if (!user) return;
+
+    const messagesQuery = user.role === 'stringer'
+      ? query(collection(db, "messages"), where("shop_id", "==", user.shop_id), where("sender_role", "==", "customer"), where("read", "==", false))
+      : query(collection(db, "messages"), where("customer_email", "==", user.email), where("sender_role", "==", "stringer"), where("read", "==", false));
+
+    const unsubscribe = onSnapshot(messagesQuery, (snapshot) => {
+      setUnreadCount(snapshot.size);
+    });
+
+    return () => unsubscribe();
+  }, [user]);
 
   if (!user) return <Outlet />;
 
@@ -26,9 +43,15 @@ export default function Layout({ user, onLogout }: LayoutProps) {
             <Users className="w-5 h-5 md:w-4 md:h-4 md:mr-3 group-hover:text-primary" />
             <span className="mt-1 md:mt-0">Customers</span>
           </Link>
-          <Link to="/messages" className="flex flex-col md:flex-row items-center px-4 py-2 text-xs md:text-sm font-medium text-neutral-700 dark:text-neutral-300 rounded-lg hover:bg-primary/10 hover:text-primary dark:hover:text-primary transition-colors group shrink-0">
+          <Link to="/messages" className="flex flex-col md:flex-row items-center px-4 py-2 text-xs md:text-sm font-medium text-neutral-700 dark:text-neutral-300 rounded-lg hover:bg-primary/10 hover:text-primary dark:hover:text-primary transition-colors group shrink-0 relative">
             <MessageSquare className="w-5 h-5 md:w-4 md:h-4 md:mr-3 group-hover:text-primary" />
             <span className="mt-1 md:mt-0">Messages</span>
+            {unreadCount > 0 && (
+              <span className="absolute top-2 right-2 md:top-2 md:left-6 flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+              </span>
+            )}
           </Link>
           <Link to="/inventory" className="flex flex-col md:flex-row items-center px-4 py-2 text-xs md:text-sm font-medium text-neutral-700 dark:text-neutral-300 rounded-lg hover:bg-primary/10 hover:text-primary dark:hover:text-primary transition-colors group shrink-0">
             <Package className="w-5 h-5 md:w-4 md:h-4 md:mr-3 group-hover:text-primary" />
@@ -50,9 +73,15 @@ export default function Layout({ user, onLogout }: LayoutProps) {
             <Package className="w-5 h-5 md:w-4 md:h-4 md:mr-3 group-hover:text-primary" />
             <span className="mt-1 md:mt-0">My Bag</span>
           </Link>
-          <Link to="/?tab=messages" className="flex flex-col md:flex-row items-center px-4 py-2 text-xs md:text-sm font-medium text-neutral-700 dark:text-neutral-300 rounded-lg hover:bg-primary/10 hover:text-primary dark:hover:text-primary transition-colors group shrink-0">
+          <Link to="/?tab=messages" className="flex flex-col md:flex-row items-center px-4 py-2 text-xs md:text-sm font-medium text-neutral-700 dark:text-neutral-300 rounded-lg hover:bg-primary/10 hover:text-primary dark:hover:text-primary transition-colors group shrink-0 relative">
             <MessageSquare className="w-5 h-5 md:w-4 md:h-4 md:mr-3 group-hover:text-primary" />
             <span className="mt-1 md:mt-0">Messages</span>
+            {unreadCount > 0 && (
+              <span className="absolute top-2 right-2 md:top-2 md:left-6 flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+              </span>
+            )}
           </Link>
           <Link to="/profile" className="flex flex-col md:flex-row items-center px-4 py-2 text-xs md:text-sm font-medium text-neutral-700 dark:text-neutral-300 rounded-lg hover:bg-primary/10 hover:text-primary dark:hover:text-primary transition-colors group shrink-0">
             <User className="w-5 h-5 md:w-4 md:h-4 md:mr-3 group-hover:text-primary" />

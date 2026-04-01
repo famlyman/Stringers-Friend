@@ -255,6 +255,25 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
     };
   }, [user.shop_id]);
 
+  // Mark messages as read when a conversation is selected
+  useEffect(() => {
+    if (selectedCustomerIdForChat && activeTab === 'messages') {
+      const unreadMessages = messages.filter(
+        m => m.customer_id === selectedCustomerIdForChat && m.sender_role === 'customer' && !m.read
+      );
+      
+      if (unreadMessages.length > 0) {
+        unreadMessages.forEach(async (msg) => {
+          try {
+            await updateDoc(doc(db, "messages", msg.id), { read: true });
+          } catch (err) {
+            console.error("Error marking message as read:", err);
+          }
+        });
+      }
+    }
+  }, [selectedCustomerIdForChat, activeTab, messages]);
+
   const handleCreateJob = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
@@ -761,6 +780,21 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
       }
 
       setNewMessage("");
+
+      // Create in-app notification for customer
+      if (customer?.email) {
+        const notificationId = uuidv4();
+        await setDoc(doc(db, "notifications", notificationId), {
+          id: notificationId,
+          customer_email: customer.email,
+          shop_id: user.shop_id,
+          type: "other",
+          title: "New Message",
+          message: `You have a new message from ${shop?.name || "your stringer"}.`,
+          read: false,
+          created_at: serverTimestamp()
+        });
+      }
     } catch (err) {
       handleFirestoreError(err, OperationType.WRITE, "messages");
     } finally {
