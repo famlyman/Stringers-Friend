@@ -1352,8 +1352,9 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
                               type="button"
                               onClick={handleFetchSpecs}
                               disabled={fetchingSpecs}
-                              className="mt-2 text-xs font-bold text-primary hover:underline flex items-center gap-1 disabled:opacity-50"
+                              className="mt-2 px-3 py-1.5 bg-primary/10 text-primary text-xs font-bold rounded-lg hover:bg-primary/20 transition-colors flex items-center gap-1.5 disabled:opacity-50"
                             >
+                              <Search className="w-3 h-3" />
                               {fetchingSpecs ? "Searching..." : "Search Technical Specs"}
                             </button>
                           )}
