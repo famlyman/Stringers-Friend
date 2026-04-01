@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
-import { collection, query, where, getDocs, doc, getDoc, setDoc } from "firebase/firestore";
+import { useParams, Link, useNavigate } from "react-router-dom";
+import { collection, query, where, getDocs, doc, getDoc, setDoc, addDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../lib/firebase";
-import { MapPin, Phone, Mail, ChevronRight, Award, ShieldCheck, Clock, X, CheckCircle2 } from "lucide-react";
+import { useAuth } from "../context/AuthContext";
+import { MapPin, Phone, Mail, ChevronRight, Award, ShieldCheck, Clock, X, CheckCircle2, LayoutDashboard, UserPlus } from "lucide-react";
 import { v4 as uuidv4 } from "uuid";
 
 interface Shop {
@@ -23,6 +24,8 @@ interface Service {
 
 export default function PublicShop() {
   const { slug } = useParams<{ slug: string }>();
+  const { user, profile } = useAuth();
+  const navigate = useNavigate();
   const [shop, setShop] = useState<Shop | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -31,6 +34,59 @@ export default function PublicShop() {
   const [contactForm, setContactForm] = useState({ name: "", email: "", phone: "", content: "" });
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [joining, setJoining] = useState(false);
+  const [isCustomerOfShop, setIsCustomerOfShop] = useState(false);
+
+  const handleJoinShop = async () => {
+    if (!user || !shop || joining) return;
+    setJoining(true);
+    try {
+      const q = query(
+        collection(db, "customers"),
+        where("email", "==", user.email),
+        where("shop_id", "==", shop.id)
+      );
+      const snap = await getDocs(q);
+      
+      if (snap.empty) {
+        await addDoc(collection(db, "customers"), {
+          name: profile?.name || user.email?.split('@')[0] || "New Customer",
+          email: user.email,
+          phone: profile?.phone || "",
+          shop_id: shop.id,
+          uid: user.uid,
+          created_at: serverTimestamp()
+        });
+      } else {
+        // Just update the UID if it's missing
+        const docId = snap.docs[0].id;
+        if (!snap.docs[0].data().uid) {
+          await setDoc(doc(db, "customers", docId), { uid: user.uid }, { merge: true });
+        }
+      }
+      setIsCustomerOfShop(true);
+      navigate("/");
+    } catch (err) {
+      console.error("Error joining shop:", err);
+    } finally {
+      setJoining(false);
+    }
+  };
+
+  useEffect(() => {
+    const checkCustomerStatus = async () => {
+      if (user && shop) {
+        const q = query(
+          collection(db, "customers"),
+          where("email", "==", user.email),
+          where("shop_id", "==", shop.id)
+        );
+        const snap = await getDocs(q);
+        setIsCustomerOfShop(!snap.empty);
+      }
+    };
+    checkCustomerStatus();
+  }, [user, shop]);
 
   const handleContactSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -280,16 +336,41 @@ export default function PublicShop() {
             </div>
 
             <div className="p-8 bg-primary/5 rounded-3xl border border-primary/10">
-              <h3 className="font-bold text-neutral-900 dark:text-white mb-4">New Customer?</h3>
+              <h3 className="font-bold text-neutral-900 dark:text-white mb-4">
+                {user ? (isCustomerOfShop ? "Already a Customer" : "Join this Shop") : "New Customer?"}
+              </h3>
               <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-6">
-                Register to create your "Bag" of racquets and track all your stringing history in one place.
+                {user 
+                  ? (isCustomerOfShop 
+                      ? "You are already registered with this shop. Go to your dashboard to manage your racquets."
+                      : "You have an account but aren't registered with this shop yet. Join now to start tracking your jobs here.")
+                  : "Register to create your \"Bag\" of racquets and track all your stringing history in one place."}
               </p>
-              <Link
-                to="/register"
-                className="flex items-center justify-center gap-2 w-full py-3 bg-white dark:bg-neutral-900 border border-primary/20 text-primary rounded-xl font-bold hover:bg-primary hover:text-white transition-all"
-              >
-                Create Account <ChevronRight className="w-4 h-4" />
-              </Link>
+              {user ? (
+                isCustomerOfShop ? (
+                  <Link
+                    to="/"
+                    className="flex items-center justify-center gap-2 w-full py-3 bg-primary text-white rounded-xl font-bold hover:bg-primary/90 transition-all shadow-lg shadow-primary/20"
+                  >
+                    Go to Dashboard <LayoutDashboard className="w-4 h-4" />
+                  </Link>
+                ) : (
+                  <button
+                    onClick={handleJoinShop}
+                    disabled={joining}
+                    className="flex items-center justify-center gap-2 w-full py-3 bg-primary text-white rounded-xl font-bold hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 disabled:opacity-50"
+                  >
+                    {joining ? "Joining..." : "Join this Shop"} <UserPlus className="w-4 h-4" />
+                  </button>
+                )
+              ) : (
+                <Link
+                  to={`/register?shopId=${shop.id}`}
+                  className="flex items-center justify-center gap-2 w-full py-3 bg-white dark:bg-neutral-900 border border-primary/20 text-primary rounded-xl font-bold hover:bg-primary hover:text-white transition-all"
+                >
+                  Create Account <ChevronRight className="w-4 h-4" />
+                </Link>
+              )}
             </div>
           </div>
         </div>

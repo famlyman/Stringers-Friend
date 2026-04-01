@@ -114,35 +114,37 @@ export default function Register() {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">Account Type</label>
-            <div className="grid grid-cols-2 gap-4">
-              <button
-                type="button"
-                onClick={() => setRole("stringer")}
-                disabled={loading}
-                className={`py-3 rounded-xl border text-sm font-bold transition-all ${
-                  role === "stringer"
-                    ? "bg-primary text-white border-primary shadow-md shadow-primary/20"
-                    : "bg-white dark:bg-neutral-700 text-neutral-600 dark:text-neutral-300 border-neutral-200 dark:border-neutral-600 hover:border-primary/50"
-                }`}
-              >
-                Racquet Stringer
-              </button>
-              <button
-                type="button"
-                onClick={() => setRole("customer")}
-                disabled={loading}
-                className={`py-3 rounded-xl border text-sm font-bold transition-all ${
-                  role === "customer"
-                    ? "bg-primary text-white border-primary shadow-md shadow-primary/20"
-                    : "bg-white dark:bg-neutral-700 text-neutral-600 dark:text-neutral-300 border-neutral-200 dark:border-neutral-600 hover:border-primary/50"
-                }`}
-              >
-                Customer
-              </button>
+          {!shopId && (
+            <div>
+              <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">Account Type</label>
+              <div className="grid grid-cols-2 gap-4">
+                <button
+                  type="button"
+                  onClick={() => setRole("stringer")}
+                  disabled={loading}
+                  className={`py-3 rounded-xl border text-sm font-bold transition-all ${
+                    role === "stringer"
+                      ? "bg-primary text-white border-primary shadow-md shadow-primary/20"
+                      : "bg-white dark:bg-neutral-700 text-neutral-600 dark:text-neutral-300 border-neutral-200 dark:border-neutral-600 hover:border-primary/50"
+                  }`}
+                >
+                  Racquet Stringer
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRole("customer")}
+                  disabled={loading}
+                  className={`py-3 rounded-xl border text-sm font-bold transition-all ${
+                    role === "customer"
+                      ? "bg-primary text-white border-primary shadow-md shadow-primary/20"
+                      : "bg-white dark:bg-neutral-700 text-neutral-600 dark:text-neutral-300 border-neutral-200 dark:border-neutral-600 hover:border-primary/50"
+                  }`}
+                >
+                  Customer
+                </button>
+              </div>
             </div>
-          </div>
+          )}
 
           <div>
             <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">Email Address</label>

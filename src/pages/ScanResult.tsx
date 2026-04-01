@@ -280,9 +280,17 @@ export default function ScanResult() {
                   </p>
                 )
               ) : (
-                <Link to={`/register?shopId=${result.data.id}`} className="block w-full bg-primary text-white text-center py-3 rounded-xl font-bold hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all active:scale-[0.98]">
-                  Register as Customer
-                </Link>
+                <div className="space-y-4">
+                  <Link to={`/register?shopId=${result.data.id}`} className="block w-full bg-primary text-white text-center py-3 rounded-xl font-bold hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all active:scale-[0.98]">
+                    Register as Customer
+                  </Link>
+                  <p className="text-center text-sm text-neutral-500 dark:text-neutral-400">
+                    Already have an account?{" "}
+                    <Link to={`/login?shopId=${result.data.id}`} className="text-primary font-bold hover:underline">
+                      Sign in
+                    </Link>
+                  </p>
+                </div>
               )}
             </div>
           </div>
