@@ -93,9 +93,9 @@ export default function Layout({ user, onLogout }: LayoutProps) {
   );
 
   return (
-    <div className={`min-h-screen bg-neutral-50 dark:bg-neutral-950 flex flex-col md:flex-row font-sans transition-colors duration-200`}>
+    <div className="min-h-screen flex flex-col md:flex-row font-sans transition-colors duration-200">
       {/* Sidebar for Desktop */}
-      <aside className="hidden md:flex w-64 bg-white dark:bg-neutral-900 border-r border-neutral-200 dark:border-neutral-800 flex-col shadow-sm">
+      <aside className="hidden md:flex w-64 bg-bg-card border-r border-border-main flex-col shadow-sm">
         <div className="p-6 bg-primary">
           <div className="flex justify-between items-center">
             <div>
@@ -105,23 +105,23 @@ export default function Layout({ user, onLogout }: LayoutProps) {
           </div>
         </div>
 
-        <nav className="flex-1 px-4 space-y-1">
+        <nav className="flex-1 px-4 space-y-1 mt-4">
           <NavLinks />
         </nav>
 
-        <div className="p-4 border-t border-neutral-200 dark:border-neutral-800">
+        <div className="p-4 border-t border-border-main">
           <div className="flex items-center px-4 py-2 mb-2">
             <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-xs font-bold text-white">
               {user.email ? user.email[0].toUpperCase() : "?"}
             </div>
             <div className="ml-3 overflow-hidden">
-              <p className="text-sm font-medium text-neutral-900 dark:text-white truncate">{user.email || "No Email"}</p>
+              <p className="text-sm font-medium text-text-main truncate">{user.email || "No Email"}</p>
               <p className="text-xs text-primary font-semibold capitalize">{user.role}</p>
             </div>
           </div>
           <button
             onClick={onLogout}
-            className="w-full flex items-center px-4 py-2 text-sm font-medium text-red-600 rounded-lg hover:bg-red-50 transition-colors"
+            className="w-full flex items-center px-4 py-2 text-sm font-medium text-red-600 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
           >
             <LogOut className="w-4 h-4 mr-3" />
             Logout
@@ -130,7 +130,7 @@ export default function Layout({ user, onLogout }: LayoutProps) {
       </aside>
 
       {/* Mobile Bottom Navigation */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-neutral-900 border-t border-neutral-200 dark:border-neutral-800 px-2 py-2 flex overflow-x-auto no-scrollbar items-center z-50 scroll-smooth">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-bg-card border-t border-border-main px-2 py-2 flex overflow-x-auto no-scrollbar items-center z-50 scroll-smooth">
         <div className="flex flex-nowrap items-center space-x-1 min-w-max px-2">
           <NavLinks />
           <button

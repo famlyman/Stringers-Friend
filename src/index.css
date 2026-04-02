@@ -4,8 +4,17 @@
   --color-primary: #2563eb;
   --color-secondary: #dfff00;
   --color-accent: #4ade80;
-  --dark-mode: class;
+  
+  /* Map CSS variables to Tailwind theme */
+  --color-bg-main: var(--bg-main);
+  --color-bg-card: var(--bg-card);
+  --color-text-main: var(--text-main);
+  --color-text-muted: var(--text-muted);
+  --color-border-main: var(--border-main);
 }
+
+/* Enable class-based dark mode for Tailwind v4 */
+@variant dark (&:where(.dark, .dark *));
 
 @layer base {
   :root {
@@ -36,6 +45,7 @@
     /* Ensure text doesn't resize unexpectedly on orientation change */
     -webkit-text-size-adjust: 100%;
     transition: background-color 0.2s ease, color 0.2s ease;
+    min-height: 100%;
   }
 
   /* Support for safe area insets (notched phones) */

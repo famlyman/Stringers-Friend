@@ -851,10 +851,10 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
 
       {/* Delete Confirmation Modal */}
       {deleteConfirm && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-neutral-900 rounded-2xl p-6 max-w-sm w-full shadow-xl border border-neutral-200 dark:border-neutral-800">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-bg-card rounded-2xl p-6 max-w-sm w-full shadow-xl border border-border-main">
             <h3 className="text-xl font-bold text-primary mb-2">Confirm Delete</h3>
-            <p className="text-neutral-600 dark:text-neutral-400 mb-6">
+            <p className="text-text-muted mb-6 leading-relaxed">
               Are you sure you want to delete this {deleteConfirm.type}{deleteConfirm.name ? ` "${deleteConfirm.name}"` : ""}? 
               {deleteConfirm.type === 'customer' && " This will also delete all their racquets and jobs. This action cannot be undone."}
               {deleteConfirm.type === 'job' && " This action cannot be undone."}
@@ -867,13 +867,13 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
                   else if (deleteConfirm.type === 'racquet') handleDeleteRacquet(deleteConfirm.id);
                   else if (deleteConfirm.type === 'message') handleDeleteConversation(deleteConfirm.id);
                 }}
-                className="flex-1 bg-red-600 text-white py-2 rounded-xl font-semibold hover:bg-red-700 transition-colors"
+                className="flex-1 bg-red-600 text-white py-2 rounded-xl font-semibold hover:bg-red-700 transition-colors shadow-lg shadow-red-600/20"
               >
                 Delete
               </button>
               <button
                 onClick={() => setDeleteConfirm(null)}
-                className="flex-1 bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 py-2 rounded-xl font-semibold hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
+                className="flex-1 bg-neutral-100 dark:bg-neutral-800 text-text-muted py-2 rounded-xl font-semibold hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
               >
                 Cancel
               </button>
@@ -1918,22 +1918,22 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
                 </div>
               </div>
 
-              <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl overflow-x-auto">
+              <div className="bg-bg-card border border-border-main rounded-2xl overflow-x-auto">
                 <table className="w-full text-left border-collapse min-w-[600px] sm:min-w-0">
                   <thead>
-                    <tr className="bg-neutral-50 dark:bg-neutral-800/50 border-bottom border-neutral-200 dark:border-neutral-800">
-                      <th className="px-6 py-4 text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider">Customer / Racquet</th>
-                      <th className="px-6 py-4 text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider">Status</th>
-                      <th className="px-6 py-4 text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider">Payment</th>
-                      <th className="px-6 py-4 text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider">Actions</th>
+                    <tr className="bg-neutral-50 dark:bg-neutral-800/50 border-b border-border-main">
+                      <th className="px-6 py-4 text-xs font-semibold text-text-muted uppercase tracking-wider">Customer / Racquet</th>
+                      <th className="px-6 py-4 text-xs font-semibold text-text-muted uppercase tracking-wider">Status</th>
+                      <th className="px-6 py-4 text-xs font-semibold text-text-muted uppercase tracking-wider">Payment</th>
+                      <th className="px-6 py-4 text-xs font-semibold text-text-muted uppercase tracking-wider">Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-neutral-100 dark:divide-neutral-800">
+                  <tbody className="divide-y divide-border-main">
                     {filteredJobs.map((job) => (
                       <tr key={job.id} className="hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors">
                         <td className="px-6 py-4">
-                          <p className="font-medium text-neutral-900 dark:text-white">{job.customer_name}</p>
-                          <p className="text-sm text-neutral-500 dark:text-neutral-400">{job.brand} {job.model}</p>
+                          <p className="font-medium text-text-main">{job.customer_name}</p>
+                          <p className="text-sm text-text-muted">{job.brand} {job.model}</p>
                           {job.notes && (
                             <p className="text-xs text-neutral-400 dark:text-neutral-500 mt-1 italic line-clamp-1" title={job.notes}>
                               Note: {job.notes}

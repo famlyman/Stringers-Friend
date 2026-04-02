@@ -21,10 +21,10 @@ function AppRoutes() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-neutral-50 dark:bg-neutral-950 transition-colors duration-300">
+      <div className="min-h-screen flex items-center justify-center bg-bg-main transition-colors duration-300">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-neutral-500 dark:text-neutral-400 font-medium">Initializing...</p>
+          <p className="text-text-muted font-medium">Initializing...</p>
         </div>
       </div>
     );
@@ -53,16 +53,16 @@ function AppRoutes() {
               profile.shop_id ? <Dashboard user={profile} /> : <Navigate to="/setup" replace />
             ) : <CustomerDashboard user={profile} />
           ) : (
-            <div className="min-h-screen flex flex-col items-center justify-center bg-neutral-50 dark:bg-neutral-950 p-6">
-              <div className="text-center max-w-sm w-full bg-white dark:bg-neutral-900 rounded-[2.5rem] p-10 shadow-2xl border border-neutral-200 dark:border-neutral-800">
+            <div className="min-h-screen flex flex-col items-center justify-center bg-bg-main p-6">
+              <div className="text-center max-w-sm w-full bg-bg-card rounded-[2.5rem] p-10 shadow-2xl border border-border-main">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-6"></div>
-                <h2 className="text-xl font-black text-neutral-900 dark:text-white mb-2 tracking-tight">Loading Profile</h2>
-                <p className="text-neutral-500 dark:text-neutral-400 mb-8 text-sm">
+                <h2 className="text-xl font-black text-text-main mb-2 tracking-tight">Loading Profile</h2>
+                <p className="text-text-muted mb-8 text-sm">
                   We're retrieving your account information. If this takes too long, your profile might be missing.
                 </p>
                 <button
                   onClick={handleLogout}
-                  className="w-full py-4 bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-2xl font-bold hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-all active:scale-[0.98]"
+                  className="w-full py-4 bg-neutral-100 dark:bg-neutral-800 text-text-main rounded-2xl font-bold hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-all active:scale-[0.98]"
                 >
                   Sign Out
                 </button>
