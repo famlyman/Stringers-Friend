@@ -899,7 +899,14 @@ export default function CustomerDashboard({ user, initialTab = 'jobs' }: { user:
                 </div>
 
                 <div className="flex-1 overflow-y-auto p-6 space-y-4">
-                  {[...messages].filter(m => m.shop_id === selectedShopId).sort((a,b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()).map((msg, idx) => (
+                  {[...messages]
+                    .filter(m => m.shop_id === selectedShopId)
+                    .sort((a, b) => {
+                      const timeA = a.created_at?.seconds ? a.created_at.seconds * 1000 : new Date(a.created_at).getTime();
+                      const timeB = b.created_at?.seconds ? b.created_at.seconds * 1000 : new Date(b.created_at).getTime();
+                      return timeA - timeB;
+                    })
+                    .map((msg, idx) => (
                     <div key={msg.id || idx} className={`flex ${msg.sender_role === 'customer' ? 'justify-end' : 'justify-start'}`}>
                       <div className={`max-w-[80%] p-4 rounded-2xl shadow-sm ${
                         msg.sender_role === 'customer' 

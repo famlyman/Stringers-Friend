@@ -238,7 +238,7 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
     const messagesQuery = query(
       collection(db, "messages"),
       where("shop_id", "==", user.shop_id),
-      orderBy("created_at", "desc")
+      orderBy("created_at", "asc")
     );
     const unsubscribeMessages = onSnapshot(messagesQuery, (snapshot) => {
       setMessages(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
@@ -2245,7 +2245,14 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
                     </div>
 
                     <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-neutral-50/30 dark:bg-neutral-900/30">
-                      {[...messages].filter(m => m.customer_id === selectedCustomerIdForChat).sort((a,b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()).map((msg, idx) => (
+                      {[...messages]
+                        .filter(m => m.customer_id === selectedCustomerIdForChat)
+                        .sort((a, b) => {
+                          const timeA = a.created_at?.seconds ? a.created_at.seconds * 1000 : new Date(a.created_at).getTime();
+                          const timeB = b.created_at?.seconds ? b.created_at.seconds * 1000 : new Date(b.created_at).getTime();
+                          return timeA - timeB;
+                        })
+                        .map((msg, idx) => (
                         <div key={msg.id || idx} className={`flex ${msg.sender_role === 'stringer' ? 'justify-end' : 'justify-start'}`}>
                           <div className={`max-w-[80%] p-4 rounded-2xl shadow-sm ${
                             msg.sender_role === 'stringer' 

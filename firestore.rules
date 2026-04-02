@@ -336,7 +336,7 @@ service cloud.firestore {
       allow update: if isAuthenticated() && isValidShop(request.resource.data) && 
                     (resource.data.get('owner_id', '') == request.auth.uid || isAdmin()) &&
                     areImmutableFieldsUnchanged(['created_at', 'owner_id']);
-      allow delete: if isAdmin();
+      allow delete: if isAdmin() || (isAuthenticated() && resource.data.get('owner_id', '') == request.auth.uid);
     }
 
     match /customers/{customerId} {
@@ -350,7 +350,7 @@ service cloud.firestore {
         resource.data.get('email', '') == request.auth.token.email ||
         isAdmin()
       ) && areImmutableFieldsUnchanged(['created_at', 'shop_id']);
-      allow delete: if isAdmin() || (isAuthenticated() && isShopOwner(resource.data.get('shop_id', '')));
+      allow delete: if isAdmin() || (isAuthenticated() && (isShopOwner(resource.data.get('shop_id', '')) || resource.data.get('uid', '') == request.auth.uid));
     }
 
     match /racquets/{racquetId} {
