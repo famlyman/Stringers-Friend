@@ -325,7 +325,7 @@ service cloud.firestore {
       allow update: if isOwner(uid) && isValidUser(request.resource.data) && 
                     request.resource.data.get('role', '') == resource.data.get('role', '') &&
                     areImmutableFieldsUnchanged(['created_at']);
-      allow delete: if isAdmin();
+      allow delete: if isOwner(uid) || isAdmin();
     }
 
     match /shops/{shopId} {

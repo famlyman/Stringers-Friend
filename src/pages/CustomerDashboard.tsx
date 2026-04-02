@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { Clock, CheckCircle2, CreditCard, Package, X, Users, Bell, BellDot, Plus, MessageSquare, Send, Search } from "lucide-react";
 import { safeFormatDate } from "../lib/utils";
 import { useSearchParams } from "react-router-dom";
@@ -53,6 +53,17 @@ export default function CustomerDashboard({ user, initialTab = 'jobs' }: { user:
   };
 
   const [messages, setMessages] = useState<any[]>([]);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    if (activeTab === 'messages') {
+      scrollToBottom();
+    }
+  }, [messages, activeTab]);
   const [shops, setShops] = useState<any[]>([]);
   const [selectedShopId, setSelectedShopId] = useState<string | null>(null);
   const [newMessage, setNewMessage] = useState("");
@@ -888,7 +899,7 @@ export default function CustomerDashboard({ user, initialTab = 'jobs' }: { user:
                 </div>
 
                 <div className="flex-1 overflow-y-auto p-6 space-y-4">
-                  {messages.filter(m => m.shop_id === selectedShopId).map((msg, idx) => (
+                  {[...messages].filter(m => m.shop_id === selectedShopId).sort((a,b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()).map((msg, idx) => (
                     <div key={msg.id || idx} className={`flex ${msg.sender_role === 'customer' ? 'justify-end' : 'justify-start'}`}>
                       <div className={`max-w-[80%] p-4 rounded-2xl shadow-sm ${
                         msg.sender_role === 'customer' 
@@ -905,6 +916,7 @@ export default function CustomerDashboard({ user, initialTab = 'jobs' }: { user:
                       </div>
                     </div>
                   ))}
+                  <div ref={messagesEndRef} />
                   {messages.filter(m => m.shop_id === selectedShopId).length === 0 && (
                     <div className="h-full flex flex-col items-center justify-center text-neutral-400 opacity-40">
                       <MessageSquare className="w-12 h-12 mb-2" />

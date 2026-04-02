@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { doc, getDoc, updateDoc } from "firebase/firestore";
-import { updatePassword, updateEmail, reauthenticateWithCredential, EmailAuthProvider } from "firebase/auth";
+import { doc, getDoc, updateDoc, deleteDoc, collection, query, where, getDocs, writeBatch } from "firebase/firestore";
+import { updatePassword, updateEmail, reauthenticateWithCredential, EmailAuthProvider, deleteUser } from "firebase/auth";
 import { db, auth } from "../lib/firebase";
 import { User, Mail, Phone, Lock, Store, Save, AlertCircle, CheckCircle2, Loader2, Sun, Moon } from "lucide-react";
 import { useTheme } from "../context/ThemeContext";
@@ -33,6 +33,8 @@ export default function Profile({ user }: ProfileProps) {
   const [shopAddress, setShopAddress] = useState("");
   const [shopPhone, setShopPhone] = useState("");
   const [shopSlug, setShopSlug] = useState("");
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deletePassword, setDeletePassword] = useState("");
 
   useEffect(() => {
     fetchData();
@@ -175,6 +177,68 @@ export default function Profile({ user }: ProfileProps) {
         setError("Current password is incorrect.");
       } else {
         setError(err.message || "Failed to change password.");
+      }
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeleteAccount = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!auth.currentUser) return;
+
+    setSaving(true);
+    setError(null);
+
+    try {
+      // Re-authenticate first
+      const credential = EmailAuthProvider.credential(auth.currentUser.email!, deletePassword);
+      await reauthenticateWithCredential(auth.currentUser, credential);
+
+      const batch = writeBatch(db);
+
+      // 1. Delete User document
+      batch.delete(doc(db, "users", user.uid));
+
+      // 2. If stringer, delete shop
+      if (user.role === 'stringer' && user.shop_id) {
+        batch.delete(doc(db, "shops", user.shop_id));
+        
+        // Also delete their inventory
+        const inventorySnap = await getDocs(query(collection(db, "inventory"), where("shop_id", "==", user.shop_id)));
+        inventorySnap.docs.forEach(d => batch.delete(d.ref));
+
+        // And their customers, racquets, jobs? 
+        // For a full account deletion, we should probably clean up everything.
+        const customersSnap = await getDocs(query(collection(db, "customers"), where("shop_id", "==", user.shop_id)));
+        customersSnap.docs.forEach(d => batch.delete(d.ref));
+
+        const racquetsSnap = await getDocs(query(collection(db, "racquets"), where("shop_id", "==", user.shop_id)));
+        racquetsSnap.docs.forEach(d => batch.delete(d.ref));
+
+        const jobsSnap = await getDocs(query(collection(db, "jobs"), where("shop_id", "==", user.shop_id)));
+        jobsSnap.docs.forEach(d => batch.delete(d.ref));
+      }
+
+      // 3. If customer, delete customer records
+      if (user.role === 'customer') {
+        const customersSnap = await getDocs(query(collection(db, "customers"), where("uid", "==", user.uid)));
+        customersSnap.docs.forEach(d => batch.delete(d.ref));
+      }
+
+      await batch.commit();
+
+      // 4. Delete Auth User
+      await deleteUser(auth.currentUser);
+      
+      // Redirect or sign out will happen automatically as user is deleted
+      window.location.href = "/";
+    } catch (err: any) {
+      console.error("Error deleting account:", err);
+      if (err.code === 'auth/wrong-password') {
+        setError("Incorrect password. Account deletion failed.");
+      } else {
+        setError(err.message || "Failed to delete account. Please try again.");
       }
     } finally {
       setSaving(false);
@@ -454,12 +518,68 @@ export default function Profile({ user }: ProfileProps) {
             <p className="text-xs text-neutral-500 dark:text-neutral-400 mb-4">
               Once you delete your account, there is no going back. Please be certain.
             </p>
-            <button className="w-full py-3 bg-white dark:bg-neutral-900 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900/50 rounded-xl text-sm font-bold hover:bg-red-50 dark:hover:bg-red-900/20 transition-all">
+            <button 
+              onClick={() => setShowDeleteConfirm(true)}
+              className="w-full py-3 bg-white dark:bg-neutral-900 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900/50 rounded-xl text-sm font-bold hover:bg-red-50 dark:hover:bg-red-900/20 transition-all"
+            >
               Delete Account
             </button>
           </section>
         </div>
       </div>
+
+      {/* Delete Account Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-neutral-900 rounded-3xl p-8 max-w-md w-full shadow-2xl border border-neutral-200 dark:border-neutral-800 animate-in fade-in zoom-in duration-200">
+            <div className="flex items-center gap-3 text-red-600 mb-4">
+              <AlertCircle className="w-8 h-8" />
+              <h2 className="text-2xl font-bold tracking-tight">Delete Account?</h2>
+            </div>
+            
+            <p className="text-neutral-600 dark:text-neutral-400 mb-6 leading-relaxed">
+              This action is <span className="font-bold text-neutral-900 dark:text-white underline decoration-red-500">permanent</span>. 
+              All your data, including jobs, racquets, and shop information will be deleted forever.
+            </p>
+
+            <form onSubmit={handleDeleteAccount} className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm font-bold text-neutral-700 dark:text-neutral-300 ml-1">
+                  Enter your password to confirm
+                </label>
+                <input
+                  type="password"
+                  required
+                  value={deletePassword}
+                  onChange={(e) => setDeletePassword(e.target.value)}
+                  className="w-full px-4 py-3 bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl outline-none focus:ring-2 focus:ring-red-500/20 transition-all"
+                  placeholder="Your password"
+                />
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="flex-1 bg-red-600 text-white py-3 rounded-xl font-bold hover:bg-red-700 transition-all disabled:opacity-50 shadow-lg shadow-red-600/20"
+                >
+                  {saving ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : "Delete Everything"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowDeleteConfirm(false);
+                    setDeletePassword("");
+                  }}
+                  className="px-6 bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 rounded-xl font-bold hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-all"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

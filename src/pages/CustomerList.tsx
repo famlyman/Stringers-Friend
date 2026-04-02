@@ -347,10 +347,23 @@ export default function CustomerList({ user }: { user: any }) {
 
   const handleDeleteRacquet = async (racquetId: string) => {
     try {
-      await deleteDoc(doc(db, "racquets", racquetId));
+      const batch = writeBatch(db);
+      batch.delete(doc(db, "racquets", racquetId));
+      
+      // Delete associated jobs
+      const jobsSnap = await getDocs(query(
+        collection(db, "jobs"), 
+        where("racquet_id", "==", racquetId),
+        where("shop_id", "==", user.shop_id)
+      ));
+      jobsSnap.forEach(jDoc => {
+        batch.delete(doc(db, "jobs", jDoc.id));
+      });
+      
+      await batch.commit();
       setDeleteConfirm(null);
     } catch (err) {
-      handleFirestoreError(err, OperationType.DELETE, `racquets/${racquetId}`);
+      handleFirestoreError(err, OperationType.WRITE, `delete_racquet/${racquetId}`);
     }
   };
 

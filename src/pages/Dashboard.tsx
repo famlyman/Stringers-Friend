@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { RACQUET_BRANDS, RACQUET_MODELS, STRINGS, GAUGES } from "../constants";
 import { racquetSpecsService } from "../services/racquetSpecsService";
 import { Plus, Search, Filter, CheckCircle2, Clock, PlayCircle, CreditCard, X, Trash2, Users, Briefcase, Edit2, ChevronRight, ChevronDown, Printer, Package, MessageSquare, Mail, Phone, Send } from "lucide-react";
@@ -17,6 +17,17 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'jobs' | 'customers' | 'messages'>(initialTab);
   const [messages, setMessages] = useState<any[]>([]);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    if (activeTab === 'messages') {
+      scrollToBottom();
+    }
+  }, [messages, activeTab]);
   const [selectedCustomerIdForChat, setSelectedCustomerIdForChat] = useState<string | null>(null);
   const [newMessage, setNewMessage] = useState("");
   const [sendingMessage, setSendingMessage] = useState(false);
@@ -729,12 +740,24 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
     }
   };
 
-  const handleDeleteMessage = async (messageId: string) => {
+  const handleDeleteConversation = async (customerId: string) => {
     try {
-      await deleteDoc(doc(db, "messages", messageId));
+      const batch = writeBatch(db);
+      const conversationSnap = await getDocs(query(
+        collection(db, "messages"),
+        where("customer_id", "==", customerId),
+        where("shop_id", "==", user.shop_id)
+      ));
+      
+      conversationSnap.docs.forEach(d => {
+        batch.delete(d.ref);
+      });
+      
+      await batch.commit();
       setDeleteConfirm(null);
+      setSelectedCustomerIdForChat(null);
     } catch (err) {
-      handleFirestoreError(err, OperationType.DELETE, `messages/${messageId}`);
+      handleFirestoreError(err, OperationType.WRITE, `delete_conversation/${customerId}`);
     }
   };
 
@@ -842,7 +865,7 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
                   if (deleteConfirm.type === 'customer') handleDeleteCustomer(deleteConfirm.id);
                   else if (deleteConfirm.type === 'job') handleDeleteJob(deleteConfirm.id);
                   else if (deleteConfirm.type === 'racquet') handleDeleteRacquet(deleteConfirm.id);
-                  else if (deleteConfirm.type === 'message') handleDeleteMessage(deleteConfirm.id);
+                  else if (deleteConfirm.type === 'message') handleDeleteConversation(deleteConfirm.id);
                 }}
                 className="flex-1 bg-red-600 text-white py-2 rounded-xl font-semibold hover:bg-red-700 transition-colors"
               >
@@ -2244,6 +2267,7 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
                           </div>
                         </div>
                       ))}
+                      <div ref={messagesEndRef} />
                       {messages.filter(m => m.customer_id === selectedCustomerIdForChat).length === 0 && (
                         <div className="h-full flex flex-col items-center justify-center text-neutral-400 opacity-40">
                           <MessageSquare className="w-12 h-12 mb-2" />
