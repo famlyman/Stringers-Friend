@@ -531,6 +531,30 @@ export default function CustomerDashboard({ user, initialTab = 'jobs' }: { user:
         created_at: serverTimestamp()
       });
 
+      // Send Push Notification to Shop Owner
+      try {
+        const shopDoc = await getDoc(doc(db, "shops", selectedRacquet.shop_id));
+        const shopData = shopDoc.data();
+        if (shopData?.owner_id) {
+          const ownerDoc = await getDoc(doc(db, "users", shopData.owner_id));
+          const ownerData = ownerDoc.data();
+          if (ownerData?.fcmToken) {
+            await fetch("/api/send-notification", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                token: ownerData.fcmToken,
+                title: "New Stringing Request",
+                body: `${customerInfo?.name || user.email?.split('@')[0]} submitted a new request for a ${selectedRacquet.brand} ${selectedRacquet.model}.`,
+                data: { type: "job", job_id: jobId }
+              })
+            });
+          }
+        }
+      } catch (pushErr) {
+        console.error("Error sending push notification:", pushErr);
+      }
+
       setShowRequestModal(false);
       setSelectedRacquet(null);
       setRequestData({

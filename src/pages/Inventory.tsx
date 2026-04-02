@@ -24,17 +24,18 @@ export default function Inventory({ user }: { user: any }) {
   const [filterType, setFilterType] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [showQRCodeModal, setShowQRCodeModal] = useState<{ value: string, label: string } | null>(null);
-  const [newItem, setNewItem] = useState({ 
+  const [newItem, setNewItem] = useState<any>({ 
     name: "", 
     brand: "", 
     type: "string", 
-    sub_type: "set", 
+    packaging: "set", 
     gauge: "",
-    length: 0, 
-    grip_type: "tacky",
+    total_length: 12, 
+    remaining_length: 12,
     quantity: 0, 
     low_stock_threshold: 5,
-    price: 0 
+    price: 0,
+    grip_type: ""
   });
 
   useEffect(() => {
@@ -77,10 +78,10 @@ export default function Inventory({ user }: { user: any }) {
         name: "", 
         brand: "", 
         type: "string", 
-        sub_type: "set", 
+        packaging: "set", 
         gauge: "",
-        length: 0, 
-        grip_type: "tacky",
+        total_length: 12, 
+        remaining_length: 12,
         quantity: 0, 
         low_stock_threshold: 5,
         price: 0 
@@ -174,7 +175,7 @@ export default function Inventory({ user }: { user: any }) {
                 <label className="text-xs font-semibold text-neutral-500 uppercase ml-1">Type</label>
                 <select 
                   value={newItem.type}
-                  onChange={e => setNewItem({...newItem, type: e.target.value, sub_type: e.target.value === 'string' ? 'set' : '', grip_type: e.target.value === 'grip' ? 'tacky' : ''})}
+                  onChange={e => setNewItem({...newItem, type: e.target.value, packaging: e.target.value === 'string' ? 'set' : 'set', grip_type: e.target.value === 'grip' ? 'tacky' : ''})}
                   className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-xl outline-none focus:ring-2 focus:ring-primary"
                 >
                   <option value="string">String</option>
@@ -187,12 +188,16 @@ export default function Inventory({ user }: { user: any }) {
                 <div className="space-y-1">
                   <label className="text-xs font-semibold text-neutral-500 uppercase ml-1">Packaging</label>
                   <select 
-                    value={newItem.sub_type}
-                    onChange={e => setNewItem({...newItem, sub_type: e.target.value, length: e.target.value === 'reel' ? 660 : 0})}
+                    value={newItem.packaging}
+                    onChange={e => {
+                      const packaging = e.target.value;
+                      const total_length = packaging === 'reel' ? 200 : 12;
+                      setNewItem({...newItem, packaging, total_length, remaining_length: total_length});
+                    }}
                     className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-xl outline-none focus:ring-2 focus:ring-primary"
                   >
-                    <option value="set">Individual Set</option>
-                    <option value="reel">Reel</option>
+                    <option value="set">Individual Set (12m)</option>
+                    <option value="reel">Reel (200m)</option>
                   </select>
                 </div>
               )}
@@ -213,28 +218,32 @@ export default function Inventory({ user }: { user: any }) {
                 </div>
               )}
 
-              {newItem.type === 'string' && newItem.sub_type === 'reel' && (
+              {newItem.type === 'string' && newItem.packaging === 'reel' && (
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-neutral-500 uppercase ml-1">Reel Length (ft)</label>
+                  <label className="text-xs font-semibold text-neutral-500 uppercase ml-1">Reel Length (m)</label>
                   <div className="flex gap-2">
                     <select 
-                      value={[330, 660].includes(newItem.length) ? newItem.length : 'other'}
+                      value={[100, 200].includes(newItem.total_length) ? newItem.total_length : 'other'}
                       onChange={e => {
                         const val = e.target.value;
-                        setNewItem({...newItem, length: val === 'other' ? 0 : parseInt(val)});
+                        const total_length = val === 'other' ? 0 : parseInt(val);
+                        setNewItem({...newItem, total_length, remaining_length: total_length});
                       }}
                       className="flex-1 px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-xl outline-none focus:ring-2 focus:ring-primary"
                     >
-                      <option value="330">330 ft</option>
-                      <option value="660">660 ft</option>
+                      <option value="100">100m</option>
+                      <option value="200">200m</option>
                       <option value="other">Other</option>
                     </select>
-                    {![330, 660].includes(newItem.length) && (
+                    {![100, 200].includes(newItem.total_length) && (
                       <input 
                         type="number" 
-                        placeholder="Custom ft"
-                        value={newItem.length || ""}
-                        onChange={e => setNewItem({...newItem, length: parseInt(e.target.value) || 0})}
+                        placeholder="Custom m"
+                        value={newItem.total_length || ""}
+                        onChange={e => {
+                          const total_length = parseInt(e.target.value) || 0;
+                          setNewItem({...newItem, total_length, remaining_length: total_length});
+                        }}
                         className="w-24 px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-xl outline-none focus:ring-2 focus:ring-primary"
                       />
                     )}
@@ -346,17 +355,33 @@ export default function Inventory({ user }: { user: any }) {
                   <div className="flex flex-col">
                     <span className="capitalize text-sm text-neutral-600 dark:text-neutral-300 font-medium">{item.type}</span>
                     <span className="text-xs text-neutral-400">
-                      {item.type === 'string' && (item.sub_type === 'reel' ? `Reel (${item.length}ft)` : 'Individual Set')}
-                      {item.type === 'grip' && `${item.grip_type} feel`}
+                      {item.type === 'string' && (item.packaging === 'reel' ? `Reel (${item.total_length}m)` : 'Individual Set')}
+                      {item.type === 'grip' && `Grip`}
                     </span>
                   </div>
                 </td>
                 <td className="px-6 py-4">
-                  <div className="flex items-center">
-                    <span className={`text-sm font-medium ${item.quantity <= (item.low_stock_threshold || 5) ? 'text-red-600' : 'text-neutral-900 dark:text-white'}`}>
-                      {item.quantity} units
-                    </span>
-                    {item.quantity <= (item.low_stock_threshold || 5) && <AlertCircle className="w-4 h-4 ml-2 text-red-500" />}
+                  <div className="flex flex-col">
+                    <div className="flex items-center">
+                      <span className={`text-sm font-medium ${item.quantity <= (item.low_stock_threshold || 5) ? 'text-red-600' : 'text-neutral-900 dark:text-white'}`}>
+                        {item.quantity} {item.packaging === 'reel' ? 'Reels' : 'Sets'}
+                      </span>
+                      {item.quantity <= (item.low_stock_threshold || 5) && <AlertCircle className="w-4 h-4 ml-2 text-red-500" />}
+                    </div>
+                    {item.packaging === 'reel' && (
+                      <div className="mt-1 w-32">
+                        <div className="flex justify-between text-[10px] text-neutral-400 mb-0.5">
+                          <span>{Math.round(item.remaining_length)}m left</span>
+                          <span>{Math.floor(item.remaining_length / 12)} jobs</span>
+                        </div>
+                        <div className="w-full bg-neutral-100 dark:bg-neutral-800 rounded-full h-1">
+                          <div 
+                            className="bg-primary h-1 rounded-full" 
+                            style={{ width: `${(item.remaining_length / item.total_length) * 100}%` }}
+                          />
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </td>
                 <td className="px-6 py-4">
@@ -407,7 +432,7 @@ export default function Inventory({ user }: { user: any }) {
                   <label className="text-xs font-semibold text-neutral-500 uppercase ml-1">Type</label>
                   <select 
                     value={editingItem.type}
-                    onChange={e => setEditingItem({...editingItem, type: e.target.value, sub_type: e.target.value === 'string' ? 'set' : '', grip_type: e.target.value === 'grip' ? 'tacky' : ''})}
+                    onChange={e => setEditingItem({...editingItem, type: e.target.value, packaging: e.target.value === 'string' ? 'set' : 'set', grip_type: e.target.value === 'grip' ? 'tacky' : ''})}
                     className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-xl outline-none focus:ring-2 focus:ring-primary"
                   >
                     <option value="string">String</option>
@@ -420,12 +445,16 @@ export default function Inventory({ user }: { user: any }) {
                   <div className="space-y-1">
                     <label className="text-xs font-semibold text-neutral-500 uppercase ml-1">Packaging</label>
                     <select 
-                      value={editingItem.sub_type}
-                      onChange={e => setEditingItem({...editingItem, sub_type: e.target.value, length: e.target.value === 'reel' ? 660 : 0})}
+                      value={editingItem.packaging}
+                      onChange={e => {
+                        const packaging = e.target.value;
+                        const total_length = packaging === 'reel' ? 200 : 12;
+                        setEditingItem({...editingItem, packaging, total_length, remaining_length: total_length});
+                      }}
                       className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-xl outline-none focus:ring-2 focus:ring-primary"
                     >
-                      <option value="set">Individual Set</option>
-                      <option value="reel">Reel</option>
+                      <option value="set">Individual Set (12m)</option>
+                      <option value="reel">Reel (200m)</option>
                     </select>
                   </div>
                 )}
@@ -446,28 +475,32 @@ export default function Inventory({ user }: { user: any }) {
                   </div>
                 )}
 
-                {editingItem.type === 'string' && editingItem.sub_type === 'reel' && (
+                {editingItem.type === 'string' && editingItem.packaging === 'reel' && (
                   <div className="space-y-1">
-                    <label className="text-xs font-semibold text-neutral-500 uppercase ml-1">Reel Length (ft)</label>
+                    <label className="text-xs font-semibold text-neutral-500 uppercase ml-1">Reel Length (m)</label>
                     <div className="flex gap-2">
                       <select 
-                        value={[330, 660].includes(editingItem.length) ? editingItem.length : 'other'}
+                        value={[100, 200].includes(editingItem.total_length) ? editingItem.total_length : 'other'}
                         onChange={e => {
                           const val = e.target.value;
-                          setEditingItem({...editingItem, length: val === 'other' ? 0 : parseInt(val)});
+                          const total_length = val === 'other' ? 0 : parseInt(val);
+                          setEditingItem({...editingItem, total_length, remaining_length: total_length});
                         }}
                         className="flex-1 px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-xl outline-none focus:ring-2 focus:ring-primary"
                       >
-                        <option value="330">330 ft</option>
-                        <option value="660">660 ft</option>
+                        <option value="100">100m</option>
+                        <option value="200">200m</option>
                         <option value="other">Other</option>
                       </select>
-                      {![330, 660].includes(editingItem.length) && (
+                      {![100, 200].includes(editingItem.total_length) && (
                         <input 
                           type="number" 
-                          placeholder="Custom ft"
-                          value={editingItem.length || ""}
-                          onChange={e => setEditingItem({...editingItem, length: parseInt(e.target.value) || 0})}
+                          placeholder="Custom m"
+                          value={editingItem.total_length || ""}
+                          onChange={e => {
+                            const total_length = parseInt(e.target.value) || 0;
+                            setEditingItem({...editingItem, total_length, remaining_length: total_length});
+                          }}
                           className="w-24 px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-xl outline-none focus:ring-2 focus:ring-primary"
                         />
                       )}

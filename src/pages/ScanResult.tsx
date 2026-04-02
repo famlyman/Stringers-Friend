@@ -312,7 +312,7 @@ export default function ScanResult() {
             <div className="grid grid-cols-2 gap-4">
               <div className="bg-neutral-50 dark:bg-neutral-900/50 p-4 rounded-xl border border-neutral-100 dark:border-neutral-700/50">
                 <p className="text-xs text-neutral-400 dark:text-neutral-500 uppercase tracking-wider font-bold">Type</p>
-                <p className="text-sm font-medium text-neutral-900 dark:text-white capitalize">{result.data.type} ({result.data.sub_type})</p>
+                <p className="text-sm font-medium text-neutral-900 dark:text-white capitalize">{result.data.type} ({result.data.packaging || result.data.sub_type || ''})</p>
               </div>
               <div className="bg-neutral-50 dark:bg-neutral-900/50 p-4 rounded-xl border border-neutral-100 dark:border-neutral-700/50">
                 <p className="text-xs text-neutral-400 dark:text-neutral-500 uppercase tracking-wider font-bold">Price</p>

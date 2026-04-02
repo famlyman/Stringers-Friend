@@ -21,6 +21,7 @@ if (!admin.apps.length) {
       admin.initializeApp({
         credential: admin.credential.cert(serviceAccount),
       });
+      console.log("Firebase Admin initialized successfully.");
     } else {
       // Fallback for local development if possible, or just log a warning
       console.warn("FIREBASE_SERVICE_ACCOUNT not found. Push notifications will be disabled.");

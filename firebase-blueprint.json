@@ -100,14 +100,15 @@
         "name": { "type": "string" },
         "brand": { "type": "string" },
         "type": { "type": "string", "enum": ["string", "grip", "dampener", "other"] },
-        "sub_type": { "type": "string" },
-        "length": { "type": "number" },
-        "grip_type": { "type": "string" },
-        "quantity": { "type": "number" },
+        "packaging": { "type": "string", "enum": ["reel", "set"], "description": "Reel (200m/660ft) or Set (12m/40ft)" },
+        "total_length": { "type": "number", "description": "Total length of a single unit (m or ft)" },
+        "remaining_length": { "type": "number", "description": "Remaining length of the CURRENT open unit" },
+        "quantity": { "type": "number", "description": "Number of unopened units in stock" },
         "low_stock_threshold": { "type": "number", "description": "Alert when quantity falls below this" },
-        "price": { "type": "number" }
+        "price": { "type": "number" },
+        "created_at": { "type": "string", "format": "date-time" }
       },
-      "required": ["id", "shop_id", "name", "type"]
+      "required": ["id", "shop_id", "name", "type", "packaging", "quantity"]
     },
     "Notification": {
       "title": "Notification",

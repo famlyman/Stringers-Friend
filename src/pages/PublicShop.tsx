@@ -150,7 +150,7 @@ export default function PublicShop() {
           id: doc.id,
           name: doc.data().name,
           price: doc.data().price,
-          description: `${doc.data().brand || ''} ${doc.data().sub_type || ''}`.trim()
+          description: `${doc.data().brand || ''} ${doc.data().packaging || doc.data().sub_type || ''}`.trim()
         }));
         
         setServices(stringServices);

@@ -77,8 +77,9 @@ service cloud.firestore {
     //   - name: string (required, size: 1-100) - Item name
     //   - brand: string (optional, size: 0-50) - Item brand
     //   - type: string (required, enum: ['string', 'grip', 'dampener', 'other']) - Item type
-    //   - sub_type: string (optional, size: 0-50) - Item sub-type
-    //   - length: number (optional, positive) - Item length (e.g., for reels)
+    //   - packaging: string (optional, enum: ["set", "reel"]) - Item packaging
+    //   - total_length: number (optional, positive) - Total length of reel
+    //   - remaining_length: number (optional, positive) - Remaining length of reel
     //   - grip_type: string (optional, size: 0-50) - Grip type
     //   - quantity: number (required, non-negative) - Current stock quantity
     //   - price: number (required, positive) - Retail price
@@ -239,7 +240,7 @@ service cloud.firestore {
     }
 
     function isValidJob(data) {
-      return hasOnlyAllowedFields(['id', 'racquet_id', 'customer_id', 'customer_email', 'shop_id', 'status', 'string_main', 'string_cross', 'tension_main', 'tension_cross', 'price', 'payment_status', 'notes', 'created_at', 'updated_at']) &&
+      return hasOnlyAllowedFields(['id', 'racquet_id', 'customer_id', 'customer_email', 'shop_id', 'status', 'string_main', 'string_cross', 'inventory_id', 'cross_inventory_id', 'tension_main', 'tension_cross', 'price', 'payment_status', 'notes', 'created_at', 'updated_at']) &&
              data.get('id', '') is string && data.get('id', '').size() > 0 &&
              data.get('racquet_id', '') is string && data.get('racquet_id', '').size() > 0 &&
              data.get('status', '') in ['pending', 'in-progress', 'completed'] &&
@@ -249,6 +250,8 @@ service cloud.firestore {
              isValidOptionalString(data, 'notes', 0, 2000) &&
              isValidOptionalString(data, 'string_main', 0, 200) &&
              isValidOptionalString(data, 'string_cross', 0, 200) &&
+             isValidOptionalString(data, 'inventory_id', 0, 50) &&
+             isValidOptionalString(data, 'cross_inventory_id', 0, 50) &&
              (!( 'tension_main' in data) || (data.get('tension_main', 0) is number && data.get('tension_main', 0) >= 0 && data.get('tension_main', 0) <= 100)) &&
              (!( 'tension_cross' in data) || (data.get('tension_cross', 0) is number && data.get('tension_cross', 0) >= 0 && data.get('tension_cross', 0) <= 100)) &&
              (!( 'price' in data) || (data.get('price', 0) is number && data.get('price', 0) >= 0 && data.get('price', 0) <= 1000)) &&
@@ -258,17 +261,18 @@ service cloud.firestore {
     }
 
     function isValidInventoryItem(data) {
-      return hasOnlyAllowedFields(['id', 'shop_id', 'name', 'brand', 'type', 'sub_type', 'gauge', 'length', 'grip_type', 'quantity', 'low_stock_threshold', 'price', 'qr_code', 'created_at', 'updated_at']) &&
+      return hasOnlyAllowedFields(['id', 'shop_id', 'name', 'brand', 'type', 'packaging', 'gauge', 'total_length', 'remaining_length', 'grip_type', 'quantity', 'low_stock_threshold', 'price', 'qr_code', 'created_at', 'updated_at']) &&
              data.get('id', '') is string && data.get('id', '').size() > 0 &&
              data.get('name', '') is string && data.get('name', '').size() > 0 && data.get('name', '').size() <= 200 &&
              data.get('type', '') in ['string', 'grip', 'dampener', 'other'] &&
              isValidOptionalString(data, 'brand', 0, 100) &&
-             isValidOptionalString(data, 'sub_type', 0, 100) &&
+             isValidOptionalString(data, 'packaging', 0, 100) &&
              isValidOptionalString(data, 'gauge', 0, 50) &&
              isValidOptionalString(data, 'grip_type', 0, 50) &&
              isValidOptionalString(data, 'qr_code', 0, 100) &&
              (!( 'quantity' in data) || (data.get('quantity', 0) is number && data.get('quantity', 0) >= 0 && data.get('quantity', 0) <= 10000)) &&
-             (!( 'length' in data) || (data.get('length', 0) is number && data.get('length', 0) >= 0 && data.get('length', 0) <= 5000)) &&
+             (!( 'total_length' in data) || (data.get('total_length', 0) is number && data.get('total_length', 0) >= 0 && data.get('total_length', 0) <= 5000)) &&
+             (!( 'remaining_length' in data) || (data.get('remaining_length', 0) is number && data.get('remaining_length', 0) >= 0 && data.get('remaining_length', 0) <= 5000)) &&
              (!( 'low_stock_threshold' in data) || (data.get('low_stock_threshold', 0) is number && data.get('low_stock_threshold', 0) >= 0 && data.get('low_stock_threshold', 0) <= 1000)) &&
              (!( 'price' in data) || (data.get('price', 0) is number && data.get('price', 0) >= 0 && data.get('price', 0) <= 1000)) &&
              data.get('shop_id', '') is string && data.get('shop_id', '').size() > 0 &&
@@ -315,7 +319,15 @@ service cloud.firestore {
     // ===============================================================
 
     match /users/{uid} {
-      allow get: if isOwner(uid) || isAdmin();
+      allow get: if isOwner(uid) || isAdmin() || (
+        isAuthenticated() && (
+          // Allow shop owner to read user docs (for customer lookup)
+          (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+           get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('shop_id', '') != '') ||
+          // Allow customer to read shop owner's user doc
+          (resource.data.get('role', '') == 'stringer')
+        )
+      );
       allow list: if isAuthenticated() && (
         isAdmin() || 
         (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 

@@ -1,33 +1,124 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { RACQUET_BRANDS, RACQUET_MODELS, STRINGS, GAUGES } from "../constants";
 import { racquetSpecsService } from "../services/racquetSpecsService";
-import { Plus, Search, Filter, CheckCircle2, Clock, PlayCircle, CreditCard, X, Trash2, Users, Briefcase, Edit2, ChevronRight, ChevronDown, Printer, Package, MessageSquare, Mail, Phone, Send } from "lucide-react";
+import { Plus, Search, Filter, CheckCircle2, Clock, PlayCircle, CreditCard, X, Trash2, Users, Briefcase, Edit2, ChevronRight, ChevronDown, Printer, Package, MessageSquare, Mail, Phone, Send, Scan, AlertTriangle, History } from "lucide-react";
 import QRCodeDisplay from "../components/QRCodeDisplay";
-import { collection, query, where, onSnapshot, doc, setDoc, updateDoc, deleteDoc, getDocs, writeBatch, serverTimestamp, orderBy, getDoc } from "firebase/firestore";
+import { Link } from "react-router-dom";
+import { collection, query, where, onSnapshot, doc, setDoc, updateDoc, deleteDoc, getDocs, writeBatch, serverTimestamp, orderBy, getDoc, limit, addDoc } from "firebase/firestore";
 import { db, handleFirestoreError, OperationType, requestNotificationPermission } from "../lib/firebase";
 import { v4 as uuidv4 } from "uuid";
 import { safeFormatDate } from "../lib/utils";
+import { Html5QrcodeScanner } from "html5-qrcode";
 
-export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, initialTab?: 'jobs' | 'customers' | 'messages' }) {
+export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, initialTab?: 'jobs' | 'customers' | 'messages' | 'inventory' }) {
   const [jobs, setJobs] = useState<any[]>([]);
   const [shop, setShop] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [showNewJob, setShowNewJob] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'jobs' | 'customers' | 'messages'>(initialTab);
+  const [activeTab, setActiveTab] = useState<'jobs' | 'customers' | 'messages' | 'inventory'>(initialTab);
   const [messages, setMessages] = useState<any[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const [inventoryItems, setInventoryItems] = useState<any[]>([]);
+  const [inventoryStrings, setInventoryStrings] = useState<any[]>([]);
+  const [customers, setCustomers] = useState<any[]>([]);
+  const [racquets, setRacquets] = useState<any[]>([]);
+  const [showInventoryModal, setShowInventoryModal] = useState(false);
+  const [editingInventoryItem, setEditingInventoryItem] = useState<any | null>(null);
+  const [showScanner, setShowScanner] = useState(false);
+  const scannerRef = useRef<Html5QrcodeScanner | null>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
   useEffect(() => {
-    if (activeTab === 'messages') {
-      scrollToBottom();
+    if (!user.shop_id) return;
+
+    const q = query(
+      collection(db, "inventory"),
+      where("shop_id", "==", user.shop_id),
+      orderBy("created_at", "desc")
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setInventoryItems(items);
+      setInventoryStrings(items.filter((i: any) => i.type === 'string'));
+    }, (err) => {
+      handleFirestoreError(err, OperationType.LIST, "inventory");
+    });
+
+    return () => unsubscribe();
+  }, [user.shop_id]);
+
+  useEffect(() => {
+    if (showScanner) {
+      const scanner = new Html5QrcodeScanner(
+        "qr-reader",
+        { fps: 10, qrbox: { width: 250, height: 250 } },
+        /* verbose= */ false
+      );
+      
+      scanner.render((decodedText) => {
+        // Handle scanned QR code
+        // Expected format: job:JOB_ID or racquet:RACQUET_ID
+        // But QRCodeDisplay generates: window.location.origin + "/scan/" + value
+        
+        let actualValue = decodedText;
+        if (decodedText.includes("/scan/")) {
+          actualValue = decodedText.split("/scan/").pop() || decodedText;
+        }
+
+        if (actualValue.startsWith("job:")) {
+          const jobId = actualValue.split(":")[1];
+          const job = jobs.find(j => j.id === jobId);
+          if (job) {
+            setEditingJob(job);
+            setShowScanner(false);
+            scanner.clear();
+          }
+        } else if (actualValue.startsWith("racquet:")) {
+          const racquetId = actualValue.split(":")[1];
+          // Find if there's a pending job for this racquet
+          const job = jobs.find(j => j.racquet_id === racquetId && j.status !== 'completed');
+          if (job) {
+            setEditingJob(job);
+            setShowScanner(false);
+            scanner.clear();
+          } else {
+            // No active job, maybe show racquet info or create new job
+            const racquet = racquets.find(r => r.id === racquetId);
+            if (racquet) {
+              setSelectedCustomerId(racquet.customer_id);
+              setSelectedRacquetId(racquet.id);
+              setShowNewJob(true);
+              setShowScanner(false);
+              scanner.clear();
+            }
+          }
+        }
+      }, (errorMessage) => {
+        // console.warn(errorMessage);
+      });
+
+      scannerRef.current = scanner;
+    } else {
+      if (scannerRef.current) {
+        scannerRef.current.clear();
+        scannerRef.current = null;
+      }
     }
-  }, [messages, activeTab]);
+
+    return () => {
+      if (scannerRef.current) {
+        scannerRef.current.clear();
+        scannerRef.current = null;
+      }
+    };
+  }, [showScanner, jobs, racquets]);
   const [selectedCustomerIdForChat, setSelectedCustomerIdForChat] = useState<string | null>(null);
   const [newMessage, setNewMessage] = useState("");
   const [sendingMessage, setSendingMessage] = useState(false);
@@ -41,8 +132,6 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
   const [showQRCodeModal, setShowQRCodeModal] = useState<{ value: string, label: string, serialNumber?: string } | null>(null);
   
   // New Job Form State
-  const [customers, setCustomers] = useState<any[]>([]);
-  const [racquets, setRacquets] = useState<any[]>([]);
   const [selectedCustomerId, setSelectedCustomerId] = useState("");
   const [selectedRacquetId, setSelectedRacquetId] = useState("");
   const [isNewCustomer, setIsNewCustomer] = useState(false);
@@ -51,7 +140,8 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
   const [searchingModels, setSearchingModels] = useState(false);
   const [modelSuggestions, setModelSuggestions] = useState<string[]>([]);
   const [showModelSuggestions, setShowModelSuggestions] = useState(false);
-  const [inventoryStrings, setInventoryStrings] = useState<any[]>([]);
+  const [selectedInventoryId, setSelectedInventoryId] = useState("");
+  const [selectedCrossInventoryId, setSelectedCrossInventoryId] = useState("");
 
   const customModels = useMemo(() => {
     const models: Record<string, string[]> = {};
@@ -347,15 +437,21 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
             name: finalModel,
             gauge: gauge,
             type: "string",
-            sub_type: "set",
+            packaging: "set",
             quantity: 1,
             price: 0,
             created_at: serverTimestamp(),
             updated_at: serverTimestamp()
           });
-          return stringName;
+          return { name: stringName, id: newId };
         }
-        return stringName;
+        
+        // Find existing inventory ID if not "Other"
+        const existingItem = inventoryStrings.find(i => 
+          i.brand === finalBrand && i.name === finalModel && i.gauge === gauge
+        );
+        
+        return { name: stringName, id: existingItem?.id || selectedInventoryId || "" };
       };
 
       if (isNewRacquet || isNewCustomer) {
@@ -366,7 +462,7 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
         
         if (!brand || !model) throw new Error("Racquet brand and model are required.");
 
-        const stringMain = await handleOtherString(
+        const mainStringData = await handleOtherString(
           newJob.string_main_brand, 
           newJob.string_main_model, 
           newJob.string_main_brand_custom, 
@@ -374,8 +470,8 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
           newJob.string_main_gauge
         );
         
-        const stringCross = newJob.string_cross_brand === "Same as Mains" 
-          ? stringMain 
+        const crossStringData = newJob.string_cross_brand === "Same as Mains" 
+          ? mainStringData 
           : await handleOtherString(
               newJob.string_cross_brand, 
               newJob.string_cross_model, 
@@ -402,8 +498,8 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
           one_piece_length: newJob.racquet_one_piece_length || "",
           two_piece_length: newJob.racquet_two_piece_length || "",
           stringing_instructions: newJob.racquet_stringing_instructions,
-          current_string_main: stringMain,
-          current_string_cross: stringCross,
+          current_string_main: mainStringData.name,
+          current_string_cross: crossStringData.name,
           current_tension_main: Number(newJob.tension_main) || 0,
           current_tension_cross: Number(newJob.tension_cross) || 0,
           qr_code: `racquet_${finalRacquetId}`,
@@ -412,15 +508,15 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
       } else if (selectedRacquetId) {
         // Update existing racquet with new string info
         const racquetRef = doc(db, "racquets", selectedRacquetId);
-        const stringMain = newJob.keep_same_string ? newJob.string_main : await handleOtherString(
+        const mainStringData = newJob.keep_same_string ? { name: newJob.string_main, id: "" } : await handleOtherString(
           newJob.string_main_brand, 
           newJob.string_main_model, 
           newJob.string_main_brand_custom, 
           newJob.string_main_model_custom,
           newJob.string_main_gauge
         );
-        const stringCross = newJob.keep_same_string ? newJob.string_cross : (
-          newJob.string_cross_brand === "Same as Mains" ? stringMain : await handleOtherString(
+        const crossStringData = newJob.keep_same_string ? { name: newJob.string_cross, id: "" } : (
+          newJob.string_cross_brand === "Same as Mains" ? mainStringData : await handleOtherString(
             newJob.string_cross_brand, 
             newJob.string_cross_model, 
             newJob.string_cross_brand_custom, 
@@ -430,8 +526,8 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
         );
 
         batch.update(racquetRef, {
-          current_string_main: stringMain,
-          current_string_cross: stringCross,
+          current_string_main: mainStringData.name,
+          current_string_cross: crossStringData.name,
           current_tension_main: Number(newJob.tension_main) || 0,
           current_tension_cross: Number(newJob.tension_cross) || 0,
           updated_at: serverTimestamp()
@@ -443,15 +539,15 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
       const jobId = uuidv4();
       const jobRef = doc(db, "jobs", jobId);
       
-      const stringMain = newJob.keep_same_string ? newJob.string_main : await handleOtherString(
+      const mainStringData = newJob.keep_same_string ? { name: newJob.string_main, id: "" } : await handleOtherString(
         newJob.string_main_brand, 
         newJob.string_main_model, 
         newJob.string_main_brand_custom, 
         newJob.string_main_model_custom,
         newJob.string_main_gauge
       );
-      const stringCross = newJob.keep_same_string ? newJob.string_cross : (
-        newJob.string_cross_brand === "Same as Mains" ? stringMain : await handleOtherString(
+      const crossStringData = newJob.keep_same_string ? { name: newJob.string_cross, id: "" } : (
+        newJob.string_cross_brand === "Same as Mains" ? mainStringData : await handleOtherString(
           newJob.string_cross_brand, 
           newJob.string_cross_model, 
           newJob.string_cross_brand_custom, 
@@ -467,8 +563,10 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
         customer_email: finalCustomerEmail,
         shop_id: user.shop_id,
         status: "pending",
-        string_main: stringMain,
-        string_cross: stringCross,
+        string_main: mainStringData.name,
+        string_cross: crossStringData.name,
+        inventory_id: mainStringData.id || selectedInventoryId || "",
+        cross_inventory_id: crossStringData.id || selectedCrossInventoryId || "",
         tension_main: Number(newJob.tension_main) || 0,
         tension_cross: Number(newJob.tension_cross) || 0,
         price: Number(newJob.price) || 0,
@@ -493,34 +591,58 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
           read: false,
           created_at: serverTimestamp()
         });
-      }
 
-      await batch.commit();
-      
-      setShowNewJob(false);
-      setNewJob({
-        customer_name: "", customer_email: "", customer_phone: "",
-        racquet_brand: "", racquet_model: "", racquet_brand_custom: "", racquet_model_custom: "", racquet_serial: "",
-        racquet_head_size: 0, racquet_mains: 0, racquet_crosses: 0,
-        racquet_mains_skip: "", racquet_mains_tie_off: "", racquet_crosses_start: "", racquet_crosses_tie_off: "",
-        racquet_one_piece_length: "", racquet_two_piece_length: "", racquet_stringing_instructions: "",
-        string_main_brand: "", string_main_model: "", string_main_gauge: "", string_main_brand_custom: "", string_main_model_custom: "",
-        string_cross_brand: "", string_cross_model: "", string_cross_gauge: "", string_cross_brand_custom: "", string_cross_model_custom: "",
-        string_main: "", string_cross: "", tension_main: 0, tension_cross: 0, price: 25, notes: "",
-        keep_same_string: false
-      });
-      setSelectedCustomerId("");
-      setSelectedRacquetId("");
-      setIsNewCustomer(false);
-      setIsNewRacquet(false);
-    } catch (err: any) {
-      console.error("Error creating job:", err);
-      setError(err.message || "Failed to create job. Please try again.");
-      handleFirestoreError(err, OperationType.WRITE, "create_job");
-    } finally {
-      setSubmitting(false);
+        // Send Push Notification
+      try {
+        const customerSnap = await getDocs(query(collection(db, "users"), where("email", "==", finalCustomerEmail), limit(1)));
+        if (!customerSnap.empty) {
+          const customerData = customerSnap.docs[0].data();
+          if (customerData.fcmToken) {
+            await fetch("/api/send-notification", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                token: customerData.fcmToken,
+                title: "New Job Created",
+                body: `A new stringing job has been created for your ${racquet.brand} ${racquet.model}.`,
+                data: { type: "job", job_id: jobId }
+              })
+            });
+          }
+        }
+      } catch (pushErr) {
+        console.error("Error sending push notification:", pushErr);
+      }
     }
-  };
+
+    await batch.commit();
+    
+    setShowNewJob(false);
+    setSelectedInventoryId("");
+    setSelectedCrossInventoryId("");
+    setNewJob({
+      customer_name: "", customer_email: "", customer_phone: "",
+      racquet_brand: "", racquet_model: "", racquet_brand_custom: "", racquet_model_custom: "", racquet_serial: "",
+      racquet_head_size: 0, racquet_mains: 0, racquet_crosses: 0,
+      racquet_mains_skip: "", racquet_mains_tie_off: "", racquet_crosses_start: "", racquet_crosses_tie_off: "",
+      racquet_one_piece_length: "", racquet_two_piece_length: "", racquet_stringing_instructions: "",
+      string_main_brand: "", string_main_model: "", string_main_gauge: "", string_main_brand_custom: "", string_main_model_custom: "",
+      string_cross_brand: "", string_cross_model: "", string_cross_gauge: "", string_cross_brand_custom: "", string_cross_model_custom: "",
+      string_main: "", string_cross: "", tension_main: 0, tension_cross: 0, price: 25, notes: "",
+      keep_same_string: false
+    });
+    setSelectedCustomerId("");
+    setSelectedRacquetId("");
+    setIsNewCustomer(false);
+    setIsNewRacquet(false);
+  } catch (err: any) {
+    console.error("Error creating job:", err);
+    setError(err.message || "Failed to create job. Please try again.");
+    handleFirestoreError(err, OperationType.WRITE, "create_job");
+  } finally {
+    setSubmitting(false);
+  }
+};
 
   // Filter racquets based on selected customer
   const filteredRacquets = racquets.filter(r => r.customer_id === selectedCustomerId);
@@ -565,14 +687,84 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
       const racquet = racquets.find(r => r.id === job?.racquet_id);
       const customer = customers.find(c => c.id === racquet?.customer_id);
 
-      await updateDoc(doc(db, "jobs", jobId), { 
+      if (!job) return;
+
+      const batch = writeBatch(db);
+
+      // Inventory Deduction Logic
+      const deductFromInventory = (itemId: string, lengthNeeded: number = 12) => {
+        const item = inventoryItems.find(i => i.id === itemId);
+        if (!item) return;
+
+        const itemRef = doc(db, "inventory", itemId);
+        if (item.packaging === 'reel') {
+          if (item.remaining_length >= lengthNeeded) {
+            batch.update(itemRef, {
+              remaining_length: item.remaining_length - lengthNeeded,
+              updated_at: serverTimestamp()
+            });
+          } else if (item.quantity > 0) {
+            // Use a new reel
+            batch.update(itemRef, {
+              quantity: item.quantity - 1,
+              remaining_length: item.total_length - lengthNeeded,
+              updated_at: serverTimestamp()
+            });
+          } else {
+            // No reels left and not enough length on current reel
+            batch.update(itemRef, {
+              remaining_length: Math.max(0, item.remaining_length - lengthNeeded),
+              updated_at: serverTimestamp()
+            });
+          }
+        } else {
+          // It's a set
+          // If lengthNeeded is 12 (full set), deduct 1
+          // If lengthNeeded is 6 (half set), deduct 0.5
+          const deduction = lengthNeeded >= 12 ? 1 : 0.5;
+          if (item.quantity >= deduction) {
+            batch.update(itemRef, {
+              quantity: item.quantity - deduction,
+              updated_at: serverTimestamp()
+            });
+          } else {
+             // Still deduct but floor at 0
+             batch.update(itemRef, {
+              quantity: Math.max(0, item.quantity - deduction),
+              updated_at: serverTimestamp()
+            });
+          }
+        }
+      };
+
+      // Only deduct if status is changing TO completed and wasn't already completed
+      if (status === 'completed' && job.status !== 'completed') {
+        const invId = job.inventory_id;
+        const crossInvId = job.cross_inventory_id;
+
+        if (invId && crossInvId) {
+          if (invId === crossInvId) {
+            // Full set or 12m from same reel
+            deductFromInventory(invId, 12);
+          } else {
+            // Hybrid: 6m or 0.5 set from each
+            deductFromInventory(invId, 6);
+            deductFromInventory(crossInvId, 6);
+          }
+        } else if (invId) {
+          // Only mains specified (unlikely but possible)
+          deductFromInventory(invId, 12);
+        }
+      }
+
+      batch.update(doc(db, "jobs", jobId), { 
         status,
         updated_at: serverTimestamp()
       });
 
       // Update racquet current setup if job is completed
       if (status === 'completed' && job?.racquet_id) {
-        await updateDoc(doc(db, "racquets", job.racquet_id), {
+        batch.update(doc(db, "racquets", job.racquet_id), {
           current_string_main: job.string_main || "Not specified",
           current_string_cross: job.string_cross || job.string_main || "Not specified",
           current_tension_main: Number(job.tension_main) || 0,
@@ -580,6 +772,8 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
           updated_at: new Date().toISOString()
         });
       }
+
+      await batch.commit();
 
       if (customer?.email) {
         const notificationId = uuidv4();
@@ -594,6 +788,28 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
           read: false,
           created_at: serverTimestamp()
         });
+
+        // Send Push Notification
+        try {
+          const customerSnap = await getDocs(query(collection(db, "users"), where("email", "==", customer.email), limit(1)));
+          if (!customerSnap.empty) {
+            const customerData = customerSnap.docs[0].data();
+            if (customerData.fcmToken) {
+              await fetch("/api/send-notification", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  token: customerData.fcmToken,
+                  title: `Job Status Updated: ${status.charAt(0).toUpperCase() + status.slice(1)}`,
+                  body: `Your ${racquet?.brand || 'racquet'} ${racquet?.model || ''} is now ${status}.`,
+                  data: { type: "job", job_id: jobId }
+                })
+              });
+            }
+          }
+        } catch (pushErr) {
+          console.error("Error sending push notification:", pushErr);
+        }
       }
     } catch (err) {
       handleFirestoreError(err, OperationType.UPDATE, `jobs/${jobId}`);
@@ -625,6 +841,28 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
             read: false,
             created_at: serverTimestamp()
           });
+
+          // Send Push Notification
+          try {
+            const customerSnap = await getDocs(query(collection(db, "users"), where("email", "==", customer.email), limit(1)));
+            if (!customerSnap.empty) {
+              const customerData = customerSnap.docs[0].data();
+              if (customerData.fcmToken) {
+                await fetch("/api/send-notification", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    token: customerData.fcmToken,
+                    title: "Payment Received",
+                    body: `Payment for your ${racquet?.brand || 'racquet'} ${racquet?.model || ''} has been received.`,
+                    data: { type: "job", job_id: jobId }
+                  })
+                });
+              }
+            }
+          } catch (pushErr) {
+            console.error("Error sending push notification:", pushErr);
+          }
         }
       }
     } catch (err) {
@@ -784,8 +1022,22 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
 
       // Send Push Notification to Customer
       try {
-        const customerDoc = await getDoc(doc(db, "users", selectedCustomerIdForChat));
-        const customerData = customerDoc.data();
+        let customerData = null;
+        if (customer?.uid) {
+          const customerDoc = await getDoc(doc(db, "users", customer.uid));
+          if (customerDoc.exists()) {
+            customerData = customerDoc.data();
+          }
+        }
+        
+        if (!customerData && customer?.email) {
+          // If no UID or doc not found, try fetching by email
+          const customerSnap = await getDocs(query(collection(db, "users"), where("email", "==", customer.email), limit(1)));
+          if (!customerSnap.empty) {
+            customerData = customerSnap.docs[0].data();
+          }
+        }
+
         if (customerData?.fcmToken) {
           await fetch("/api/send-notification", {
             method: "POST",
@@ -840,6 +1092,13 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
         </div>
         <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
           <button 
+            onClick={() => setShowScanner(true)}
+            className="flex items-center justify-center px-4 py-2 bg-white dark:bg-neutral-800 text-primary border border-primary rounded-xl font-bold hover:bg-primary/5 shadow-sm transition-all active:scale-95 text-sm sm:text-base"
+          >
+            <Scan className="w-4 h-4 mr-2" />
+            Scan QR
+          </button>
+          <button 
             onClick={() => setShowNewJob(true)}
             className="flex items-center justify-center px-4 py-2 bg-primary text-white rounded-xl font-bold hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all active:scale-95 text-sm sm:text-base"
           >
@@ -847,6 +1106,34 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
             New Job
           </button>
         </div>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex items-center gap-2 p-1 bg-neutral-100 dark:bg-neutral-800 rounded-2xl w-fit">
+        <button 
+          onClick={() => setActiveTab('jobs')}
+          className={`px-6 py-2 rounded-xl text-sm font-bold transition-all ${activeTab === 'jobs' ? 'bg-white dark:bg-neutral-900 text-primary shadow-sm' : 'text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300'}`}
+        >
+          Jobs
+        </button>
+        <button 
+          onClick={() => setActiveTab('customers')}
+          className={`px-6 py-2 rounded-xl text-sm font-bold transition-all ${activeTab === 'customers' ? 'bg-white dark:bg-neutral-900 text-primary shadow-sm' : 'text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300'}`}
+        >
+          Customers
+        </button>
+        <button 
+          onClick={() => setActiveTab('messages')}
+          className={`px-6 py-2 rounded-xl text-sm font-bold transition-all ${activeTab === 'messages' ? 'bg-white dark:bg-neutral-900 text-primary shadow-sm' : 'text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300'}`}
+        >
+          Messages
+        </button>
+        <button 
+          onClick={() => setActiveTab('inventory')}
+          className={`px-6 py-2 rounded-xl text-sm font-bold transition-all ${activeTab === 'inventory' ? 'bg-white dark:bg-neutral-900 text-primary shadow-sm' : 'text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300'}`}
+        >
+          Inventory
+        </button>
       </div>
 
       {/* Delete Confirmation Modal */}
@@ -876,6 +1163,33 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
                 className="flex-1 bg-neutral-100 dark:bg-neutral-800 text-text-muted py-2 rounded-xl font-semibold hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
               >
                 Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* QR Scanner Modal */}
+      {showScanner && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-[100] p-4">
+          <div className="bg-white dark:bg-neutral-900 rounded-3xl p-8 max-w-md w-full shadow-2xl relative border border-neutral-200 dark:border-neutral-800">
+            <button 
+              onClick={() => setShowScanner(false)}
+              className="absolute top-6 right-6 p-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full transition-colors z-10"
+            >
+              <X className="w-6 h-6 text-neutral-400" />
+            </button>
+            <div className="text-center mb-6">
+              <h2 className="text-2xl font-bold text-primary">Scan QR Code</h2>
+              <p className="text-sm text-neutral-500 mt-1">Point your camera at a racquet or job QR code</p>
+            </div>
+            <div id="qr-reader" className="overflow-hidden rounded-2xl border-2 border-primary/20 bg-black aspect-square"></div>
+            <div className="mt-6 flex justify-center">
+              <button 
+                onClick={() => setShowScanner(false)}
+                className="px-6 py-2 bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 rounded-xl font-bold hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-all"
+              >
+                Close Scanner
               </button>
             </div>
           </div>
@@ -1638,6 +1952,79 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
                 </div>
 
                 <div className={`space-y-4 transition-opacity ${newJob.keep_same_string ? 'opacity-50 pointer-events-none' : ''}`}>
+                  {/* Inventory Selection */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-neutral-50 dark:bg-neutral-800/50 rounded-xl border border-neutral-100 dark:border-neutral-800">
+                    <div className="col-span-full">
+                      <h4 className="text-[10px] font-bold text-primary uppercase tracking-widest mb-2">Use from Inventory</h4>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-neutral-500 mb-1 uppercase tracking-wider">Main String</label>
+                      <select 
+                        value={selectedInventoryId}
+                        onChange={e => {
+                          const id = e.target.value;
+                          setSelectedInventoryId(id);
+                          const item = inventoryItems.find(i => i.id === id);
+                          if (item) {
+                            setNewJob({
+                              ...newJob,
+                              string_main_brand: item.brand,
+                              string_main_model: item.name,
+                              string_main_gauge: item.gauge || "",
+                              string_main: `${item.brand} ${item.name} ${item.gauge || ""}`.trim()
+                            });
+                          }
+                        }}
+                        className="w-full px-3 py-1.5 text-sm border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-lg outline-none focus:ring-2 focus:ring-primary"
+                      >
+                        <option value="">Manual Entry / Not in Inventory</option>
+                        {inventoryItems.filter(i => i.type === 'string').map(item => (
+                          <option key={item.id} value={item.id}>
+                            {item.brand} {item.name} ({item.packaging === 'reel' ? `${Math.round(item.remaining_length)}m left` : `${item.quantity} sets`})
+                          </option>
+                        ))}
+                      </select>
+                      {selectedInventoryId && inventoryItems.find(i => i.id === selectedInventoryId)?.quantity <= (inventoryItems.find(i => i.id === selectedInventoryId)?.low_stock_threshold || 5) && (
+                        <p className="text-[10px] text-red-500 mt-1 flex items-center gap-1">
+                          <AlertTriangle className="w-3 h-3" /> Low stock warning
+                        </p>
+                      )}
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-neutral-500 mb-1 uppercase tracking-wider">Cross String</label>
+                      <select 
+                        value={selectedCrossInventoryId}
+                        onChange={e => {
+                          const id = e.target.value;
+                          setSelectedCrossInventoryId(id);
+                          const item = inventoryItems.find(i => i.id === id);
+                          if (item) {
+                            setNewJob({
+                              ...newJob,
+                              string_cross_brand: item.brand,
+                              string_cross_model: item.name,
+                              string_cross_gauge: item.gauge || "",
+                              string_cross: `${item.brand} ${item.name} ${item.gauge || ""}`.trim()
+                            });
+                          }
+                        }}
+                        className="w-full px-3 py-1.5 text-sm border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-lg outline-none focus:ring-2 focus:ring-primary"
+                      >
+                        <option value="">Manual Entry / Same as Mains</option>
+                        {inventoryItems.filter(i => i.type === 'string').map(item => (
+                          <option key={item.id} value={item.id}>
+                            {item.brand} {item.name} ({item.packaging === 'reel' ? `${Math.round(item.remaining_length)}m left` : `${item.quantity} sets`})
+                          </option>
+                        ))}
+                      </select>
+                      {selectedCrossInventoryId && inventoryItems.find(i => i.id === selectedCrossInventoryId)?.quantity <= (inventoryItems.find(i => i.id === selectedCrossInventoryId)?.low_stock_threshold || 5) && (
+                        <p className="text-[10px] text-red-500 mt-1 flex items-center gap-1">
+                          <AlertTriangle className="w-3 h-3" /> Low stock warning
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-xs font-medium text-neutral-500 mb-1 uppercase tracking-wider">Main String Brand</label>
@@ -2183,6 +2570,70 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
             </>
           )}
 
+          {activeTab === 'inventory' && (
+            <div className="space-y-6">
+              <div className="flex justify-between items-center">
+                <h2 className="text-lg font-semibold text-primary">Inventory Overview</h2>
+                <Link to="/inventory" className="text-sm font-bold text-primary hover:underline flex items-center">
+                  Manage Full Inventory <ChevronRight className="w-4 h-4 ml-1" />
+                </Link>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {inventoryItems.filter(i => i.type === 'string').slice(0, 6).map(item => (
+                  <div key={item.id} className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-5 shadow-sm">
+                    <div className="flex justify-between items-start mb-3">
+                      <div>
+                        <h4 className="font-bold text-neutral-900 dark:text-white">{item.brand} {item.name}</h4>
+                        <p className="text-xs text-neutral-500 uppercase tracking-widest">{item.packaging} • {item.gauge}</p>
+                      </div>
+                      {item.quantity <= (item.low_stock_threshold || 5) && (
+                        <AlertTriangle className="w-5 h-5 text-red-500" />
+                      )}
+                    </div>
+                    
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-end">
+                        <div className="text-2xl font-bold text-primary">
+                          {item.quantity} <span className="text-sm font-normal text-neutral-400">{item.packaging === 'reel' ? 'Reels' : 'Sets'}</span>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-[10px] font-bold text-neutral-400 uppercase">Price</p>
+                          <p className="text-sm font-bold text-neutral-900 dark:text-white">${item.price}</p>
+                        </div>
+                      </div>
+                      
+                      {item.packaging === 'reel' && (
+                        <div className="pt-2 border-t border-neutral-100 dark:border-neutral-800">
+                          <div className="flex justify-between text-[10px] font-bold text-neutral-500 uppercase mb-1">
+                            <span>Current Reel</span>
+                            <span>{Math.round(item.remaining_length)}m / {item.total_length}m</span>
+                          </div>
+                          <div className="w-full bg-neutral-100 dark:bg-neutral-800 rounded-full h-1.5">
+                            <div 
+                              className={`h-1.5 rounded-full ${item.remaining_length < 24 ? 'bg-red-500' : 'bg-primary'}`}
+                              style={{ width: `${(item.remaining_length / item.total_length) * 100}%` }}
+                            />
+                          </div>
+                          <p className="text-[10px] text-neutral-400 mt-1 italic">
+                            Approx. {Math.floor(item.remaining_length / 12)} jobs left on this reel
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+                {inventoryItems.filter(i => i.type === 'string').length === 0 && (
+                  <div className="col-span-full py-12 text-center bg-neutral-50 dark:bg-neutral-800/50 rounded-2xl border-2 border-dashed border-neutral-200 dark:border-neutral-800">
+                    <Package className="w-12 h-12 mx-auto mb-3 text-neutral-300" />
+                    <p className="text-neutral-500">No strings in inventory yet.</p>
+                    <Link to="/inventory" className="text-primary font-bold hover:underline mt-2 inline-block">Add your first item</Link>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+          
           {activeTab === 'messages' && (
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 h-[calc(100vh-12rem)] min-h-[500px]">
               {/* Customer List */}
