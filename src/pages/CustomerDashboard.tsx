@@ -1168,6 +1168,8 @@ export default function CustomerDashboard({ user, initialTab = 'jobs' }: { user:
                               onClick={() => {
                                 setNewRacquetData({...newRacquetData, model: suggestion, model_custom: suggestion});
                                 setShowModelSuggestions(false);
+                                // Trigger spec fetch automatically
+                                setTimeout(() => handleFetchSpecs(), 0);
                               }}
                               className="w-full px-4 py-2 text-left hover:bg-neutral-100 dark:hover:bg-neutral-700 text-sm text-neutral-900 dark:text-white"
                             >

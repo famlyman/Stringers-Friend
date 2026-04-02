@@ -1,6 +1,7 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../lib/firebase";
+import { PREDEFINED_RACQUETS } from "../data/racquetDatabase";
 
 export interface RacquetSpec {
   brand: string;
@@ -27,7 +28,14 @@ export interface RacquetSpec {
 
 export const racquetSpecsService = {
   async getSpecs(brand: string, model: string): Promise<RacquetSpec | null> {
-    // 1. Check Cache First
+    // 1. Check Local Predefined Database
+    const brandData = PREDEFINED_RACQUETS[brand];
+    if (brandData && brandData[model]) {
+      console.log("Returning predefined racquet specs for:", brand, model);
+      return brandData[model] as RacquetSpec;
+    }
+
+    // 2. Check Cache
     const cacheId = `${brand.toLowerCase().replace(/\s+/g, '_')}_${model.toLowerCase().replace(/\s+/g, '_')}`;
     try {
       const cacheRef = doc(db, "racquet_specs_cache", cacheId);

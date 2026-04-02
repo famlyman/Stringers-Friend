@@ -1061,6 +1061,7 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
                           onClick={() => {
                             setEditingRacquet({...editingRacquet, model: suggestion});
                             setShowModelSuggestions(false);
+                            handleFetchSpecs(editingRacquet.brand, suggestion, true);
                           }}
                         >
                           {suggestion}
@@ -1423,6 +1424,7 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
                                       onClick={() => {
                                         setNewJob({...newJob, racquet_model: suggestion, racquet_model_custom: suggestion});
                                         setShowModelSuggestions(false);
+                                        handleFetchSpecs(newJob.racquet_brand, suggestion, false);
                                       }}
                                       className="w-full px-4 py-2 text-left hover:bg-neutral-100 dark:hover:bg-neutral-700 text-sm text-neutral-900 dark:text-white"
                                     >

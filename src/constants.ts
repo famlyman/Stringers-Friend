@@ -8,20 +8,34 @@ export const RACQUET_BRANDS = [
   "Dunlop",
   "Volkl",
   "Solinco",
-  "ProKennex"
+  "Pro Kennex",
+  "Asics",
+  "Donnay",
+  "Fischer",
+  "Gamma",
+  "Slazenger",
+  "Spalding",
+  "Weed"
 ];
 
 export const RACQUET_MODELS: Record<string, string[]> = {
-  "Wilson": ["Pro Staff", "Blade", "Ultra", "Clash", "Burn", "Shift"],
-  "Babolat": ["Pure Drive", "Pure Aero", "Pure Strike", "Pure Aero Rafa"],
-  "Yonex": ["EZONE", "VCORE", "VCORE PRO", "Percept", "Astrel"],
-  "Head": ["Speed", "Radical", "Extreme", "Prestige", "Gravity", "Boom", "Instinct"],
-  "Prince": ["Phantom", "Tour", "Warrior", "Ripstick"],
-  "Tecnifibre": ["TFight", "TF40", "Tempo", "T-Rebound"],
-  "Dunlop": ["FX", "SX", "CX"],
-  "Volkl": ["V-Cell", "V-Feel"],
+  "Wilson": ["Pro Staff", "Blade", "Ultra", "Clash", "Burn", "Shift", "Hammer", "Hyper Hammer", "nCode", "Triad", "Profile"],
+  "Babolat": ["Pure Drive", "Pure Aero", "Pure Strike", "Pure Aero Rafa", "AeroPro Drive", "Pure Control", "Pure Storm", "Drive Z", "Boost"],
+  "Yonex": ["EZONE", "VCORE", "VCORE PRO", "Percept", "Astrel", "RQ", "RD", "Muscle Power"],
+  "Head": ["Speed", "Radical", "Extreme", "Prestige", "Gravity", "Boom", "Instinct", "Ti S6", "Liquidmetal", "Microgel", "Graphene"],
+  "Prince": ["Phantom", "Tour", "Warrior", "Ripstick", "Graphite", "O3", "EXO3", "Beast", "Thunderbolt"],
+  "Tecnifibre": ["TFight", "TF40", "Tempo", "T-Rebound", "T-Flash"],
+  "Dunlop": ["FX", "SX", "CX", "Biomimetic", "Aerogel", "200G", "300G", "500G"],
+  "Volkl": ["V-Cell", "V-Feel", "V-Sense", "Organix", "C10 Pro", "V1 Classic"],
   "Solinco": ["Whiteout", "Blackout"],
-  "ProKennex": ["Ki", "Black Ace"]
+  "Pro Kennex": ["Ki", "Black Ace", "Destiny", "Kinetic"],
+  "Asics": ["109", "116", "125", "BZ100"],
+  "Donnay": ["Formula", "Pro One", "X Series", "Dual Series"],
+  "Fischer": ["M Pro No. 1", "GDS", "Black Granite"],
+  "Gamma": ["RZR", "Bubba", "C-Series", "IPEX"],
+  "Slazenger": ["Challenge", "Phantom", "Pro Braided"],
+  "Spalding": ["Assault", "ATP Tour", "Orbitech"],
+  "Weed": ["125-EX", "Zone", "Weed I", "Weed II"]
 };
 
 export const STRINGS = [
