@@ -74,6 +74,62 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
   const [selectedInventoryId, setSelectedInventoryId] = useState("");
   const [selectedCrossInventoryId, setSelectedCrossInventoryId] = useState("");
 
+
+
+  const customModels = useMemo(() => {
+    const models: Record<string, string[]> = {};
+    racquets.forEach(r => {
+      if (r.brand && r.model) {
+        if (!models[r.brand]) models[r.brand] = [];
+        if (!models[r.brand].includes(r.model)) {
+          // Only add if it's not already in the hardcoded list
+          if (!RACQUET_MODELS[r.brand]?.includes(r.model)) {
+            models[r.brand].push(r.model);
+          }
+        }
+      }
+    });
+    return models;
+  }, [racquets]);
+
+  const [newJob, setNewJob] = useState({
+    customer_name: "",
+    customer_email: "",
+    customer_phone: "",
+    racquet_brand: "",
+    racquet_model: "",
+    racquet_brand_custom: "",
+    racquet_model_custom: "",
+    racquet_serial: "",
+    racquet_head_size: 0,
+    racquet_mains: 0,
+    racquet_crosses: 0,
+    racquet_mains_skip: "",
+    racquet_mains_tie_off: "",
+    racquet_crosses_start: "",
+    racquet_crosses_tie_off: "",
+    racquet_one_piece_length: "",
+    racquet_two_piece_length: "",
+    racquet_stringing_instructions: "",
+    string_main_brand: "",
+    string_main_model: "",
+    string_main_gauge: "",
+    string_main_brand_custom: "",
+    string_main_model_custom: "",
+    string_cross_brand: "",
+    string_cross_model: "",
+    string_cross_gauge: "",
+    string_cross_brand_custom: "",
+    string_cross_model_custom: "",
+    string_main: "",
+    string_cross: "",
+    tension_main: 0,
+    tension_cross: 0,
+    price: 25,
+    notes: "",
+    keep_same_string: false
+  });
+
   const handleScan = useCallback((decodedText: string) => {
     if (isProcessingScan) return;
     setIsProcessingScan(true);
@@ -144,8 +200,28 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
         const racquet = racquets.find(r => r.id === cleanId);
         console.log("Racquet found:", racquet);
         if (racquet) {
+          const customer = customers.find(c => c.id === racquet.customer_id);
           setSelectedCustomerId(racquet.customer_id);
           setSelectedRacquetId(racquet.id);
+          setNewJob({
+            ...newJob,
+            customer_name: customer?.name || "",
+            customer_email: customer?.email || "",
+            customer_phone: customer?.phone || "",
+            racquet_brand: racquet.brand || "",
+            racquet_model: racquet.model || "",
+            racquet_serial: racquet.serial_number || "",
+            racquet_head_size: racquet.head_size || 0,
+            racquet_mains: racquet.string_pattern_mains || 0,
+            racquet_crosses: racquet.string_pattern_crosses || 0,
+            racquet_stringing_instructions: racquet.stringing_instructions || "",
+            string_main_model: racquet.current_string_main || "",
+            string_cross_model: racquet.current_string_cross || "",
+            tension_main: racquet.current_tension_main || 0,
+            tension_cross: racquet.current_tension_cross || 0,
+            notes: "",
+            keep_same_string: false
+          });
           setShowNewJob(true);
         } else {
           console.log("Racquet not found in racquets list:", racquets);
@@ -154,61 +230,7 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
     }
     
     setIsProcessingScan(false);
-  }, [jobs, racquets, setEditingJob, setShowScanner, setSelectedCustomerId, setSelectedRacquetId, setShowNewJob, isProcessingScan]);
-
-  const customModels = useMemo(() => {
-    const models: Record<string, string[]> = {};
-    racquets.forEach(r => {
-      if (r.brand && r.model) {
-        if (!models[r.brand]) models[r.brand] = [];
-        if (!models[r.brand].includes(r.model)) {
-          // Only add if it's not already in the hardcoded list
-          if (!RACQUET_MODELS[r.brand]?.includes(r.model)) {
-            models[r.brand].push(r.model);
-          }
-        }
-      }
-    });
-    return models;
-  }, [racquets]);
-
-  const [newJob, setNewJob] = useState({
-    customer_name: "",
-    customer_email: "",
-    customer_phone: "",
-    racquet_brand: "",
-    racquet_model: "",
-    racquet_brand_custom: "",
-    racquet_model_custom: "",
-    racquet_serial: "",
-    racquet_head_size: 0,
-    racquet_mains: 0,
-    racquet_crosses: 0,
-    racquet_mains_skip: "",
-    racquet_mains_tie_off: "",
-    racquet_crosses_start: "",
-    racquet_crosses_tie_off: "",
-    racquet_one_piece_length: "",
-    racquet_two_piece_length: "",
-    racquet_stringing_instructions: "",
-    string_main_brand: "",
-    string_main_model: "",
-    string_main_gauge: "",
-    string_main_brand_custom: "",
-    string_main_model_custom: "",
-    string_cross_brand: "",
-    string_cross_model: "",
-    string_cross_gauge: "",
-    string_cross_brand_custom: "",
-    string_cross_model_custom: "",
-    string_main: "",
-    string_cross: "",
-    tension_main: 0,
-    tension_cross: 0,
-    price: 25,
-    notes: "",
-    keep_same_string: false
-  });
+  }, [jobs, racquets, customers, newJob, setEditingJob, setShowScanner, setSelectedCustomerId, setSelectedRacquetId, setShowNewJob, setNewJob, isProcessingScan]);
 
   const handleFetchSpecs = async (brandParam?: string, modelParam?: string, isEditing: boolean = false) => {
     const brand = brandParam || (isEditing 
