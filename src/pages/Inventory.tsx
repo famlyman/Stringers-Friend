@@ -115,7 +115,8 @@ export default function Inventory({ user }: { user: any }) {
   };
 
   const filteredItems = items.filter(item => {
-    const matchesType = filterType === "all" || item.type === filterType;
+    const isLowStock = item.quantity <= (item.low_stock_threshold || 5);
+    const matchesType = filterType === "all" || (filterType === "low-stock" ? isLowStock : item.type === filterType);
     const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
                          item.brand.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesType && matchesSearch;
@@ -150,7 +151,7 @@ export default function Inventory({ user }: { user: any }) {
           />
         </div>
         <div className="flex gap-2">
-          {['all', 'string', 'grip', 'dampener', 'other'].map((type) => (
+          {['all', 'string', 'grip', 'dampener', 'other', 'low-stock'].map((type) => (
             <button
               key={type}
               onClick={() => setFilterType(type)}
@@ -160,7 +161,7 @@ export default function Inventory({ user }: { user: any }) {
                   : 'bg-white dark:bg-neutral-900 text-neutral-500 border border-neutral-200 dark:border-neutral-800 hover:border-primary/50'
               }`}
             >
-              {type}
+              {type === 'low-stock' ? 'Low Stock' : type}
             </button>
           ))}
         </div>

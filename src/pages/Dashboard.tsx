@@ -58,7 +58,7 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
     if (showScanner) {
       const scanner = new Html5QrcodeScanner(
         "qr-reader",
-        { fps: 10, qrbox: { width: 250, height: 250 } },
+        { fps: 10, qrbox: { width: 250, height: 250 }, facingMode: "environment" } as any,
         /* verbose= */ false
       );
       
@@ -681,6 +681,51 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
     (c.phone && c.phone.includes(customerSearch))
   );
 
+  const deductFromInventory = (batch: any, itemId: string, lengthNeeded: number = 12) => {
+    const item = inventoryItems.find(i => i.id === itemId);
+    if (!item) return;
+
+    const itemRef = doc(db, "inventory", itemId);
+    if (item.packaging === 'reel') {
+      if (item.remaining_length >= lengthNeeded) {
+        batch.update(itemRef, {
+          remaining_length: item.remaining_length - lengthNeeded,
+          updated_at: serverTimestamp()
+        });
+      } else if (item.quantity > 0) {
+        // Use a new reel
+        batch.update(itemRef, {
+          quantity: item.quantity - 1,
+          remaining_length: item.total_length - lengthNeeded,
+          updated_at: serverTimestamp()
+        });
+      } else {
+        // No reels left and not enough length on current reel
+        batch.update(itemRef, {
+          remaining_length: Math.max(0, item.remaining_length - lengthNeeded),
+          updated_at: serverTimestamp()
+        });
+      }
+    } else {
+      // It's a set
+      // If lengthNeeded is 12 (full set), deduct 1
+      // If lengthNeeded is 6 (half set), deduct 0.5
+      const deduction = lengthNeeded >= 12 ? 1 : 0.5;
+      if (item.quantity >= deduction) {
+        batch.update(itemRef, {
+          quantity: item.quantity - deduction,
+          updated_at: serverTimestamp()
+        });
+      } else {
+          // Still deduct but floor at 0
+          batch.update(itemRef, {
+          quantity: Math.max(0, item.quantity - deduction),
+          updated_at: serverTimestamp()
+        });
+      }
+    }
+  };
+
   const updateJobStatus = async (jobId: string, status: string) => {
     try {
       const job = jobs.find(j => j.id === jobId);
@@ -691,52 +736,6 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
 
       const batch = writeBatch(db);
 
-      // Inventory Deduction Logic
-      const deductFromInventory = (itemId: string, lengthNeeded: number = 12) => {
-        const item = inventoryItems.find(i => i.id === itemId);
-        if (!item) return;
-
-        const itemRef = doc(db, "inventory", itemId);
-        if (item.packaging === 'reel') {
-          if (item.remaining_length >= lengthNeeded) {
-            batch.update(itemRef, {
-              remaining_length: item.remaining_length - lengthNeeded,
-              updated_at: serverTimestamp()
-            });
-          } else if (item.quantity > 0) {
-            // Use a new reel
-            batch.update(itemRef, {
-              quantity: item.quantity - 1,
-              remaining_length: item.total_length - lengthNeeded,
-              updated_at: serverTimestamp()
-            });
-          } else {
-            // No reels left and not enough length on current reel
-            batch.update(itemRef, {
-              remaining_length: Math.max(0, item.remaining_length - lengthNeeded),
-              updated_at: serverTimestamp()
-            });
-          }
-        } else {
-          // It's a set
-          // If lengthNeeded is 12 (full set), deduct 1
-          // If lengthNeeded is 6 (half set), deduct 0.5
-          const deduction = lengthNeeded >= 12 ? 1 : 0.5;
-          if (item.quantity >= deduction) {
-            batch.update(itemRef, {
-              quantity: item.quantity - deduction,
-              updated_at: serverTimestamp()
-            });
-          } else {
-             // Still deduct but floor at 0
-             batch.update(itemRef, {
-              quantity: Math.max(0, item.quantity - deduction),
-              updated_at: serverTimestamp()
-            });
-          }
-        }
-      };
-
       // Only deduct if status is changing TO completed and wasn't already completed
       if (status === 'completed' && job.status !== 'completed') {
         const invId = job.inventory_id;
@@ -745,15 +744,15 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
         if (invId && crossInvId) {
           if (invId === crossInvId) {
             // Full set or 12m from same reel
-            deductFromInventory(invId, 12);
+            deductFromInventory(batch, invId, 12);
           } else {
             // Hybrid: 6m or 0.5 set from each
-            deductFromInventory(invId, 6);
-            deductFromInventory(crossInvId, 6);
+            deductFromInventory(batch, invId, 6);
+            deductFromInventory(batch, crossInvId, 6);
           }
         } else if (invId) {
           // Only mains specified (unlikely but possible)
-          deductFromInventory(invId, 12);
+          deductFromInventory(batch, invId, 12);
         }
       }
 
