@@ -12,12 +12,17 @@ export const QrScanner: React.FC<QrScannerProps> = ({ onScan, onError }) => {
     
     html5QrCode.start(
       { facingMode: "environment" },
-      { fps: 10, qrbox: { width: 250, height: 250 } },
+      { 
+        fps: 10, 
+        qrbox: { width: 300, height: 300 },
+        aspectRatio: 1.0
+      },
       (decodedText) => {
         onScan(decodedText);
       },
       (errorMessage) => {
-        if (onError) onError(errorMessage);
+        // We can ignore frequent scanning errors as they are expected
+        // if (onError) onError(errorMessage);
       }
     ).catch(err => {
       console.error("Error starting scanner:", err);
@@ -29,5 +34,5 @@ export const QrScanner: React.FC<QrScannerProps> = ({ onScan, onError }) => {
     };
   }, [onScan, onError]);
 
-  return <div id="qr-reader" className="w-full h-64" />;
+  return <div id="qr-reader" className="w-full h-96" />;
 };
