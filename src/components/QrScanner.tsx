@@ -18,11 +18,12 @@ export const QrScanner: React.FC<QrScannerProps> = ({ onScan, onError }) => {
         aspectRatio: 1.0
       },
       (decodedText) => {
+        console.log("Scanned QR code:", decodedText);
         onScan(decodedText);
       },
       (errorMessage) => {
-        // We can ignore frequent scanning errors as they are expected
-        // if (onError) onError(errorMessage);
+        console.log("Scan error:", errorMessage);
+        if (onError) onError(errorMessage);
       }
     ).catch(err => {
       console.error("Error starting scanner:", err);
