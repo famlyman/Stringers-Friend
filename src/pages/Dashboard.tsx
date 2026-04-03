@@ -3,12 +3,12 @@ import { RACQUET_BRANDS, RACQUET_MODELS, STRINGS, GAUGES } from "../constants";
 import { racquetSpecsService } from "../services/racquetSpecsService";
 import { Plus, Search, Filter, CheckCircle2, Clock, PlayCircle, CreditCard, X, Trash2, Users, Briefcase, Edit2, ChevronRight, ChevronDown, Printer, Package, MessageSquare, Mail, Phone, Send, Scan, AlertTriangle, History } from "lucide-react";
 import QRCodeDisplay from "../components/QRCodeDisplay";
+import { QrScanner } from "../components/QrScanner";
 import { Link } from "react-router-dom";
 import { collection, query, where, onSnapshot, doc, setDoc, updateDoc, deleteDoc, getDocs, writeBatch, serverTimestamp, orderBy, getDoc, limit, addDoc } from "firebase/firestore";
 import { db, handleFirestoreError, OperationType, requestNotificationPermission } from "../lib/firebase";
 import { v4 as uuidv4 } from "uuid";
 import { safeFormatDate } from "../lib/utils";
-import { Html5QrcodeScanner } from "html5-qrcode";
 
 export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, initialTab?: 'jobs' | 'customers' | 'messages' | 'inventory' }) {
   const [jobs, setJobs] = useState<any[]>([]);
@@ -28,10 +28,36 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
   const [showInventoryModal, setShowInventoryModal] = useState(false);
   const [editingInventoryItem, setEditingInventoryItem] = useState<any | null>(null);
   const [showScanner, setShowScanner] = useState(false);
-  const scannerRef = useRef<Html5QrcodeScanner | null>(null);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  const handleScan = (decodedText: string) => {
+    let actualValue = decodedText;
+    if (decodedText.includes("/scan/")) {
+      actualValue = decodedText.split("/scan/").pop() || decodedText;
+    }
+
+    if (actualValue.startsWith("job:")) {
+      const jobId = actualValue.split(":")[1];
+      const job = jobs.find(j => j.id === jobId);
+      if (job) {
+        setEditingJob(job);
+        setShowScanner(false);
+      }
+    } else if (actualValue.startsWith("racquet:")) {
+      const racquetId = actualValue.split(":")[1];
+      const job = jobs.find(j => j.racquet_id === racquetId && j.status !== 'completed');
+      if (job) {
+        setEditingJob(job);
+        setShowScanner(false);
+      } else {
+        const racquet = racquets.find(r => r.id === racquetId);
+        if (racquet) {
+          setSelectedCustomerId(racquet.customer_id);
+          setSelectedRacquetId(racquet.id);
+          setShowNewJob(true);
+          setShowScanner(false);
+        }
+      }
+    }
   };
 
   useEffect(() => {
@@ -54,71 +80,6 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
     return () => unsubscribe();
   }, [user.shop_id]);
 
-  useEffect(() => {
-    if (showScanner) {
-      const scanner = new Html5QrcodeScanner(
-        "qr-reader",
-        { fps: 10, qrbox: { width: 250, height: 250 }, facingMode: "environment" } as any,
-        /* verbose= */ false
-      );
-      
-      scanner.render((decodedText) => {
-        // Handle scanned QR code
-        // Expected format: job:JOB_ID or racquet:RACQUET_ID
-        // But QRCodeDisplay generates: window.location.origin + "/scan/" + value
-        
-        let actualValue = decodedText;
-        if (decodedText.includes("/scan/")) {
-          actualValue = decodedText.split("/scan/").pop() || decodedText;
-        }
-
-        if (actualValue.startsWith("job:")) {
-          const jobId = actualValue.split(":")[1];
-          const job = jobs.find(j => j.id === jobId);
-          if (job) {
-            setEditingJob(job);
-            setShowScanner(false);
-            scanner.clear();
-          }
-        } else if (actualValue.startsWith("racquet:")) {
-          const racquetId = actualValue.split(":")[1];
-          // Find if there's a pending job for this racquet
-          const job = jobs.find(j => j.racquet_id === racquetId && j.status !== 'completed');
-          if (job) {
-            setEditingJob(job);
-            setShowScanner(false);
-            scanner.clear();
-          } else {
-            // No active job, maybe show racquet info or create new job
-            const racquet = racquets.find(r => r.id === racquetId);
-            if (racquet) {
-              setSelectedCustomerId(racquet.customer_id);
-              setSelectedRacquetId(racquet.id);
-              setShowNewJob(true);
-              setShowScanner(false);
-              scanner.clear();
-            }
-          }
-        }
-      }, (errorMessage) => {
-        // console.warn(errorMessage);
-      });
-
-      scannerRef.current = scanner;
-    } else {
-      if (scannerRef.current) {
-        scannerRef.current.clear();
-        scannerRef.current = null;
-      }
-    }
-
-    return () => {
-      if (scannerRef.current) {
-        scannerRef.current.clear();
-        scannerRef.current = null;
-      }
-    };
-  }, [showScanner, jobs, racquets]);
   const [selectedCustomerIdForChat, setSelectedCustomerIdForChat] = useState<string | null>(null);
   const [newMessage, setNewMessage] = useState("");
   const [sendingMessage, setSendingMessage] = useState(false);
@@ -1182,7 +1143,7 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
               <h2 className="text-2xl font-bold text-primary">Scan QR Code</h2>
               <p className="text-sm text-neutral-500 mt-1">Point your camera at a racquet or job QR code</p>
             </div>
-            <div id="qr-reader" className="overflow-hidden rounded-2xl border-2 border-primary/20 bg-black aspect-square"></div>
+            <QrScanner onScan={handleScan} />
             <div className="mt-6 flex justify-center">
               <button 
                 onClick={() => setShowScanner(false)}
