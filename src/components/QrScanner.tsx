@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Html5Qrcode } from 'html5-qrcode';
 
 interface QrScannerProps {
@@ -7,6 +7,8 @@ interface QrScannerProps {
 }
 
 export const QrScanner: React.FC<QrScannerProps> = ({ onScan, onError }) => {
+  const isRunningRef = useRef(false);
+
   useEffect(() => {
     const html5QrCode = new Html5Qrcode("qr-reader");
     
@@ -22,16 +24,28 @@ export const QrScanner: React.FC<QrScannerProps> = ({ onScan, onError }) => {
         onScan(decodedText);
       },
       (errorMessage) => {
-        console.log("Scan error:", errorMessage);
-        if (onError) onError(errorMessage);
+        // Ignore "NotFoundException" as it's expected during continuous scanning
+        if (errorMessage && !errorMessage.includes("NotFoundException")) {
+          console.log("Scan error:", errorMessage);
+          if (onError) onError(errorMessage);
+        }
       }
-    ).catch(err => {
+    ).then(() => {
+      isRunningRef.current = true;
+    }).catch(err => {
       console.error("Error starting scanner:", err);
       if (onError) onError("Camera permission denied or not available.");
     });
 
     return () => {
-      html5QrCode.stop().catch(err => console.error("Error stopping scanner:", err));
+      if (isRunningRef.current) {
+        html5QrCode.stop().then(() => {
+          html5QrCode.clear();
+          isRunningRef.current = false;
+        }).catch(err => {
+          console.error("Error stopping scanner:", err);
+        });
+      }
     };
   }, [onScan, onError]);
 

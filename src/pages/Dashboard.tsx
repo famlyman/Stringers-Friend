@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { RACQUET_BRANDS, RACQUET_MODELS, STRINGS, GAUGES } from "../constants";
 import { racquetSpecsService } from "../services/racquetSpecsService";
 import { Plus, Search, Filter, CheckCircle2, Clock, PlayCircle, CreditCard, X, Trash2, Users, Briefcase, Edit2, ChevronRight, ChevronDown, Printer, Package, MessageSquare, Mail, Phone, Send, Scan, AlertTriangle, History } from "lucide-react";
@@ -28,37 +28,7 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
   const [showInventoryModal, setShowInventoryModal] = useState(false);
   const [editingInventoryItem, setEditingInventoryItem] = useState<any | null>(null);
   const [showScanner, setShowScanner] = useState(false);
-
-  const handleScan = (decodedText: string) => {
-    let actualValue = decodedText;
-    if (decodedText.includes("/scan/")) {
-      actualValue = decodedText.split("/scan/").pop() || decodedText;
-    }
-
-    if (actualValue.startsWith("job:")) {
-      const jobId = actualValue.split(":")[1];
-      const job = jobs.find(j => j.id === jobId);
-      if (job) {
-        setEditingJob(job);
-        setShowScanner(false);
-      }
-    } else if (actualValue.startsWith("racquet:")) {
-      const racquetId = actualValue.split(":")[1];
-      const job = jobs.find(j => j.racquet_id === racquetId && j.status !== 'completed');
-      if (job) {
-        setEditingJob(job);
-        setShowScanner(false);
-      } else {
-        const racquet = racquets.find(r => r.id === racquetId);
-        if (racquet) {
-          setSelectedCustomerId(racquet.customer_id);
-          setSelectedRacquetId(racquet.id);
-          setShowNewJob(true);
-          setShowScanner(false);
-        }
-      }
-    }
-  };
+  const [isProcessingScan, setIsProcessingScan] = useState(false);
 
   useEffect(() => {
     if (!user.shop_id) return;
@@ -103,6 +73,88 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
   const [showModelSuggestions, setShowModelSuggestions] = useState(false);
   const [selectedInventoryId, setSelectedInventoryId] = useState("");
   const [selectedCrossInventoryId, setSelectedCrossInventoryId] = useState("");
+
+  const handleScan = useCallback((decodedText: string) => {
+    if (isProcessingScan) return;
+    setIsProcessingScan(true);
+    
+    let actualValue = decodedText;
+    if (decodedText.includes("/scan/")) {
+      actualValue = decodedText.split("/scan/").pop() || decodedText;
+    }
+    
+    // Handle the case where the scanned value might be a URL or just the ID
+    // The console shows: racquet_a43f98fa-2481-414f-a134-eebe18aee317
+    // But the code expects "racquet:ID"
+    
+    let type = "";
+    let id = "";
+    
+    if (actualValue.startsWith("job:")) {
+      type = "job";
+      id = actualValue.split(":")[1];
+    } else if (actualValue.startsWith("racquet:")) {
+      type = "racquet";
+      id = actualValue.split(":")[1];
+    } else if (actualValue.startsWith("racquet_")) {
+      type = "racquet";
+      id = actualValue; // The ID itself is "racquet_..."
+    } else if (actualValue.startsWith("job_")) {
+      type = "job";
+      id = actualValue; // The ID itself is "job_..."
+    } else {
+      // Fallback: assume it's a racquet ID if it starts with racquet_
+      if (actualValue.includes("racquet_")) {
+        type = "racquet";
+        id = actualValue;
+      } else if (actualValue.includes("job_")) {
+        type = "job";
+        id = actualValue;
+      }
+    }
+
+    console.log("Processing scan:", { type, id });
+
+    if (type === "job") {
+      const job = jobs.find(j => j.id === id);
+      console.log("Job found:", job);
+      
+      // Ensure scanner is closed regardless of finding a job or racquet
+      setShowScanner(false);
+      
+      if (job) {
+        setEditingJob(job);
+      } else {
+        console.log("Job not found in jobs list:", jobs);
+      }
+    } else if (type === "racquet") {
+      // Remove prefix if present to match ID in database
+      const cleanId = id.replace('racquet_', '');
+      console.log("Searching for racquet ID:", cleanId);
+      
+      const job = jobs.find(j => j.racquet_id === cleanId && j.status !== 'completed');
+      console.log("Job found for racquet:", job);
+      
+      // Ensure scanner is closed regardless of finding a job or racquet
+      setShowScanner(false);
+      
+      if (job) {
+        setEditingJob(job);
+      } else {
+        const racquet = racquets.find(r => r.id === cleanId);
+        console.log("Racquet found:", racquet);
+        if (racquet) {
+          setSelectedCustomerId(racquet.customer_id);
+          setSelectedRacquetId(racquet.id);
+          setShowNewJob(true);
+        } else {
+          console.log("Racquet not found in racquets list:", racquets);
+        }
+      }
+    }
+    
+    setIsProcessingScan(false);
+  }, [jobs, racquets, setEditingJob, setShowScanner, setSelectedCustomerId, setSelectedRacquetId, setShowNewJob, isProcessingScan]);
 
   const customModels = useMemo(() => {
     const models: Record<string, string[]> = {};
@@ -1143,7 +1195,7 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
               <h2 className="text-2xl font-bold text-primary">Scan QR Code</h2>
               <p className="text-sm text-neutral-500 mt-1">Point your camera at a racquet or job QR code</p>
             </div>
-            <QrScanner onScan={handleScan} />
+            {showScanner && <QrScanner onScan={handleScan} />}
             <div className="mt-6 flex justify-center">
               <button 
                 onClick={() => setShowScanner(false)}
