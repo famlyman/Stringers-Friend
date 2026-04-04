@@ -127,6 +127,9 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
     tension_main: 0,
     tension_cross: 0,
     price: 25,
+    service_type: "string_full_bed",
+    custom_service_category: "string",
+    additional_service_request: "",
     notes: "",
     keep_same_string: false
   });
@@ -607,6 +610,9 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
         tension_cross: Number(newJob.tension_cross) || 0,
         price: Number(newJob.price) || 0,
         payment_status: "unpaid",
+        service_type: newJob.service_type,
+        custom_service_category: newJob.service_type === 'custom' ? newJob.custom_service_category : "",
+        additional_service_request: newJob.service_type === 'custom' ? newJob.additional_service_request : "",
         notes: newJob.notes,
         created_at: serverTimestamp(),
         updated_at: serverTimestamp()
@@ -664,7 +670,11 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
       racquet_one_piece_length: "", racquet_two_piece_length: "", racquet_stringing_instructions: "",
       string_main_brand: "", string_main_model: "", string_main_gauge: "", string_main_brand_custom: "", string_main_model_custom: "",
       string_cross_brand: "", string_cross_model: "", string_cross_gauge: "", string_cross_brand_custom: "", string_cross_model_custom: "",
-      string_main: "", string_cross: "", tension_main: 0, tension_cross: 0, price: 25, notes: "",
+      string_main: "", string_cross: "", tension_main: 0, tension_cross: 0, price: 25, 
+      service_type: "string_full_bed",
+      custom_service_category: "string",
+      additional_service_request: "",
+      notes: "",
       keep_same_string: false
     });
     setSelectedCustomerId("");
@@ -776,19 +786,31 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
       if (status === 'completed' && job.status !== 'completed') {
         const invId = job.inventory_id;
         const crossInvId = job.cross_inventory_id;
+        const serviceType = job.service_type;
 
-        if (invId && crossInvId) {
-          if (invId === crossInvId) {
-            // Full set or 12m from same reel
-            deductFromInventory(batch, invId, 12);
-          } else {
-            // Hybrid: 6m or 0.5 set from each
-            deductFromInventory(batch, invId, 6);
-            deductFromInventory(batch, crossInvId, 6);
+        if (serviceType === 'string_hybrid') {
+          // Hybrid: 6m or 0.5 set from each
+          if (invId) deductFromInventory(batch, invId, 6);
+          if (crossInvId) deductFromInventory(batch, crossInvId, 6);
+        } else if (serviceType === 'custom') {
+          if (job.custom_service_category === 'string') {
+             if (invId) deductFromInventory(batch, invId, 12);
           }
-        } else if (invId) {
-          // Only mains specified (unlikely but possible)
-          deductFromInventory(batch, invId, 12);
+        } else if (serviceType && serviceType.includes('string')) {
+          // All other string services (full bed, string+grip, etc.)
+          if (invId) deductFromInventory(batch, invId, 12);
+        } else {
+          // Fallback for old jobs or if serviceType is missing but invId exists
+          if (invId && crossInvId) {
+            if (invId === crossInvId) {
+              deductFromInventory(batch, invId, 12);
+            } else {
+              deductFromInventory(batch, invId, 6);
+              deductFromInventory(batch, crossInvId, 6);
+            }
+          } else if (invId) {
+            deductFromInventory(batch, invId, 12);
+          }
         }
       }
 
@@ -1998,6 +2020,82 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
 
               {/* Job Details */}
               <div className="space-y-4 border-t border-neutral-100 dark:border-neutral-800 pt-6">
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-3">Service Type</label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {[
+                      { id: 'string_full_bed', label: 'String Job Full Bed' },
+                      { id: 'string_hybrid', label: 'String Job Hybrid' },
+                      { id: 'string_grip', label: 'String and Grip' },
+                      { id: 'string_dampener', label: 'String and Dampener' },
+                      { id: 'string_grip_dampener', label: 'String with Grip and Dampener' },
+                      { id: 'custom', label: 'Custom' }
+                    ].map((type) => (
+                      <label 
+                        key={type.id}
+                        className={`flex items-center p-3 rounded-xl border cursor-pointer transition-all ${
+                          newJob.service_type === type.id 
+                            ? 'bg-primary/5 border-primary shadow-sm' 
+                            : 'bg-white dark:bg-neutral-800 border-neutral-200 dark:border-neutral-700 hover:border-primary/50'
+                        }`}
+                      >
+                        <input 
+                          type="radio"
+                          name="service_type"
+                          value={type.id}
+                          checked={newJob.service_type === type.id}
+                          onChange={e => {
+                            const val = e.target.value;
+                            let price = 25;
+                            if (val === 'string_grip') price = 30;
+                            if (val === 'string_dampener') price = 27;
+                            if (val === 'string_grip_dampener') price = 32;
+                            setNewJob({...newJob, service_type: val, price});
+                          }}
+                          className="w-4 h-4 text-primary border-neutral-300 focus:ring-primary"
+                        />
+                        <span className="ml-3 text-sm font-medium text-neutral-900 dark:text-white">{type.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                {newJob.service_type === 'custom' && (
+                  <div className="p-4 bg-neutral-50 dark:bg-neutral-800/50 rounded-2xl border border-neutral-200 dark:border-neutral-700 space-y-4 animate-in slide-in-from-top-2 duration-200">
+                    <div>
+                      <label className="block text-xs font-bold text-neutral-500 uppercase tracking-widest mb-3">Custom Service Category:</label>
+                      <div className="flex flex-wrap gap-4">
+                        {[
+                          { id: 'string', label: 'String' },
+                          { id: 'grip', label: 'Grip' },
+                          { id: 'dampener', label: 'Dampener' }
+                        ].map((item) => (
+                          <label key={item.id} className="flex items-center gap-2 cursor-pointer group">
+                            <input 
+                              type="radio"
+                              name="custom_service_category"
+                              value={item.id}
+                              checked={newJob.custom_service_category === item.id}
+                              onChange={e => setNewJob({...newJob, custom_service_category: e.target.value})}
+                              className="w-4 h-4 text-primary border-neutral-300 focus:ring-primary"
+                            />
+                            <span className="text-sm text-neutral-700 dark:text-neutral-300 group-hover:text-primary transition-colors">{item.label}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-neutral-500 uppercase tracking-widest mb-2">Additional Service Request</label>
+                      <textarea 
+                        value={newJob.additional_service_request}
+                        onChange={e => setNewJob({...newJob, additional_service_request: e.target.value})}
+                        className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-xl outline-none h-20 resize-none focus:ring-2 focus:ring-primary text-sm"
+                        placeholder="Describe the custom service needed..."
+                      />
+                    </div>
+                  </div>
+                )}
+
                 <div className="flex justify-between items-center">
                   <h3 className="text-sm font-medium text-neutral-700 dark:text-neutral-300">Stringing Details</h3>
                   {selectedRacquetId && !isNewRacquet && (
@@ -2318,7 +2416,11 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
                       racquet_one_piece_length: "", racquet_two_piece_length: "", racquet_stringing_instructions: "",
                       string_main_brand: "", string_main_model: "", string_main_gauge: "", string_main_brand_custom: "", string_main_model_custom: "",
                       string_cross_brand: "", string_cross_model: "", string_cross_gauge: "", string_cross_brand_custom: "", string_cross_model_custom: "",
-                      string_main: "", string_cross: "", tension_main: 0, tension_cross: 0, price: 25, notes: "",
+                      string_main: "", string_cross: "", tension_main: 0, tension_cross: 0, price: 25, 
+                      service_type: "string_full_bed",
+                      custom_service_category: "string",
+                      additional_service_request: "",
+                      notes: "",
                       keep_same_string: false
                     });
                     setSelectedCustomerId("");

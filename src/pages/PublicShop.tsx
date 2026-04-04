@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { collection, query, where, getDocs, doc, getDoc, setDoc, addDoc, serverTimestamp } from "firebase/firestore";
-import { db } from "../lib/firebase";
+import { createUserWithEmailAndPassword } from "firebase/auth";
+import { collection, query, where, getDocs, doc, getDoc, setDoc, addDoc, serverTimestamp, updateDoc } from "firebase/firestore";
+import { db, auth } from "../lib/firebase";
 import { useAuth } from "../context/AuthContext";
 import { MapPin, Phone, Mail, ChevronRight, Award, ShieldCheck, Clock, X, CheckCircle2, LayoutDashboard, UserPlus, Star, Users, Wrench, Zap, TrendingUp, MessageSquare } from "lucide-react";
 import { v4 as uuidv4 } from "uuid";
@@ -31,11 +32,20 @@ export default function PublicShop() {
   const [error, setError] = useState<string | null>(null);
   const [services, setServices] = useState<Service[]>([]);
   const [showContactModal, setShowContactModal] = useState(false);
-  const [contactForm, setContactForm] = useState({ name: "", email: "", phone: "", content: "" });
+  const [selectedService, setSelectedService] = useState<string | null>(null);
+  const [contactForm, setContactForm] = useState({ name: "", email: "", phone: "", content: "", register: false, password: "" });
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [joining, setJoining] = useState(false);
   const [isCustomerOfShop, setIsCustomerOfShop] = useState(false);
+
+  const FIXED_SERVICES = [
+    { id: 'string_full_bed', name: 'String Job Full Bed', price: 25, description: 'Professional full bed stringing service.' },
+    { id: 'string_hybrid', name: 'String Job Hybrid', price: 25, description: 'Custom hybrid stringing for optimal performance.' },
+    { id: 'string_grip', name: 'String and Grip', price: 30, description: 'Full stringing service plus a new grip installation.' },
+    { id: 'string_dampener', name: 'String and Dampener', price: 27, description: 'Full stringing service plus a new dampener.' },
+    { id: 'string_grip_dampener', name: 'String with Grip and Dampener', price: 32, description: 'The complete package: strings, grip, and dampener.' },
+  ];
 
   const handleJoinShop = async () => {
     if (!user || !shop || joining) return;
@@ -90,27 +100,102 @@ export default function PublicShop() {
     checkCustomerStatus();
   }, [user, shop]);
 
+  const openContactModal = (serviceName: string | null = null) => {
+    setSelectedService(serviceName);
+    if (serviceName) {
+      setContactForm(prev => ({ ...prev, content: `I'm interested in the ${serviceName} service.` }));
+    }
+    setShowContactModal(true);
+  };
+
   const handleContactSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!shop) return;
+    console.log("Contact form submitted:", contactForm);
+    console.log("Shop data:", shop);
+    
+    if (!shop) {
+      console.log("No shop data available");
+      return;
+    }
+    
     setSubmitting(true);
     try {
       const messageId = uuidv4();
-      await setDoc(doc(db, "messages", messageId), {
+      console.log("Creating message with ID:", messageId);
+      
+      const messageData = {
         id: messageId,
         shop_id: shop.id,
         sender_name: contactForm.name,
         sender_role: 'anonymous',
         content: contactForm.content,
-        created_at: new Date().toISOString(),
+        service_requested: selectedService,
+        created_at: serverTimestamp(),
         read: false,
         // Keep these for backward compatibility or extra info
         customer_email: contactForm.email,
         phone: contactForm.phone,
-        title: `New Inquiry from ${contactForm.name}`
-      });
+        title: selectedService ? `New ${selectedService} Inquiry from ${contactForm.name}` : `New Inquiry from ${contactForm.name}`
+      };
+      
+      console.log("Message data to save:", messageData);
+      
+      await setDoc(doc(db, "messages", messageId), messageData);
+      console.log("Message saved successfully");
+      
+      if (contactForm.register) {
+        let currentUid = user?.uid;
+
+        // If not logged in and password provided, create account
+        if (!currentUid && contactForm.password) {
+          try {
+            const userCredential = await createUserWithEmailAndPassword(auth, contactForm.email, contactForm.password);
+            currentUid = userCredential.user.uid;
+
+            // Create user profile
+            await setDoc(doc(db, "users", currentUid), {
+              uid: currentUid,
+              email: contactForm.email,
+              role: "customer",
+              created_at: serverTimestamp()
+            });
+          } catch (authErr: any) {
+            console.error("Error creating account during service request:", authErr);
+            // If account already exists, we might want to inform them, but for now just log
+          }
+        }
+
+        const q = query(
+          collection(db, "customers"),
+          where("email", "==", contactForm.email),
+          where("shop_id", "==", shop.id)
+        );
+        const snap = await getDocs(q);
+        
+        if (snap.empty) {
+          const customerId = uuidv4();
+          await setDoc(doc(db, "customers", customerId), {
+            id: customerId,
+            name: contactForm.name,
+            email: contactForm.email,
+            phone: contactForm.phone,
+            shop_id: shop.id,
+            uid: currentUid || null,
+            created_at: serverTimestamp()
+          });
+          setIsCustomerOfShop(true);
+        } else if (currentUid) {
+          // Link existing customer doc to new UID if needed
+          const docId = snap.docs[0].id;
+          if (!snap.docs[0].data().uid) {
+            await updateDoc(doc(db, "customers", docId), { uid: currentUid });
+          }
+        }
+      }
+
       setSubmitted(true);
-      setContactForm({ name: "", email: "", phone: "", content: "" });
+      setContactForm({ name: "", email: "", phone: "", content: "", register: false, password: "" });
+      setSelectedService(null);
     } catch (err) {
       console.error("Error sending message:", err);
     } finally {
@@ -123,11 +208,48 @@ export default function PublicShop() {
       if (!slug) return;
       setLoading(true);
       try {
+        console.log("Fetching shop with slug:", slug.toLowerCase());
         const shopsRef = collection(db, "shops");
         const q = query(shopsRef, where("slug", "==", slug.toLowerCase()));
         const querySnapshot = await getDocs(q);
 
+        console.log("Query snapshot size:", querySnapshot.size);
+        console.log("Query snapshot docs:", querySnapshot.docs);
+
         if (querySnapshot.empty) {
+          console.log("Shop not found for slug:", slug);
+          
+          // Fallback: try to find shop by ID (for backward compatibility)
+          const idQuery = query(shopsRef, where("id", "==", slug));
+          const idSnapshot = await getDocs(idQuery);
+          
+          if (!idSnapshot.empty) {
+            const shopDoc = idSnapshot.docs[0];
+            const shopData = { id: shopDoc.id, ...shopDoc.data() } as Shop;
+            console.log("Shop found by ID fallback:", shopData);
+            setShop(shopData);
+            
+            // Fetch inventory for this shop
+            const inventoryRef = collection(db, "inventory");
+            const inventoryQuery = query(
+              inventoryRef, 
+              where("shop_id", "==", shopDoc.id),
+              where("type", "==", "string")
+            );
+            const inventorySnapshot = await getDocs(inventoryQuery);
+            
+            const stringServices = inventorySnapshot.docs.map(doc => ({
+              id: doc.id,
+              name: doc.data().name,
+              price: doc.data().price,
+              description: `${doc.data().brand || ''} ${doc.data().packaging || doc.data().sub_type || ''}`.trim()
+            }));
+            
+            setServices(stringServices);
+            setLoading(false);
+            return;
+          }
+          
           setError("Shop not found");
           setLoading(false);
           return;
@@ -135,6 +257,7 @@ export default function PublicShop() {
 
         const shopDoc = querySnapshot.docs[0];
         const shopData = { id: shopDoc.id, ...shopDoc.data() } as Shop;
+        console.log("Shop data found:", shopData);
         setShop(shopData);
 
         // Fetch inventory items of type 'string' to show as services/pricing
@@ -202,13 +325,13 @@ export default function PublicShop() {
           <div className="text-center mb-12">
             <div className="inline-flex items-center px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-bold uppercase tracking-wider mb-6">
               <Award className="w-4 h-4 mr-2" />
-              Professional Racquet Stringing Services
+              Experienced Racquet Stringing Services
             </div>
             <h1 className="text-5xl md:text-7xl font-black text-neutral-900 dark:text-white tracking-tight mb-6">
               {shop.name}
             </h1>
             <p className="text-xl md:text-2xl text-neutral-600 dark:text-neutral-300 max-w-3xl mx-auto mb-8 leading-relaxed">
-              Professional racquet stringing with precision, care, and quick turnaround. 
+              Experienced racquet stringing with precision, care, and quick turnaround. 
               Trusted by players of all levels for consistent quality and performance.
             </p>
             
@@ -228,7 +351,7 @@ export default function PublicShop() {
                   <Clock className="w-6 h-6 text-secondary" />
                 </div>
                 <div className="text-left">
-                  <p className="text-2xl font-black text-neutral-900 dark:text-white">24-48h</p>
+                  <p className="text-2xl font-black text-neutral-900 dark:text-white">72h</p>
                   <p className="text-xs text-neutral-500 dark:text-neutral-400 uppercase tracking-wider font-bold">Turnaround</p>
                 </div>
               </div>
@@ -295,60 +418,42 @@ export default function PublicShop() {
                 <div className="h-px flex-1 bg-neutral-200 dark:bg-neutral-800 ml-6"></div>
               </div>
               
-              {services.length > 0 ? (
-                <div className="grid grid-cols-1 gap-6">
-                  {services.map((service) => (
-                    <div 
-                      key={service.id} 
-                      className="group flex items-center justify-between p-8 bg-white dark:bg-neutral-900 rounded-3xl border border-neutral-200 dark:border-neutral-800 hover:border-primary/50 transition-all hover:shadow-lg"
-                    >
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center">
-                            <Wrench className="w-4 h-4 text-primary" />
-                          </div>
-                          <h3 className="text-xl font-bold text-neutral-900 dark:text-white group-hover:text-primary transition-colors">
-                            {service.name}
-                          </h3>
-                        </div>
-                        {service.description && (
-                          <p className="text-sm text-neutral-500 dark:text-neutral-400 ml-11">
-                            {service.description}
-                          </p>
-                        )}
-                      </div>
-                      <div className="text-right ml-6">
-                        <div className="text-3xl font-black text-neutral-900 dark:text-white">
-                          ${service.price}
-                        </div>
-                        <p className="text-xs text-neutral-400 uppercase font-bold tracking-tighter mt-1">
-                          Labor Included
-                        </p>
-                        <button
-                          onClick={() => setShowContactModal(true)}
-                          className="mt-3 px-4 py-2 bg-primary/10 text-primary rounded-xl text-sm font-bold hover:bg-primary/20 transition-all"
-                        >
-                          Order Now
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="p-16 text-center bg-white dark:bg-neutral-900 rounded-3xl border border-dashed border-neutral-300 dark:border-neutral-700">
-                  <Wrench className="w-12 h-12 text-neutral-400 mx-auto mb-4" />
-                  <h3 className="text-xl font-bold text-neutral-900 dark:text-white mb-2">Custom Pricing</h3>
-                  <p className="text-neutral-500 dark:text-neutral-400 mb-6">
-                    Contact us for personalized stringing services and competitive pricing.
-                  </p>
-                  <button
-                    onClick={() => setShowContactModal(true)}
-                    className="px-6 py-3 bg-primary text-white rounded-xl font-bold hover:bg-primary/90 transition-all"
+              <div className="grid grid-cols-1 gap-6 mb-12">
+                {FIXED_SERVICES.map((service) => (
+                  <div 
+                    key={service.id} 
+                    className="group flex items-center justify-between p-8 bg-white dark:bg-neutral-900 rounded-3xl border border-neutral-200 dark:border-neutral-800 hover:border-primary/50 transition-all hover:shadow-lg"
                   >
-                    Get Quote
-                  </button>
-                </div>
-              )}
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center">
+                          <Zap className="w-4 h-4 text-primary" />
+                        </div>
+                        <h3 className="text-xl font-bold text-neutral-900 dark:text-white group-hover:text-primary transition-colors">
+                          {service.name}
+                        </h3>
+                      </div>
+                      <p className="text-sm text-neutral-500 dark:text-neutral-400 ml-11">
+                        {service.description}
+                      </p>
+                    </div>
+                    <div className="text-right ml-6">
+                      <div className="text-3xl font-black text-neutral-900 dark:text-white">
+                        ${service.price}
+                      </div>
+                      <p className="text-xs text-neutral-400 uppercase font-bold tracking-tighter mt-1">
+                        Labor Included
+                      </p>
+                      <button
+                        onClick={() => openContactModal(service.name)}
+                        className="mt-3 px-4 py-2 bg-primary/10 text-primary rounded-xl text-sm font-bold hover:bg-primary/20 transition-all"
+                      >
+                        Order Now
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </section>
 
             <section>
@@ -601,6 +706,8 @@ export default function PublicShop() {
               onClick={() => {
                 setShowContactModal(false);
                 setSubmitted(false);
+                setSelectedService(null);
+                setContactForm({ name: "", email: "", phone: "", content: "", register: false, password: "" });
               }}
               className="absolute top-6 right-6 p-2 text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-colors"
             >
@@ -615,11 +722,14 @@ export default function PublicShop() {
                 <h3 className="text-2xl font-black text-neutral-900 dark:text-white mb-2 tracking-tight">Message Sent!</h3>
                 <p className="text-neutral-600 dark:text-neutral-400 mb-8">
                   {shop.name} has received your request and will get back to you soon.
+                  {contactForm.register && " Your account has been created and you are now registered with this shop."}
                 </p>
                 <button 
                   onClick={() => {
                     setShowContactModal(false);
                     setSubmitted(false);
+                    setSelectedService(null);
+                    setContactForm({ name: "", email: "", phone: "", content: "", register: false, password: "" });
                   }}
                   className="px-8 py-3 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 rounded-xl font-bold hover:opacity-90 transition-all"
                 >
@@ -630,7 +740,13 @@ export default function PublicShop() {
               <>
                 <div className="mb-8">
                   <h3 className="text-3xl font-black text-neutral-900 dark:text-white tracking-tight mb-2">Request Service</h3>
-                  <p className="text-neutral-500 dark:text-neutral-400">Send a message to {shop.name} about your racquet.</p>
+                  {selectedService ? (
+                    <div className="flex items-center gap-2 px-3 py-1 bg-primary/10 text-primary rounded-lg w-fit text-xs font-bold mb-2">
+                      <Zap className="w-3 h-3" /> Selected: {selectedService}
+                    </div>
+                  ) : (
+                    <p className="text-neutral-500 dark:text-neutral-400">Send a message to {shop.name} about your racquet.</p>
+                  )}
                 </div>
 
                 <form onSubmit={handleContactSubmit} className="space-y-4">
@@ -678,6 +794,40 @@ export default function PublicShop() {
                       placeholder="Tell us about your racquet and stringing preferences..."
                     />
                   </div>
+
+                  {!isCustomerOfShop && (
+                    <div className="space-y-4">
+                      <label className="flex items-center gap-3 p-4 bg-primary/5 rounded-2xl border border-primary/10 cursor-pointer group hover:bg-primary/10 transition-all">
+                        <input 
+                          type="checkbox"
+                          checked={contactForm.register}
+                          onChange={e => setContactForm({...contactForm, register: e.target.checked})}
+                          className="w-5 h-5 rounded border-neutral-300 dark:border-neutral-700 text-primary focus:ring-primary"
+                        />
+                        <div className="flex-1">
+                          <p className="text-sm font-bold text-neutral-900 dark:text-white group-hover:text-primary transition-colors">Register as a customer</p>
+                          <p className="text-[10px] text-neutral-500 dark:text-neutral-400">Save your info and track your racquet history with this shop.</p>
+                        </div>
+                      </label>
+
+                      {contactForm.register && !user && (
+                        <div className="space-y-1 animate-in slide-in-from-top-2 duration-200">
+                          <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest ml-1">Create Password</label>
+                          <input 
+                            type="password" 
+                            required
+                            value={contactForm.password}
+                            onChange={e => setContactForm({...contactForm, password: e.target.value})}
+                            className="w-full px-5 py-3 bg-neutral-50 dark:bg-neutral-800 border-none rounded-2xl text-neutral-900 dark:text-white focus:ring-2 focus:ring-primary outline-none transition-all"
+                            placeholder="Minimum 6 characters"
+                            minLength={6}
+                          />
+                          <p className="text-[10px] text-neutral-400 ml-1">This will be your password to log in later.</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   <button 
                     type="submit" 
                     disabled={submitting}

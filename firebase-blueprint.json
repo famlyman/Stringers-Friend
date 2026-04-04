@@ -84,6 +84,9 @@
         "tension_cross": { "type": "number" },
         "price": { "type": "number" },
         "payment_status": { "type": "string", "enum": ["paid", "unpaid"] },
+        "service_type": { "type": "string", "enum": ["string_full_bed", "string_hybrid", "string_grip", "string_dampener", "string_grip_dampener", "custom"] },
+        "custom_service_category": { "type": "string", "enum": ["string", "grip", "dampener"] },
+        "additional_service_request": { "type": "string" },
         "notes": { "type": "string" },
         "created_at": { "type": "string", "format": "date-time" },
         "updated_at": { "type": "string", "format": "date-time" }

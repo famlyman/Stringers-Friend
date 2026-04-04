@@ -240,13 +240,16 @@ service cloud.firestore {
     }
 
     function isValidJob(data) {
-      return hasOnlyAllowedFields(['id', 'racquet_id', 'customer_id', 'customer_email', 'shop_id', 'status', 'string_main', 'string_cross', 'inventory_id', 'cross_inventory_id', 'tension_main', 'tension_cross', 'price', 'payment_status', 'notes', 'created_at', 'updated_at']) &&
+      return hasOnlyAllowedFields(['id', 'racquet_id', 'customer_id', 'customer_email', 'shop_id', 'status', 'string_main', 'string_cross', 'inventory_id', 'cross_inventory_id', 'tension_main', 'tension_cross', 'price', 'payment_status', 'service_type', 'custom_service_category', 'additional_service_request', 'notes', 'created_at', 'updated_at']) &&
              data.get('id', '') is string && data.get('id', '').size() > 0 &&
              data.get('racquet_id', '') is string && data.get('racquet_id', '').size() > 0 &&
              data.get('status', '') in ['pending', 'in-progress', 'completed'] &&
              isValidOptionalString(data, 'customer_id', 0, 50) &&
              isValidOptionalString(data, 'customer_email', 0, 100) &&
              isValidOptionalString(data, 'payment_status', 0, 20) &&
+             isValidOptionalString(data, 'service_type', 0, 50) &&
+             isValidOptionalString(data, 'custom_service_category', 0, 50) &&
+             isValidOptionalString(data, 'additional_service_request', 0, 1000) &&
              isValidOptionalString(data, 'notes', 0, 2000) &&
              isValidOptionalString(data, 'string_main', 0, 200) &&
              isValidOptionalString(data, 'string_cross', 0, 200) &&
