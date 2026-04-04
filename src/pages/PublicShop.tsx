@@ -3,7 +3,7 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import { collection, query, where, getDocs, doc, getDoc, setDoc, addDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useAuth } from "../context/AuthContext";
-import { MapPin, Phone, Mail, ChevronRight, Award, ShieldCheck, Clock, X, CheckCircle2, LayoutDashboard, UserPlus } from "lucide-react";
+import { MapPin, Phone, Mail, ChevronRight, Award, ShieldCheck, Clock, X, CheckCircle2, LayoutDashboard, UserPlus, Star, Users, Wrench, Zap, TrendingUp, MessageSquare } from "lucide-react";
 import { v4 as uuidv4 } from "uuid";
 
 interface Shop {
@@ -188,42 +188,96 @@ export default function PublicShop() {
   return (
     <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950">
       {/* Hero Section */}
-      <div className="bg-white dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-800">
-        <div className="max-w-5xl mx-auto px-4 py-12 md:py-20">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
-            <div>
-              <div className="inline-flex items-center px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-bold uppercase tracking-wider mb-4">
-                Verified Stringer
+      <div className="relative overflow-hidden">
+        {/* Background Pattern */}
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-white to-secondary/5 dark:from-primary/10 dark:via-neutral-900 dark:to-secondary/10">
+          <div className="absolute inset-0 opacity-30">
+            <div className="absolute top-10 left-10 w-32 h-32 bg-primary/20 rounded-full blur-3xl"></div>
+            <div className="absolute bottom-10 right-10 w-40 h-40 bg-secondary/20 rounded-full blur-3xl"></div>
+            <div className="absolute top-1/2 left-1/3 w-24 h-24 bg-accent/20 rounded-full blur-2xl"></div>
+          </div>
+        </div>
+        
+        <div className="relative max-w-7xl mx-auto px-4 py-16 md:py-24">
+          <div className="text-center mb-12">
+            <div className="inline-flex items-center px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-bold uppercase tracking-wider mb-6">
+              <Award className="w-4 h-4 mr-2" />
+              Professional Racquet Stringing Services
+            </div>
+            <h1 className="text-5xl md:text-7xl font-black text-neutral-900 dark:text-white tracking-tight mb-6">
+              {shop.name}
+            </h1>
+            <p className="text-xl md:text-2xl text-neutral-600 dark:text-neutral-300 max-w-3xl mx-auto mb-8 leading-relaxed">
+              Professional racquet stringing with precision, care, and quick turnaround. 
+              Trusted by players of all levels for consistent quality and performance.
+            </p>
+            
+            {/* Quick Stats */}
+            <div className="flex flex-wrap justify-center gap-8 mb-10">
+              <div className="flex items-center gap-2">
+                <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center">
+                  <Wrench className="w-6 h-6 text-primary" />
+                </div>
+                <div className="text-left">
+                  <p className="text-2xl font-black text-neutral-900 dark:text-white">{services.length}+</p>
+                  <p className="text-xs text-neutral-500 dark:text-neutral-400 uppercase tracking-wider font-bold">String Options</p>
+                </div>
               </div>
-              <h1 className="text-4xl md:text-5xl font-black text-neutral-900 dark:text-white tracking-tight mb-4">
-                {shop.name}
-              </h1>
-              <div className="flex flex-wrap gap-6 text-neutral-600 dark:text-neutral-400">
-                {shop.address && (
-                  <div className="flex items-center gap-2">
-                    <MapPin className="w-4 h-4 text-primary" />
-                    <span className="text-sm">{shop.address}</span>
-                  </div>
-                )}
-                {shop.phone && (
-                  <div className="flex items-center gap-2">
-                    <Phone className="w-4 h-4 text-primary" />
-                    <span className="text-sm">{shop.phone}</span>
-                  </div>
-                )}
+              <div className="flex items-center gap-2">
+                <div className="w-12 h-12 bg-secondary/10 rounded-xl flex items-center justify-center">
+                  <Clock className="w-6 h-6 text-secondary" />
+                </div>
+                <div className="text-left">
+                  <p className="text-2xl font-black text-neutral-900 dark:text-white">24-48h</p>
+                  <p className="text-xs text-neutral-500 dark:text-neutral-400 uppercase tracking-wider font-bold">Turnaround</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-12 h-12 bg-accent/10 rounded-xl flex items-center justify-center">
+                  <Star className="w-6 h-6 text-accent" />
+                </div>
+                <div className="text-left">
+                  <p className="text-2xl font-black text-neutral-900 dark:text-white">5.0</p>
+                  <p className="text-xs text-neutral-500 dark:text-neutral-400 uppercase tracking-wider font-bold">Customer Rating</p>
+                </div>
               </div>
             </div>
-            <div className="flex flex-col gap-3">
+            
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <button
                 onClick={() => setShowContactModal(true)}
-                className="px-8 py-4 bg-primary text-white rounded-2xl font-bold text-center hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-[0.98]"
+                className="px-8 py-4 bg-primary text-white rounded-2xl font-bold text-center hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2"
               >
-                Request Stringing
+                <Zap className="w-5 h-5" />
+                Request Stringing Service
               </button>
-              <p className="text-[10px] text-center text-neutral-400 uppercase tracking-widest font-bold">
-                No account needed to inquire
-              </p>
+              <button
+                onClick={() => document.getElementById('services')?.scrollIntoView({ behavior: 'smooth' })}
+                className="px-8 py-4 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-2xl font-bold text-center hover:bg-neutral-50 dark:hover:bg-neutral-700 transition-all border border-neutral-200 dark:border-neutral-700 flex items-center justify-center gap-2"
+              >
+                View Services & Pricing
+                <ChevronRight className="w-5 h-5" />
+              </button>
             </div>
+            <p className="text-sm text-neutral-400 mt-4">
+              No account required • Quick response guaranteed
+            </p>
+          </div>
+          
+          {/* Contact Info Bar */}
+          <div className="flex flex-wrap justify-center gap-8 text-neutral-600 dark:text-neutral-400">
+            {shop.address && (
+              <div className="flex items-center gap-2">
+                <MapPin className="w-4 h-4 text-primary" />
+                <span className="text-sm">{shop.address}</span>
+              </div>
+            )}
+            {shop.phone && (
+              <div className="flex items-center gap-2">
+                <Phone className="w-4 h-4 text-primary" />
+                <span className="text-sm">{shop.phone}</span>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -233,73 +287,147 @@ export default function PublicShop() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
           {/* Left Column: Services & Pricing */}
           <div className="lg:col-span-2 space-y-12">
-            <section>
+            <section id="services">
               <div className="flex items-center justify-between mb-8">
-                <h2 className="text-2xl font-bold text-neutral-900 dark:text-white tracking-tight">
-                  Stringing Services
+                <h2 className="text-3xl font-black text-neutral-900 dark:text-white tracking-tight">
+                  Stringing Services & Pricing
                 </h2>
                 <div className="h-px flex-1 bg-neutral-200 dark:bg-neutral-800 ml-6"></div>
               </div>
               
               {services.length > 0 ? (
-                <div className="grid grid-cols-1 gap-4">
+                <div className="grid grid-cols-1 gap-6">
                   {services.map((service) => (
                     <div 
                       key={service.id} 
-                      className="group flex items-center justify-between p-6 bg-white dark:bg-neutral-900 rounded-2xl border border-neutral-200 dark:border-neutral-800 hover:border-primary/50 transition-all"
+                      className="group flex items-center justify-between p-8 bg-white dark:bg-neutral-900 rounded-3xl border border-neutral-200 dark:border-neutral-800 hover:border-primary/50 transition-all hover:shadow-lg"
                     >
-                      <div>
-                        <h3 className="font-bold text-neutral-900 dark:text-white group-hover:text-primary transition-colors">
-                          {service.name}
-                        </h3>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center">
+                            <Wrench className="w-4 h-4 text-primary" />
+                          </div>
+                          <h3 className="text-xl font-bold text-neutral-900 dark:text-white group-hover:text-primary transition-colors">
+                            {service.name}
+                          </h3>
+                        </div>
                         {service.description && (
-                          <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-1">
+                          <p className="text-sm text-neutral-500 dark:text-neutral-400 ml-11">
                             {service.description}
                           </p>
                         )}
                       </div>
-                      <div className="text-right">
-                        <span className="text-xl font-black text-neutral-900 dark:text-white">
+                      <div className="text-right ml-6">
+                        <div className="text-3xl font-black text-neutral-900 dark:text-white">
                           ${service.price}
-                        </span>
-                        <p className="text-[10px] text-neutral-400 uppercase font-bold tracking-tighter">
+                        </div>
+                        <p className="text-xs text-neutral-400 uppercase font-bold tracking-tighter mt-1">
                           Labor Included
                         </p>
+                        <button
+                          onClick={() => setShowContactModal(true)}
+                          className="mt-3 px-4 py-2 bg-primary/10 text-primary rounded-xl text-sm font-bold hover:bg-primary/20 transition-all"
+                        >
+                          Order Now
+                        </button>
                       </div>
                     </div>
                   ))}
                 </div>
               ) : (
-                <div className="p-12 text-center bg-white dark:bg-neutral-900 rounded-2xl border border-dashed border-neutral-300 dark:border-neutral-700">
-                  <p className="text-neutral-500 dark:text-neutral-400">
-                    Contact shop for current pricing and availability.
+                <div className="p-16 text-center bg-white dark:bg-neutral-900 rounded-3xl border border-dashed border-neutral-300 dark:border-neutral-700">
+                  <Wrench className="w-12 h-12 text-neutral-400 mx-auto mb-4" />
+                  <h3 className="text-xl font-bold text-neutral-900 dark:text-white mb-2">Custom Pricing</h3>
+                  <p className="text-neutral-500 dark:text-neutral-400 mb-6">
+                    Contact us for personalized stringing services and competitive pricing.
                   </p>
+                  <button
+                    onClick={() => setShowContactModal(true)}
+                    className="px-6 py-3 bg-primary text-white rounded-xl font-bold hover:bg-primary/90 transition-all"
+                  >
+                    Get Quote
+                  </button>
                 </div>
               )}
             </section>
 
             <section>
               <div className="flex items-center justify-between mb-8">
-                <h2 className="text-2xl font-bold text-neutral-900 dark:text-white tracking-tight">
+                <h2 className="text-3xl font-black text-neutral-900 dark:text-white tracking-tight">
+                  Customer Testimonials
+                </h2>
+                <div className="h-px flex-1 bg-neutral-200 dark:bg-neutral-800 ml-6"></div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="p-6 bg-white dark:bg-neutral-900 rounded-3xl border border-neutral-200 dark:border-neutral-800">
+                  <div className="flex items-center gap-1 mb-4">
+                    {[...Array(5)].map((_, i) => (
+                      <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                    ))}
+                  </div>
+                  <p className="text-neutral-700 dark:text-neutral-300 mb-4 leading-relaxed">
+                    "Amazing service! My racquet feels brand new. The tension is perfect and the turnaround was incredibly fast."
+                  </p>
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-primary/20 rounded-full flex items-center justify-center">
+                      <Users className="w-5 h-5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-neutral-900 dark:text-white">Sarah J.</p>
+                      <p className="text-xs text-neutral-500">Tournament Player</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="p-6 bg-white dark:bg-neutral-900 rounded-3xl border border-neutral-200 dark:border-neutral-800">
+                  <div className="flex items-center gap-1 mb-4">
+                    {[...Array(5)].map((_, i) => (
+                      <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                    ))}
+                  </div>
+                  <p className="text-neutral-700 dark:text-neutral-300 mb-4 leading-relaxed">
+                    "Professional and reliable. I've been bringing my racquets here for years and the quality is always consistent."
+                  </p>
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-secondary/20 rounded-full flex items-center justify-center">
+                      <Users className="w-5 h-5 text-secondary" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-neutral-900 dark:text-white">Mike R.</p>
+                      <p className="text-xs text-neutral-500">League Player</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section>
+              <div className="flex items-center justify-between mb-8">
+                <h2 className="text-3xl font-black text-neutral-900 dark:text-white tracking-tight">
                   Why Choose Us
                 </h2>
                 <div className="h-px flex-1 bg-neutral-200 dark:bg-neutral-800 ml-6"></div>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="p-6 bg-white dark:bg-neutral-900 rounded-2xl border border-neutral-200 dark:border-neutral-800">
-                  <Award className="w-8 h-8 text-primary mb-4" />
-                  <h3 className="font-bold text-neutral-900 dark:text-white mb-2">Expert Quality</h3>
-                  <p className="text-sm text-neutral-500 dark:text-neutral-400">Professional grade stringing with precision tensioning for every racquet.</p>
+                <div className="p-8 bg-white dark:bg-neutral-900 rounded-3xl border border-neutral-200 dark:border-neutral-800 hover:shadow-lg transition-all">
+                  <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center mb-6">
+                    <Award className="w-6 h-6 text-primary" />
+                  </div>
+                  <h3 className="text-xl font-bold text-neutral-900 dark:text-white mb-3">Expert Quality</h3>
+                  <p className="text-sm text-neutral-500 dark:text-neutral-400 leading-relaxed">Professional grade stringing with precision tensioning for every racquet type and playing style.</p>
                 </div>
-                <div className="p-6 bg-white dark:bg-neutral-900 rounded-2xl border border-neutral-200 dark:border-neutral-800">
-                  <Clock className="w-8 h-8 text-primary mb-4" />
-                  <h3 className="font-bold text-neutral-900 dark:text-white mb-2">Fast Turnaround</h3>
-                  <p className="text-sm text-neutral-500 dark:text-neutral-400">Most jobs completed within 24-48 hours. Express service available.</p>
+                <div className="p-8 bg-white dark:bg-neutral-900 rounded-3xl border border-neutral-200 dark:border-neutral-800 hover:shadow-lg transition-all">
+                  <div className="w-12 h-12 bg-secondary/10 rounded-2xl flex items-center justify-center mb-6">
+                    <Clock className="w-6 h-6 text-secondary" />
+                  </div>
+                  <h3 className="text-xl font-bold text-neutral-900 dark:text-white mb-3">Fast Turnaround</h3>
+                  <p className="text-sm text-neutral-500 dark:text-neutral-400 leading-relaxed">Most jobs completed within 24-48 hours. Express service available for urgent needs.</p>
                 </div>
-                <div className="p-6 bg-white dark:bg-neutral-900 rounded-2xl border border-neutral-200 dark:border-neutral-800">
-                  <ShieldCheck className="w-8 h-8 text-primary mb-4" />
-                  <h3 className="font-bold text-neutral-900 dark:text-white mb-2">Track Progress</h3>
-                  <p className="text-sm text-neutral-500 dark:text-neutral-400">Get real-time updates and notifications when your racquet is ready.</p>
+                <div className="p-8 bg-white dark:bg-neutral-900 rounded-3xl border border-neutral-200 dark:border-neutral-800 hover:shadow-lg transition-all">
+                  <div className="w-12 h-12 bg-accent/10 rounded-2xl flex items-center justify-center mb-6">
+                    <ShieldCheck className="w-6 h-6 text-accent" />
+                  </div>
+                  <h3 className="text-xl font-bold text-neutral-900 dark:text-white mb-3">Track Progress</h3>
+                  <p className="text-sm text-neutral-500 dark:text-neutral-400 leading-relaxed">Get real-time updates and notifications when your racquet is ready for pickup.</p>
                 </div>
               </div>
             </section>
@@ -378,12 +506,90 @@ export default function PublicShop() {
         </div>
       </div>
 
-      {/* Footer */}
-      <footer className="bg-white dark:bg-neutral-900 border-t border-neutral-200 dark:border-neutral-800 py-12">
+      {/* Final CTA Section */}
+      <div className="bg-gradient-to-r from-primary to-secondary py-20">
         <div className="max-w-5xl mx-auto px-4 text-center">
-          <p className="text-sm text-neutral-500 dark:text-neutral-400">
-            &copy; {new Date().getFullYear()} {shop.name}. Powered by Stringers Friend.
+          <div className="inline-flex items-center px-4 py-2 rounded-full bg-white/20 text-white text-sm font-bold uppercase tracking-wider mb-6">
+            <TrendingUp className="w-4 h-4 mr-2" />
+            Ready to Get Started?
+          </div>
+          <h2 className="text-4xl md:text-5xl font-black text-white tracking-tight mb-6">
+            Transform Your Game Today
+          </h2>
+          <p className="text-xl text-white/90 max-w-2xl mx-auto mb-8 leading-relaxed">
+            Join hundreds of satisfied players who trust us with their racquet stringing needs. 
+            Experience the difference that professional stringing can make.
           </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <button
+              onClick={() => setShowContactModal(true)}
+              className="px-8 py-4 bg-white text-primary rounded-2xl font-bold hover:bg-white/90 transition-all shadow-lg hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2"
+            >
+              <MessageSquare className="w-5 h-5" />
+              Get Started Now
+            </button>
+            <button
+              onClick={() => document.getElementById('services')?.scrollIntoView({ behavior: 'smooth' })}
+              className="px-8 py-4 bg-white/20 backdrop-blur text-white rounded-2xl font-bold hover:bg-white/30 transition-all border border-white/30 flex items-center justify-center gap-2"
+            >
+              View Our Services
+              <ChevronRight className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Footer */}
+      <footer className="bg-neutral-900 dark:bg-white border-t border-neutral-800 dark:border-neutral-200 py-16">
+        <div className="max-w-5xl mx-auto px-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
+            <div>
+              <h3 className="text-xl font-black text-white dark:text-neutral-900 mb-4">{shop.name}</h3>
+              <p className="text-sm text-neutral-400 dark:text-neutral-600 leading-relaxed">
+                Professional racquet stringing services with precision, care, and quick turnaround. 
+                Trusted by players of all levels.
+              </p>
+            </div>
+            <div>
+              <h4 className="text-sm font-black text-white dark:text-neutral-900 uppercase tracking-wider mb-4">Quick Links</h4>
+              <div className="space-y-2">
+                <button
+                  onClick={() => setShowContactModal(true)}
+                  className="block text-sm text-neutral-400 dark:text-neutral-600 hover:text-white dark:hover:text-neutral-900 transition-colors"
+                >
+                  Request Service
+                </button>
+                <button
+                  onClick={() => document.getElementById('services')?.scrollIntoView({ behavior: 'smooth' })}
+                  className="block text-sm text-neutral-400 dark:text-neutral-600 hover:text-white dark:hover:text-neutral-900 transition-colors"
+                >
+                  Services & Pricing
+                </button>
+              </div>
+            </div>
+            <div>
+              <h4 className="text-sm font-black text-white dark:text-neutral-900 uppercase tracking-wider mb-4">Contact Info</h4>
+              <div className="space-y-3">
+                {shop.address && (
+                  <div className="flex items-center gap-3">
+                    <MapPin className="w-4 h-4 text-primary" />
+                    <span className="text-sm text-neutral-400 dark:text-neutral-600">{shop.address}</span>
+                  </div>
+                )}
+                {shop.phone && (
+                  <div className="flex items-center gap-3">
+                    <Phone className="w-4 h-4 text-primary" />
+                    <span className="text-sm text-neutral-400 dark:text-neutral-600">{shop.phone}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+          <div className="pt-8 border-t border-neutral-800 dark:border-neutral-200 text-center">
+            <p className="text-sm text-neutral-400 dark:text-neutral-600">
+              &copy; {new Date().getFullYear()} {shop.name}. Powered by <span className="text-primary font-bold">Stringers Friend</span>.
+            </p>
+          </div>
         </div>
       </footer>
 

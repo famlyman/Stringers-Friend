@@ -39,7 +39,7 @@ export default function ShopSetup({ user }: { user: any }) {
       }
 
       const shopId = uuidv4();
-      const qrCode = `shop_${shopId}`;
+      const qrCode = slug.toLowerCase();
 
       // Create shop in Firestore
       await setDoc(doc(db, "shops", shopId), {

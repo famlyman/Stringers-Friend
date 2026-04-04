@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { RACQUET_BRANDS, RACQUET_MODELS, STRINGS, GAUGES } from "../constants";
 import { racquetSpecsService } from "../services/racquetSpecsService";
-import { Plus, Search, Filter, CheckCircle2, Clock, PlayCircle, CreditCard, X, Trash2, Users, Briefcase, Edit2, ChevronRight, ChevronDown, Printer, Package, MessageSquare, Mail, Phone, Send, Scan, AlertTriangle, History } from "lucide-react";
+import { Plus, Search, Filter, CheckCircle2, Clock, PlayCircle, CreditCard, X, Trash2, Users, Briefcase, Edit2, ChevronRight, ChevronDown, Printer, Package, MessageSquare, Mail, Phone, Send, Scan, AlertTriangle, History, RefreshCw } from "lucide-react";
 import QRCodeDisplay from "../components/QRCodeDisplay";
 import { QrScanner } from "../components/QrScanner";
 import { Link } from "react-router-dom";
@@ -29,6 +29,7 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
   const [editingInventoryItem, setEditingInventoryItem] = useState<any | null>(null);
   const [showScanner, setShowScanner] = useState(false);
   const [isProcessingScan, setIsProcessingScan] = useState(false);
+  const [regeneratingQR, setRegeneratingQR] = useState(false);
 
   useEffect(() => {
     if (!user.shop_id) return;
@@ -1030,6 +1031,33 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
       setSelectedCustomerIdForChat(null);
     } catch (err) {
       handleFirestoreError(err, OperationType.WRITE, `delete_conversation/${customerId}`);
+    }
+  };
+
+  const handleRegenerateQR = async () => {
+    if (!shop || regeneratingQR) return;
+    
+    // Use existing slug if available, otherwise generate from shop name
+    const shopSlug = shop.slug || shop.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+    
+    setRegeneratingQR(true);
+    try {
+      const updateData: any = {
+        qr_code: shopSlug
+      };
+      
+      // Only add slug if it doesn't exist
+      if (!shop.slug) {
+        updateData.slug = shopSlug;
+      }
+      
+      await updateDoc(doc(db, "shops", user.shop_id), updateData);
+      
+      // Shop will be updated automatically via the onSnapshot listener
+    } catch (err) {
+      handleFirestoreError(err, OperationType.UPDATE, "regenerate_qr");
+    } finally {
+      setRegeneratingQR(false);
     }
   };
 
@@ -2802,7 +2830,17 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
         {/* Sidebar Actions / Stats */}
         <div className="space-y-8">
           <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-6 shadow-sm">
-            <h3 className="text-lg font-semibold text-primary mb-4 tracking-tight">Shop Storefront</h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-primary tracking-tight">Shop Storefront</h3>
+              <button
+                onClick={handleRegenerateQR}
+                disabled={regeneratingQR || !shop?.name}
+                className="flex items-center gap-2 px-3 py-2 bg-primary/10 text-primary rounded-xl text-xs font-bold hover:bg-primary/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <RefreshCw className={`w-3 h-3 ${regeneratingQR ? 'animate-spin' : ''}`} />
+                {regeneratingQR ? 'Updating...' : 'Regenerate QR'}
+              </button>
+            </div>
             <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-6">Customers can scan this to register and view their jobs at your shop.</p>
             <div className="bg-neutral-50 dark:bg-neutral-800 p-4 rounded-2xl flex justify-center">
               <QRCodeDisplay 
@@ -2812,6 +2850,13 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
                 shopPhone={shop?.phone}
               />
             </div>
+            {shop?.qr_code?.includes('_') && (
+              <div className="mt-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-900/50 rounded-xl">
+                <p className="text-xs text-yellow-700 dark:text-yellow-300">
+                  <strong>Update Available:</strong> Regenerate your QR code to use the new shop landing page format.
+                </p>
+              </div>
+            )}
           </div>
 
           <div className="bg-primary rounded-2xl p-6 text-white shadow-xl shadow-primary/20">

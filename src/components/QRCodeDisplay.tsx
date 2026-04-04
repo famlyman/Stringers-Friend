@@ -26,7 +26,11 @@ export default function QRCodeDisplay({
 
   useEffect(() => {
     if (value) {
-      const fullUrl = `${window.location.origin}/scan/${value}`;
+      // Check if this is a shop QR code (no prefix) vs other items (with prefixes like racquet_, inventory_)
+      const isShopQR = !value.includes('_');
+      const fullUrl = isShopQR 
+        ? `${window.location.origin}/${value}`  // Direct to shop landing page
+        : `${window.location.origin}/scan/${value}`;  // To scan result page for other items
       QRCode.toDataURL(fullUrl, { width: 400, margin: 2 }, (err, url) => {
         if (!err) setQrUrl(url);
       });
