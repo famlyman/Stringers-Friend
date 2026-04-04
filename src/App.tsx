@@ -9,6 +9,7 @@ import CustomerList from "./pages/CustomerList";
 import ScanResult from "./pages/ScanResult";
 import PublicShop from "./pages/PublicShop";
 import Profile from "./pages/Profile";
+import Landing from "./pages/Landing";
 import Layout from "./components/Layout";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { AuthProvider, useAuth } from "./context/AuthContext";
@@ -41,13 +42,14 @@ function AppRoutes() {
   return (
     <Routes>
       {/* Public Routes */}
-      <Route path="/login" element={!user ? <Login /> : <Navigate to="/" replace />} />
-      <Route path="/register" element={!user ? <Register /> : <Navigate to="/" replace />} />
+      <Route path="/" element={!user ? <Landing /> : <Navigate to="/dashboard" replace />} />
+      <Route path="/login" element={!user ? <Login /> : <Navigate to="/dashboard" replace />} />
+      <Route path="/register" element={!user ? <Register /> : <Navigate to="/dashboard" replace />} />
       <Route path="/scan/:qrCode" element={<ScanResult />} />
       
       {/* Protected Routes Wrapper */}
-      <Route element={user ? <Layout user={profile || user} onLogout={handleLogout} /> : <Navigate to="/login" replace />}>
-        <Route path="/" element={
+      <Route element={user ? <Layout user={profile || user} onLogout={handleLogout} /> : <Navigate to="/" replace />}>
+        <Route path="/dashboard" element={
           profile ? (
             profile.role === 'stringer' ? (
               profile.shop_id ? <Dashboard user={profile} /> : <Navigate to="/setup" replace />
