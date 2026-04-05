@@ -120,79 +120,75 @@ export default function PublicShop() {
     
     setSubmitting(true);
     try {
-      const messageId = uuidv4();
-      console.log("Creating message with ID:", messageId);
+      let currentUid = user?.uid;
+
+      // 1. Handle Account Creation if requested
+      if (contactForm.register && !currentUid && contactForm.password) {
+        try {
+          const userCredential = await createUserWithEmailAndPassword(auth, contactForm.email, contactForm.password);
+          currentUid = userCredential.user.uid;
+
+          // Create user profile
+          await setDoc(doc(db, "users", currentUid), {
+            uid: currentUid,
+            email: contactForm.email,
+            role: "customer",
+            created_at: serverTimestamp()
+          });
+        } catch (authErr: any) {
+          console.error("Error creating account during service request:", authErr);
+        }
+      }
+
+      // 2. Find or Create Customer Record
+      let customerId = "";
+      const q = query(
+        collection(db, "customers"),
+        where("email", "==", contactForm.email),
+        where("shop_id", "==", shop.id)
+      );
+      const snap = await getDocs(q);
       
+      if (snap.empty) {
+        customerId = uuidv4();
+        await setDoc(doc(db, "customers", customerId), {
+          id: customerId,
+          name: contactForm.name,
+          email: contactForm.email,
+          phone: contactForm.phone,
+          shop_id: shop.id,
+          uid: currentUid || null,
+          created_at: serverTimestamp(),
+          is_lead: !contactForm.register // Mark as lead if they didn't register
+        });
+        setIsCustomerOfShop(true);
+      } else {
+        customerId = snap.docs[0].id;
+        // Update UID if it's now available
+        if (currentUid && !snap.docs[0].data().uid) {
+          await updateDoc(doc(db, "customers", customerId), { uid: currentUid });
+        }
+      }
+
+      // 3. Create Message linked to Customer
+      const messageId = uuidv4();
       const messageData = {
         id: messageId,
         shop_id: shop.id,
+        customer_id: customerId, // Link to customer!
         sender_name: contactForm.name,
-        sender_role: 'anonymous',
+        sender_role: 'customer', // Use 'customer' role so it shows up in dashboard filters
         content: contactForm.content,
         service_requested: selectedService,
         created_at: serverTimestamp(),
         read: false,
-        // Keep these for backward compatibility or extra info
         customer_email: contactForm.email,
         phone: contactForm.phone,
         title: selectedService ? `New ${selectedService} Inquiry from ${contactForm.name}` : `New Inquiry from ${contactForm.name}`
       };
       
-      console.log("Message data to save:", messageData);
-      
       await setDoc(doc(db, "messages", messageId), messageData);
-      console.log("Message saved successfully");
       
-      if (contactForm.register) {
-        let currentUid = user?.uid;
-
-        // If not logged in and password provided, create account
-        if (!currentUid && contactForm.password) {
-          try {
-            const userCredential = await createUserWithEmailAndPassword(auth, contactForm.email, contactForm.password);
-            currentUid = userCredential.user.uid;
-
-            // Create user profile
-            await setDoc(doc(db, "users", currentUid), {
-              uid: currentUid,
-              email: contactForm.email,
-              role: "customer",
-              created_at: serverTimestamp()
-            });
-          } catch (authErr: any) {
-            console.error("Error creating account during service request:", authErr);
-            // If account already exists, we might want to inform them, but for now just log
-          }
-        }
-
-        const q = query(
-          collection(db, "customers"),
-          where("email", "==", contactForm.email),
-          where("shop_id", "==", shop.id)
-        );
-        const snap = await getDocs(q);
-        
-        if (snap.empty) {
-          const customerId = uuidv4();
-          await setDoc(doc(db, "customers", customerId), {
-            id: customerId,
-            name: contactForm.name,
-            email: contactForm.email,
-            phone: contactForm.phone,
-            shop_id: shop.id,
-            uid: currentUid || null,
-            created_at: serverTimestamp()
-          });
-          setIsCustomerOfShop(true);
-        } else if (currentUid) {
-          // Link existing customer doc to new UID if needed
-          const docId = snap.docs[0].id;
-          if (!snap.docs[0].data().uid) {
-            await updateDoc(doc(db, "customers", docId), { uid: currentUid });
-          }
-        }
-      }
-
       setSubmitted(true);
       setContactForm({ name: "", email: "", phone: "", content: "", register: false, password: "" });
       setSelectedService(null);

@@ -19,11 +19,17 @@ export default function Layout({ user, onLogout }: LayoutProps) {
     if (!user) return;
 
     const messagesQuery = user.role === 'stringer'
-      ? query(collection(db, "messages"), where("shop_id", "==", user.shop_id), where("sender_role", "==", "customer"), where("read", "==", false))
+      ? query(collection(db, "messages"), where("shop_id", "==", user.shop_id), where("read", "==", false))
       : query(collection(db, "messages"), where("customer_email", "==", user.email), where("sender_role", "==", "stringer"), where("read", "==", false));
 
     const unsubscribe = onSnapshot(messagesQuery, (snapshot) => {
-      setUnreadCount(snapshot.size);
+      if (user.role === 'stringer') {
+        // Filter out messages sent by the stringer themselves
+        const unread = snapshot.docs.filter(doc => doc.data().sender_role !== 'stringer').length;
+        setUnreadCount(unread);
+      } else {
+        setUnreadCount(snapshot.size);
+      }
     });
 
     return () => unsubscribe();

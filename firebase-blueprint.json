@@ -37,7 +37,8 @@
         "name": { "type": "string" },
         "email": { "type": "string", "format": "email" },
         "phone": { "type": "string" },
-        "uid": { "type": "string", "description": "Firebase Auth UID of the linked user" }
+        "uid": { "type": "string", "description": "Firebase Auth UID of the linked user" },
+        "is_lead": { "type": "boolean", "description": "True if the customer was created from a public inquiry without registration" }
       },
       "required": ["id", "shop_id", "name"]
     },
@@ -142,7 +143,11 @@
         "sender_role": { "type": "string", "enum": ["stringer", "customer", "anonymous"] },
         "content": { "type": "string" },
         "read": { "type": "boolean" },
-        "created_at": { "type": "string", "format": "date-time" }
+        "created_at": { "type": "string", "format": "date-time" },
+        "customer_email": { "type": "string", "format": "email" },
+        "phone": { "type": "string" },
+        "title": { "type": "string" },
+        "service_requested": { "type": "string" }
       },
       "required": ["id", "shop_id", "content", "sender_role", "created_at"]
     },

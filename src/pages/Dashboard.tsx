@@ -399,7 +399,7 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
   useEffect(() => {
     if (selectedCustomerIdForChat && activeTab === 'messages') {
       const unreadMessages = messages.filter(
-        m => m.customer_id === selectedCustomerIdForChat && m.sender_role === 'customer' && !m.read
+        m => m.customer_id === selectedCustomerIdForChat && m.sender_role !== 'stringer' && !m.read
       );
       
       if (unreadMessages.length > 0) {
@@ -1091,11 +1091,13 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
     try {
       const messageId = uuidv4();
       const customer = customers.find(c => c.id === selectedCustomerIdForChat);
+      const isEmailChat = !customer && selectedCustomerIdForChat.includes('@');
+      
       await setDoc(doc(db, "messages", messageId), {
         id: messageId,
         shop_id: user.shop_id,
-        customer_id: selectedCustomerIdForChat,
-        customer_email: customer?.email || "",
+        customer_id: customer ? selectedCustomerIdForChat : null,
+        customer_email: customer?.email || (isEmailChat ? selectedCustomerIdForChat : ""),
         sender_id: user.uid,
         sender_name: shop?.name || "Shop",
         sender_role: 'stringer',
@@ -2808,8 +2810,12 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
                 <div className="flex-1 overflow-y-auto p-2 space-y-1">
                   {/* Derive unique customers from messages or use existing customers list */}
                   {customers.map(customer => {
-                    const lastMsg = [...messages].filter(m => m.customer_id === customer.id).sort((a,b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
-                    const unread = messages.filter(m => m.customer_id === customer.id && m.sender_role === 'customer' && !m.read).length;
+                    const lastMsg = [...messages].filter(m => m.customer_id === customer.id).sort((a,b) => {
+                      const timeA = a.created_at?.seconds ? a.created_at.seconds * 1000 : new Date(a.created_at).getTime();
+                      const timeB = b.created_at?.seconds ? b.created_at.seconds * 1000 : new Date(b.created_at).getTime();
+                      return timeB - timeA;
+                    })[0];
+                    const unread = messages.filter(m => m.customer_id === customer.id && m.sender_role !== 'stringer' && !m.read).length;
                     
                     return (
                       <button
@@ -2829,7 +2835,34 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
                       </button>
                     );
                   })}
-                  {customers.length === 0 && (
+                  {/* Handle messages without customer_id (old anonymous inquiries) */}
+                  {[...new Set(messages.filter(m => !m.customer_id && m.customer_email).map(m => m.customer_email))].map(email => {
+                    const lastMsg = [...messages].filter(m => m.customer_email === email).sort((a,b) => {
+                      const timeA = a.created_at?.seconds ? a.created_at.seconds * 1000 : new Date(a.created_at).getTime();
+                      const timeB = b.created_at?.seconds ? b.created_at.seconds * 1000 : new Date(b.created_at).getTime();
+                      return timeB - timeA;
+                    })[0];
+                    const unread = messages.filter(m => m.customer_email === email && m.sender_role !== 'stringer' && !m.read).length;
+                    
+                    return (
+                      <button
+                        key={email}
+                        onClick={() => setSelectedCustomerIdForChat(email)} // Use email as ID for chat
+                        className={`w-full text-left p-3 rounded-2xl transition-all relative ${selectedCustomerIdForChat === email ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'hover:bg-neutral-50 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300'}`}
+                      >
+                        <div className="flex justify-between items-start">
+                          <p className="font-bold text-sm truncate">{email}</p>
+                          {unread > 0 && <span className="w-2 h-2 bg-red-500 rounded-full" />}
+                        </div>
+                        {lastMsg && (
+                          <p className={`text-[10px] truncate mt-0.5 ${selectedCustomerIdForChat === email ? 'text-white/70' : 'text-neutral-400'}`}>
+                            {lastMsg.content || lastMsg.message}
+                          </p>
+                        )}
+                      </button>
+                    );
+                  })}
+                  {customers.length === 0 && messages.filter(m => !m.customer_id).length === 0 && (
                     <p className="text-center text-xs text-neutral-400 p-4">No customers yet</p>
                   )}
                 </div>
@@ -2842,11 +2875,13 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
                     <div className="p-4 border-b border-neutral-100 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-800/50 flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
-                          {customers.find(c => c.id === selectedCustomerIdForChat)?.name?.charAt(0)}
+                          {customers.find(c => c.id === selectedCustomerIdForChat)?.name?.charAt(0) || selectedCustomerIdForChat.charAt(0).toUpperCase()}
                         </div>
                         <div>
-                          <h3 className="font-bold text-primary">{customers.find(c => c.id === selectedCustomerIdForChat)?.name}</h3>
-                          <p className="text-[10px] text-neutral-400 uppercase tracking-widest">Customer</p>
+                          <h3 className="font-bold text-primary">{customers.find(c => c.id === selectedCustomerIdForChat)?.name || selectedCustomerIdForChat}</h3>
+                          <p className="text-[10px] text-neutral-400 uppercase tracking-widest">
+                            {customers.find(c => c.id === selectedCustomerIdForChat) ? 'Customer' : 'Inquiry'}
+                          </p>
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
@@ -2861,7 +2896,7 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
 
                     <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-neutral-50/30 dark:bg-neutral-900/30">
                       {[...messages]
-                        .filter(m => m.customer_id === selectedCustomerIdForChat)
+                        .filter(m => m.customer_id === selectedCustomerIdForChat || m.customer_email === selectedCustomerIdForChat)
                         .sort((a, b) => {
                           const timeA = a.created_at?.seconds ? a.created_at.seconds * 1000 : new Date(a.created_at).getTime();
                           const timeB = b.created_at?.seconds ? b.created_at.seconds * 1000 : new Date(b.created_at).getTime();
