@@ -1,5 +1,4 @@
 import express from "express";
-import { createServer as createViteServer } from "vite";
 import path from "path";
 import { fileURLToPath } from "url";
 import admin from "firebase-admin";
@@ -7,28 +6,33 @@ import admin from "firebase-admin";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Initialize Firebase Admin
-if (!admin.apps.length) {
-  try {
-    // In this environment, we might not have a service account file, 
-    // so we can try to initialize with default credentials or environment variables.
-    // For now, we'll assume the user will provide a service account JSON in an env var.
-    const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT 
-      ? JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT) 
-      : null;
+// Helper to initialize Firebase Admin lazily
+function getFirebaseAdmin() {
+  if (!admin.apps.length) {
+    try {
+      const serviceAccountStr = process.env.FIREBASE_SERVICE_ACCOUNT;
+      if (!serviceAccountStr) {
+        console.warn("FIREBASE_SERVICE_ACCOUNT not found.");
+        return null;
+      }
 
-    if (serviceAccount) {
+      const serviceAccount = JSON.parse(serviceAccountStr);
+      
+      // Fix private key if it has literal \n
+      if (serviceAccount.private_key) {
+        serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
+      }
+
       admin.initializeApp({
         credential: admin.credential.cert(serviceAccount),
       });
       console.log("Firebase Admin initialized successfully.");
-    } else {
-      // Fallback for local development if possible, or just log a warning
-      console.warn("FIREBASE_SERVICE_ACCOUNT not found. Push notifications will be disabled.");
+    } catch (error) {
+      console.error("Error initializing Firebase Admin:", error);
+      return null;
     }
-  } catch (error) {
-    console.error("Error initializing Firebase Admin:", error);
   }
+  return admin;
 }
 
 const app = express();
@@ -53,8 +57,9 @@ app.post("/api/send-notification", async (req, res) => {
     return res.status(400).json({ error: "Token is required" });
   }
 
-  if (!admin.apps.length) {
-    return res.status(503).json({ error: "Firebase Admin not initialized" });
+  const firebaseAdmin = getFirebaseAdmin();
+  if (!firebaseAdmin) {
+    return res.status(503).json({ error: "Firebase Admin not initialized. Check server logs for FIREBASE_SERVICE_ACCOUNT issues." });
   }
 
   try {
@@ -68,7 +73,7 @@ app.post("/api/send-notification", async (req, res) => {
       data: data || {},
     };
 
-    const response = await admin.messaging().send(message);
+    const response = await firebaseAdmin.messaging().send(message);
     console.log(`Successfully sent message: ${response}`);
     res.json({ success: true, messageId: response });
   } catch (error: any) {
@@ -94,6 +99,7 @@ async function startServer() {
 
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
+    const { createServer: createViteServer } = await import("vite");
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa",
