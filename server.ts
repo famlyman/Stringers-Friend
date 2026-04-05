@@ -31,51 +31,51 @@ if (!admin.apps.length) {
   }
 }
 
+const app = express();
+app.use(express.json());
+
+// Log all requests for debugging
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
+  next();
+});
+
+// API Health Check
+app.get("/api/health", (req, res) => {
+  res.json({ status: "ok", timestamp: new Date().toISOString() });
+});
+
+// Push Notification Endpoint
+app.post("/api/send-notification", async (req, res) => {
+  const { token, title, body, data } = req.body;
+
+  if (!token) {
+    return res.status(400).json({ error: "Token is required" });
+  }
+
+  if (!admin.apps.length) {
+    return res.status(503).json({ error: "Firebase Admin not initialized" });
+  }
+
+  try {
+    console.log(`Attempting to send notification to token: ${token.substring(0, 10)}...`);
+    const message = {
+      notification: { title, body },
+      token: token,
+      data: data || {},
+    };
+
+    const response = await admin.messaging().send(message);
+    console.log(`Successfully sent message: ${response}`);
+    res.json({ success: true, messageId: response });
+  } catch (error) {
+    console.error("Error sending push notification:", error);
+    res.status(500).json({ error: "Failed to send notification", details: error instanceof Error ? error.message : String(error) });
+  }
+});
+
 async function startServer() {
-  const app = express();
   const PORT = 3000;
-
-  app.use(express.json());
-
-  // Log all requests for debugging
-  app.use((req, res, next) => {
-    console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
-    next();
-  });
-
-  // API Health Check
-  app.get("/api/health", (req, res) => {
-    res.json({ status: "ok", timestamp: new Date().toISOString() });
-  });
-
-  // Push Notification Endpoint
-  app.post("/api/send-notification", async (req, res) => {
-    const { token, title, body, data } = req.body;
-
-    if (!token) {
-      return res.status(400).json({ error: "Token is required" });
-    }
-
-    if (!admin.apps.length) {
-      return res.status(503).json({ error: "Firebase Admin not initialized" });
-    }
-
-    try {
-      console.log(`Attempting to send notification to token: ${token.substring(0, 10)}...`);
-      const message = {
-        notification: { title, body },
-        token: token,
-        data: data || {},
-      };
-
-      const response = await admin.messaging().send(message);
-      console.log(`Successfully sent message: ${response}`);
-      res.json({ success: true, messageId: response });
-    } catch (error) {
-      console.error("Error sending push notification:", error);
-      res.status(500).json({ error: "Failed to send notification", details: error instanceof Error ? error.message : String(error) });
-    }
-  });
 
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
@@ -98,4 +98,12 @@ async function startServer() {
   });
 }
 
-startServer();
+// Export for Vercel
+export default app;
+
+if (process.env.NODE_ENV !== "production") {
+  startServer();
+} else if (!process.env.VERCEL) {
+  // In production but not on Vercel (e.g. a regular VPS or container)
+  startServer();
+}
