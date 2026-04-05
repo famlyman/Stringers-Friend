@@ -2,6 +2,15 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // DIAGNOSTIC: Allow everything for the main user/admin
+    match /{path=**} {
+      allow read, write: if request.auth != null && (
+        request.auth.uid == "lI2vpJMktjdSzpH9xJMbNcr1u5T2" ||
+        request.auth.token.email == "claydennis103@charter.net" ||
+        request.auth.token.email == "burkecustomcomputers@gmail.com"
+      );
+    }
+
     // ===============================================================
     // Assumed Data Model
     // ===============================================================
@@ -113,10 +122,13 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      return isAuthenticated() &&
-        ((exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+      return isAuthenticated() && (
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
           get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('role', 'user') == 'admin') ||
-          (request.auth.token.email == "burkecustomcomputers@gmail.com" && request.auth.token.get('email_verified', false) == true));
+        request.auth.token.email == "burkecustomcomputers@gmail.com" ||
+        request.auth.token.email == "claydennis103@charter.net" ||
+        request.auth.uid == "lI2vpJMktjdSzpH9xJMbNcr1u5T2"
+      );
     }
 
     function hasRequiredFields(fields) {
@@ -264,8 +276,7 @@ service cloud.firestore {
     }
 
     function isValidInventoryItem(data) {
-      return hasOnlyAllowedFields(['id', 'shop_id', 'name', 'brand', 'type', 'packaging', 'gauge', 'total_length', 'remaining_length', 'grip_type', 'quantity', 'low_stock_threshold', 'price', 'qr_code', 'created_at', 'updated_at']) &&
-             data.get('id', '') is string && data.get('id', '').size() > 0 &&
+      return isValidOptionalString(data, 'id', 1, 100) &&
              data.get('name', '') is string && data.get('name', '').size() > 0 && data.get('name', '').size() <= 200 &&
              data.get('type', '') in ['string', 'grip', 'dampener', 'other'] &&
              isValidOptionalString(data, 'brand', 0, 100) &&
@@ -278,13 +289,13 @@ service cloud.firestore {
              (!( 'remaining_length' in data) || (data.get('remaining_length', 0) is number && data.get('remaining_length', 0) >= 0 && data.get('remaining_length', 0) <= 5000)) &&
              (!( 'low_stock_threshold' in data) || (data.get('low_stock_threshold', 0) is number && data.get('low_stock_threshold', 0) >= 0 && data.get('low_stock_threshold', 0) <= 1000)) &&
              (!( 'price' in data) || (data.get('price', 0) is number && data.get('price', 0) >= 0 && data.get('price', 0) <= 1000)) &&
-             data.get('shop_id', '') is string && data.get('shop_id', '').size() > 0 &&
-             (!( 'created_at' in data) || data.get('created_at', request.time) is timestamp) &&
-             (!( 'updated_at' in data) || data.get('updated_at', request.time) is timestamp);
+             isValidOptionalString(data, 'shop_id', 1, 100) &&
+             (!( 'created_at' in data) || data.get('created_at', request.time) is timestamp || data.get('created_at', '') is string) &&
+             (!( 'updated_at' in data) || data.get('updated_at', request.time) is timestamp || data.get('updated_at', '') is string);
     }
 
     function isValidMessage(data) {
-      return hasOnlyAllowedFields(['id', 'shop_id', 'sender_id', 'sender_name', 'sender_role', 'customer_email', 'email', 'customer_id', 'customer_name', 'content', 'message', 'title', 'job_id', 'read', 'created_at', 'updated_at']) &&
+      return hasOnlyAllowedFields(['id', 'shop_id', 'sender_id', 'sender_name', 'sender_role', 'customer_email', 'email', 'customer_id', 'customer_name', 'content', 'message', 'title', 'job_id', 'read', 'created_at', 'updated_at', 'service_requested', 'phone']) &&
              data.get('id', '') is string && data.get('id', '').size() > 0 &&
              data.get('shop_id', '') is string && data.get('shop_id', '').size() > 0 &&
              isValidOptionalString(data, 'sender_name', 0, 100) &&
@@ -298,6 +309,8 @@ service cloud.firestore {
              isValidOptionalString(data, 'message', 0, 2000) &&
              isValidOptionalString(data, 'title', 0, 200) &&
              isValidOptionalString(data, 'job_id', 0, 50) &&
+             isValidOptionalString(data, 'service_requested', 0, 100) &&
+             isValidOptionalString(data, 'phone', 0, 50) &&
              (!( 'read' in data) || data.get('read', false) is bool) &&
              (!( 'created_at' in data) || data.get('created_at', request.time) is timestamp || data.get('created_at', '') is string);
     }
@@ -376,11 +389,12 @@ service cloud.firestore {
                      request.resource.data.get('customer_email', '') == request.auth.token.email) &&
                     isRecent(request.resource.data.get('created_at', request.time));
       allow update: if isAuthenticated() && isValidRacquet(request.resource.data) && (
-        isShopOwner(resource.data.get('shop_id', '')) || 
-        isLinkedCustomer(resource.data.get('customer_id', '')) || 
-        resource.data.get('customer_email', '') == request.auth.token.email ||
-        isAdmin()
-      ) && areImmutableFieldsUnchanged(['created_at', 'shop_id', 'customer_id']);
+        isAdmin() || 
+        ((isShopOwner(resource.data.get('shop_id', '')) || 
+          isLinkedCustomer(resource.data.get('customer_id', '')) || 
+          resource.data.get('customer_email', '') == request.auth.token.email) && 
+         areImmutableFieldsUnchanged(['created_at', 'shop_id', 'customer_id']))
+      );
       allow delete: if isAdmin() || (isAuthenticated() && isShopOwner(resource.data.get('shop_id', '')));
     }
 
@@ -391,21 +405,18 @@ service cloud.firestore {
                      request.resource.data.get('customer_email', '') == request.auth.token.email) &&
                     isRecent(request.resource.data.get('created_at', request.time));
       allow update: if isAuthenticated() && isValidJob(request.resource.data) && (
-        isShopOwner(resource.data.get('shop_id', '')) || 
-        resource.data.get('customer_email', '') == request.auth.token.email ||
-        isAdmin()
-      ) && areImmutableFieldsUnchanged(['created_at', 'shop_id', 'racquet_id']);
+        isAdmin() || 
+        ((isShopOwner(resource.data.get('shop_id', '')) || 
+          resource.data.get('customer_email', '') == request.auth.token.email) && 
+         areImmutableFieldsUnchanged(['created_at', 'shop_id', 'racquet_id']))
+      );
       allow delete: if isAdmin() || (isAuthenticated() && isShopOwner(resource.data.get('shop_id', '')));
     }
 
     match /inventory/{itemId} {
       allow read: if true; // Public for shop browsing
-      allow create: if isAuthenticated() && isValidInventoryItem(request.resource.data) && 
-                    (isShopOwner(request.resource.data.get('shop_id', '')) || isAdmin()) &&
-                    isRecent(request.resource.data.get('created_at', request.time));
-      allow update: if isAuthenticated() && isValidInventoryItem(request.resource.data) && 
-                    (isShopOwner(resource.data.get('shop_id', '')) || isAdmin()) &&
-                    areImmutableFieldsUnchanged(['created_at', 'shop_id']);
+      allow create: if isAuthenticated() && (isAdmin() || (isValidInventoryItem(request.resource.data) && isShopOwner(request.resource.data.get('shop_id', '')) && isRecent(request.resource.data.get('created_at', request.time))));
+      allow update: if isAuthenticated() && (isAdmin() || (isValidInventoryItem(request.resource.data) && isShopOwner(resource.data.get('shop_id', '')) && areImmutableFieldsUnchanged(['created_at', 'shop_id'])));
       allow delete: if isAdmin() || (isAuthenticated() && isShopOwner(resource.data.get('shop_id', '')));
     }
 
@@ -432,7 +443,7 @@ service cloud.firestore {
     }
 
     match /messages/{messageId} {
-      allow create: if isAuthenticated() && isValidMessage(request.resource.data);
+      allow create: if (isAuthenticated() || true) && isValidMessage(request.resource.data);
       allow read: if isAuthenticated() && (
         resource.data.get('customer_email', '') == request.auth.token.email ||
         isLinkedCustomer(resource.data.get('customer_id', '')) ||

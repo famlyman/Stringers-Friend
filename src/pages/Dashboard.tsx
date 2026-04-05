@@ -400,9 +400,11 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
     if (selectedCustomerIdForChat && activeTab === 'messages') {
       const isEmailChat = selectedCustomerIdForChat.includes('@');
       const unreadMessages = messages.filter(
-        m => isEmailChat 
-          ? m.customer_email === selectedCustomerIdForChat && m.sender_role !== 'stringer' && !m.read
-          : m.customer_id === selectedCustomerIdForChat && m.sender_role !== 'stringer' && !m.read
+        m => {
+          if (isEmailChat) return m.customer_email === selectedCustomerIdForChat && m.sender_role !== 'stringer' && !m.read;
+          // If it's a UUID, it could be a customer_id OR a message_id (for orphaned messages)
+          return (m.customer_id === selectedCustomerIdForChat || m.id === selectedCustomerIdForChat) && m.sender_role !== 'stringer' && !m.read;
+        }
       );
       
       if (unreadMessages.length > 0) {
@@ -416,6 +418,22 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
       }
     }
   }, [selectedCustomerIdForChat, activeTab, messages]);
+
+  const handleMarkAllAsRead = async () => {
+    const unread = messages.filter(m => !m.read && m.sender_role !== 'stringer');
+    if (unread.length === 0) return;
+    
+    const batch = writeBatch(db);
+    unread.forEach(msg => {
+      batch.update(doc(db, "messages", msg.id), { read: true });
+    });
+    
+    try {
+      await batch.commit();
+    } catch (err) {
+      console.error("Error marking all as read:", err);
+    }
+  };
 
   const handleCreateJob = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -829,7 +847,7 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
           current_string_cross: job.string_cross || job.string_main || "Not specified",
           current_tension_main: Number(job.tension_main) || 0,
           current_tension_cross: Number(job.tension_cross || job.tension_main) || 0,
-          updated_at: new Date().toISOString()
+          updated_at: serverTimestamp()
         });
       }
 
@@ -2807,8 +2825,16 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 h-[calc(100vh-12rem)] min-h-[500px]">
               {/* Customer List */}
               <div className="md:col-span-1 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-3xl overflow-hidden flex flex-col shadow-sm">
-                <div className="p-4 border-b border-neutral-100 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-800/50">
+                <div className="p-4 border-b border-neutral-100 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-800/50 flex justify-between items-center">
                   <h3 className="font-bold text-primary">Conversations</h3>
+                  {messages.some(m => !m.read && m.sender_role !== 'stringer') && (
+                    <button 
+                      onClick={handleMarkAllAsRead}
+                      className="text-[10px] bg-primary/10 text-primary px-2 py-1 rounded-lg font-bold hover:bg-primary/20 transition-all"
+                    >
+                      Mark All Read
+                    </button>
+                  )}
                 </div>
                 <div className="flex-1 overflow-y-auto p-2 space-y-1">
                   {/* Derive unique customers from messages or use existing customers list */}
@@ -2862,6 +2888,31 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
                             {lastMsg.content || lastMsg.message}
                           </p>
                         )}
+                      </button>
+                    );
+                  })}
+                  {/* Handle messages with no customer_id and no customer_email (orphaned messages) */}
+                  {[...new Set(messages.filter(m => !m.customer_id && !m.customer_email).map(m => m.id))].length > 0 && (
+                    <div className="pt-4 pb-2 px-3">
+                      <p className="text-[10px] font-black text-neutral-400 uppercase tracking-widest">Other Inquiries</p>
+                    </div>
+                  )}
+                  {messages.filter(m => !m.customer_id && !m.customer_email).map(msg => {
+                    const unread = !msg.read && msg.sender_role !== 'stringer';
+                    
+                    return (
+                      <button
+                        key={msg.id}
+                        onClick={() => setSelectedCustomerIdForChat(msg.id)}
+                        className={`w-full text-left p-3 rounded-2xl transition-all relative ${selectedCustomerIdForChat === msg.id ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'hover:bg-neutral-50 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300'}`}
+                      >
+                        <div className="flex justify-between items-start">
+                          <p className="font-bold text-sm truncate">{msg.sender_name || "Unknown Sender"}</p>
+                          {unread && <span className="w-2 h-2 bg-red-500 rounded-full" />}
+                        </div>
+                        <p className={`text-[10px] truncate mt-0.5 ${selectedCustomerIdForChat === msg.id ? 'text-white/70' : 'text-neutral-400'}`}>
+                          {msg.content || msg.message}
+                        </p>
                       </button>
                     );
                   })}

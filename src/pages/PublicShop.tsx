@@ -2,9 +2,9 @@ import React, { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { collection, query, where, getDocs, doc, getDoc, setDoc, addDoc, serverTimestamp, updateDoc } from "firebase/firestore";
-import { db, auth } from "../lib/firebase";
+import { db, auth, handleFirestoreError, OperationType } from "../lib/firebase";
 import { useAuth } from "../context/AuthContext";
-import { MapPin, Phone, Mail, ChevronRight, Award, ShieldCheck, Clock, X, CheckCircle2, LayoutDashboard, UserPlus, Star, Users, Wrench, Zap, TrendingUp, MessageSquare } from "lucide-react";
+import { MapPin, Phone, Mail, ChevronRight, Award, ShieldCheck, Clock, X, CheckCircle2, LayoutDashboard, UserPlus, Star, Users, Wrench, Zap, TrendingUp, MessageSquare, AlertTriangle } from "lucide-react";
 import { v4 as uuidv4 } from "uuid";
 
 interface Shop {
@@ -36,6 +36,7 @@ export default function PublicShop() {
   const [contactForm, setContactForm] = useState({ name: "", email: "", phone: "", content: "", register: false, password: "" });
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [joining, setJoining] = useState(false);
   const [isCustomerOfShop, setIsCustomerOfShop] = useState(false);
 
@@ -130,6 +131,7 @@ export default function PublicShop() {
     }
     
     setSubmitting(true);
+    setSubmitError(null);
     try {
       let currentUid = user?.uid;
 
@@ -203,8 +205,10 @@ export default function PublicShop() {
       setSubmitted(true);
       setContactForm({ name: "", email: "", phone: "", content: "", register: false, password: "" });
       setSelectedService(null);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error sending message:", err);
+      handleFirestoreError(err, OperationType.CREATE, "messages");
+      setSubmitError(err.message || "Failed to send message. Please try again.");
     } finally {
       setSubmitting(false);
     }
@@ -755,6 +759,13 @@ export default function PublicShop() {
                     <p className="text-neutral-500 dark:text-neutral-400">Send a message to {shop.name} about your racquet.</p>
                   )}
                 </div>
+
+                {submitError && (
+                  <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-2xl flex items-center gap-3 text-red-600 dark:text-red-400 text-sm animate-in shake duration-300">
+                    <AlertTriangle className="w-5 h-5 shrink-0" />
+                    <p className="font-medium">{submitError}</p>
+                  </div>
+                )}
 
                 <form onSubmit={handleContactSubmit} className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

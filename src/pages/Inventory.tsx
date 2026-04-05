@@ -93,18 +93,48 @@ export default function Inventory({ user }: { user: any }) {
 
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Updating inventory item:", editingItem);
+    if (!editingItem) return;
+
     try {
-      const { id, ...data } = editingItem;
-      console.log("Data to update:", data);
-      await updateDoc(doc(db, "inventory", id), {
-        ...data,
+      console.log("Updating inventory item:", editingItem.id);
+      console.log("User shop_id:", user.shop_id);
+      console.log("Item shop_id:", editingItem.shop_id);
+      
+      const { 
+        id: itemId, 
+        name, 
+        brand, 
+        type, 
+        packaging, 
+        gauge, 
+        total_length, 
+        remaining_length, 
+        grip_type, 
+        quantity, 
+        low_stock_threshold, 
+        price, 
+        qr_code
+      } = editingItem;
+
+      const updateData = {
+        name: String(name || ""),
+        brand: String(brand || ""),
+        type: String(type || "string"),
+        packaging: String(packaging || "set"),
+        gauge: String(gauge || ""),
+        total_length: Number(total_length) || 0,
+        remaining_length: Number(remaining_length) || 0,
+        grip_type: String(grip_type || ""),
+        quantity: Number(quantity) || 0,
+        low_stock_threshold: Number(low_stock_threshold) || 0,
+        price: Number(price) || 0,
+        qr_code: String(qr_code || `inventory_${itemId}`),
         updated_at: serverTimestamp()
-      });
-      console.log("Update successful");
+      };
+
+      await updateDoc(doc(db, "inventory", itemId), updateData);
       setEditingItem(null);
     } catch (err) {
-      console.error("Error updating inventory item:", err);
       handleFirestoreError(err, OperationType.UPDATE, `inventory/${editingItem.id}`);
     }
   };
