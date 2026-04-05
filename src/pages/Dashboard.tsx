@@ -57,7 +57,7 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
   const [deleteConfirm, setDeleteConfirm] = useState<{ type: 'customer' | 'job' | 'racquet' | 'message', id: string, name?: string } | null>(null);
   const [customerSearch, setCustomerSearch] = useState("");
   const [jobSearch, setJobSearch] = useState("");
-  const [jobStatusFilter, setJobStatusFilter] = useState<string>("active");
+  const [jobStatusFilter, setJobStatusFilter] = useState<string>("all");
   const [expandedCustomerId, setExpandedCustomerId] = useState<string | null>(null);
   const [editingRacquet, setEditingRacquet] = useState<any | null>(null);
   const [editingJob, setEditingJob] = useState<any | null>(null);
@@ -398,13 +398,8 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
   // Mark messages as read when a conversation is selected
   useEffect(() => {
     if (selectedCustomerIdForChat && activeTab === 'messages') {
-      const isEmailChat = selectedCustomerIdForChat.includes('@');
       const unreadMessages = messages.filter(
-        m => {
-          if (isEmailChat) return m.customer_email === selectedCustomerIdForChat && m.sender_role !== 'stringer' && !m.read;
-          // If it's a UUID, it could be a customer_id OR a message_id (for orphaned messages)
-          return (m.customer_id === selectedCustomerIdForChat || m.id === selectedCustomerIdForChat) && m.sender_role !== 'stringer' && !m.read;
-        }
+        m => m.customer_id === selectedCustomerIdForChat && m.sender_role !== 'stringer' && !m.read
       );
       
       if (unreadMessages.length > 0) {
@@ -418,22 +413,6 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
       }
     }
   }, [selectedCustomerIdForChat, activeTab, messages]);
-
-  const handleMarkAllAsRead = async () => {
-    const unread = messages.filter(m => !m.read && m.sender_role !== 'stringer');
-    if (unread.length === 0) return;
-    
-    const batch = writeBatch(db);
-    unread.forEach(msg => {
-      batch.update(doc(db, "messages", msg.id), { read: true });
-    });
-    
-    try {
-      await batch.commit();
-    } catch (err) {
-      console.error("Error marking all as read:", err);
-    }
-  };
 
   const handleCreateJob = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -727,18 +706,7 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
     (j.customer_name || "").toLowerCase().includes(jobSearch.toLowerCase()) ||
     (j.brand || "").toLowerCase().includes(jobSearch.toLowerCase()) ||
     (j.model || "").toLowerCase().includes(jobSearch.toLowerCase())
-  ).filter(j => {
-    if (jobStatusFilter === "active") {
-      // Active jobs: pending, in-progress, or completed but unpaid
-      return j.status === "pending" || j.status === "in-progress" || (j.status === "completed" && j.payment_status === "unpaid");
-    }
-    if (jobStatusFilter === "archived") {
-      // Archived jobs: completed and paid
-      return j.status === "completed" && j.payment_status === "paid";
-    }
-    if (jobStatusFilter === "all") return true;
-    return j.status === jobStatusFilter;
-  });
+  ).filter(j => jobStatusFilter === "all" ? true : j.status === jobStatusFilter);
 
   // Combine static strings with inventory strings
   const allStrings = JSON.parse(JSON.stringify(STRINGS)); // Deep clone to avoid mutating constant
@@ -858,7 +826,7 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
           current_string_cross: job.string_cross || job.string_main || "Not specified",
           current_tension_main: Number(job.tension_main) || 0,
           current_tension_cross: Number(job.tension_cross || job.tension_main) || 0,
-          updated_at: serverTimestamp()
+          updated_at: new Date().toISOString()
         });
       }
 
@@ -1195,18 +1163,21 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
     }
   };
 
-  if (loading) return <div className="animate-pulse space-y-4">
-    <div className="h-12 bg-neutral-200 dark:bg-neutral-800 rounded-xl w-1/4"></div>
-    <div className="h-64 bg-neutral-200 dark:bg-neutral-800 rounded-xl"></div>
-  </div>;
+  if (loading) return (
+    <div className="animate-pulse space-y-4">
+      <div className="h-12 bg-neutral-200 dark:bg-neutral-800 rounded-xl w-1/4"></div>
+      <div className="h-64 bg-neutral-200 dark:bg-neutral-800 rounded-xl"></div>
+    </div>
+  );
 
   return (
-    <div className="space-y-8">
+    <React.Fragment>
+      <div className="space-y-8">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-primary tracking-tight">{shop?.name}</h1>
-          <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-1">Manage your shop operations v1.1</p>
+          <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-1">Manage your shop operations</p>
         </div>
         <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
           <button 
@@ -2478,9 +2449,7 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
           {activeTab === 'jobs' && (
             <>
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-                <h2 className="text-lg font-semibold text-primary">
-                  {jobStatusFilter === 'active' ? 'Active Jobs' : jobStatusFilter === 'archived' ? 'Archived Jobs' : 'All Jobs'}
-                </h2>
+                <h2 className="text-lg font-semibold text-primary">Active Jobs</h2>
                 <div className="flex flex-wrap gap-2 w-full sm:w-auto">
                   <div className="relative flex-1 sm:flex-none">
                     <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
@@ -2497,9 +2466,7 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
                     onChange={(e) => setJobStatusFilter(e.target.value)}
                     className="px-3 py-2 text-sm border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-lg focus:ring-2 focus:ring-primary outline-none"
                   >
-                    <option value="active">Active Jobs</option>
-                    <option value="archived">Archived Jobs</option>
-                    <option value="all">All Jobs</option>
+                    <option value="all">All Status</option>
                     <option value="pending">Pending</option>
                     <option value="in-progress">In Progress</option>
                     <option value="completed">Completed</option>
@@ -2532,11 +2499,11 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
                         </td>
                         <td className="px-6 py-4">
                           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            (job.status === 'completed' && job.payment_status === 'paid') ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' :
-                            (job.status === 'in-progress' || (job.status === 'completed' && job.payment_status === 'unpaid')) ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400' :
+                            job.status === 'completed' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' :
+                            job.status === 'in-progress' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400' :
                             'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
                           }`}>
-                            {(job.status === 'completed' && job.payment_status === 'unpaid') ? 'In Progress' : job.status.charAt(0).toUpperCase() + job.status.slice(1).replace('-', ' ')}
+                            {job.status.charAt(0).toUpperCase() + job.status.slice(1).replace('-', ' ')}
                           </span>
                         </td>
                         <td className="px-6 py-4">
@@ -2837,125 +2804,152 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
           )}
           
           {activeTab === 'messages' && (
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 h-[calc(100vh-12rem)] min-h-[500px]">
-              {/* Customer List */}
-              <div className="md:col-span-1 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-3xl overflow-hidden flex flex-col shadow-sm">
-                <div className="p-4 border-b border-neutral-100 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-800/50 flex justify-between items-center">
-                  <h3 className="font-bold text-primary">Conversations</h3>
-                  <button 
-                    onClick={handleMarkAllAsRead}
-                    className="text-[10px] bg-primary/10 text-primary px-2 py-1 rounded-lg font-bold hover:bg-primary/20 transition-all flex items-center gap-1"
-                  >
-                    <CheckCircle2 className="w-3 h-3" />
-                    Mark All Read
-                  </button>
+            <div className="flex flex-col lg:flex-row gap-6 h-[calc(100vh-12rem)] min-h-[500px]">
+              {/* Customer List - Mobile First */}
+              <div className="lg:w-80 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-3xl overflow-hidden flex flex-col shadow-sm">
+                <div className="p-4 border-b border-neutral-100 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-800/50">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-bold text-primary">Conversations</h3>
+                    <button
+                      onClick={() => setSelectedCustomerIdForChat(null)}
+                      className="p-2 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 transition-colors lg:hidden"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
                 <div className="flex-1 overflow-y-auto p-2 space-y-1">
-                  {/* Derive unique conversations from messages */}
-                  {(() => {
-                    const conversations: any[] = [];
-                    const processedIds = new Set<string>();
-                    const processedEmails = new Set<string>();
-
-                    // First, add conversations for known customers
-                    customers.forEach(customer => {
-                      const customerMessages = messages.filter(m => m.customer_id === customer.id || (m.customer_email && m.customer_email === customer.email));
-                      if (customerMessages.length > 0) {
-                        conversations.push({
-                          id: customer.id,
-                          name: customer.name,
-                          email: customer.email,
-                          messages: customerMessages,
-                          type: 'customer'
-                        });
-                        processedIds.add(customer.id);
-                        if (customer.email) processedEmails.add(customer.email);
-                      }
-                    });
-
-                    // Then, add conversations for unknown customers/leads from messages
-                    messages.forEach(m => {
-                      if (m.customer_id && !processedIds.has(m.customer_id)) {
-                        const customerMessages = messages.filter(msg => msg.customer_id === m.customer_id);
-                        conversations.push({
-                          id: m.customer_id,
-                          name: m.sender_name || "Unknown Customer",
-                          email: m.customer_email,
-                          messages: customerMessages,
-                          type: 'unknown'
-                        });
-                        processedIds.add(m.customer_id);
-                      } else if (!m.customer_id && m.customer_email && !processedEmails.has(m.customer_email)) {
-                        const customerMessages = messages.filter(msg => msg.customer_email === m.customer_email);
-                        conversations.push({
-                          id: m.customer_email,
-                          name: m.sender_name || "Unknown Lead",
-                          email: m.customer_email,
-                          messages: customerMessages,
-                          type: 'email'
-                        });
-                        processedEmails.add(m.customer_email);
-                      } else if (!m.customer_id && !m.customer_email && !processedIds.has(m.id)) {
-                        // Orphaned message
-                        conversations.push({
-                          id: m.id,
-                          name: m.sender_name || "Orphaned Message",
-                          email: null,
-                          messages: [m],
-                          type: 'orphaned'
-                        });
-                        processedIds.add(m.id);
-                      }
-                    });
-
-                    // Sort conversations by last message date
-                    conversations.sort((a, b) => {
-                      const lastA = a.messages[a.messages.length - 1]?.created_at?.seconds || 0;
-                      const lastB = b.messages[b.messages.length - 1]?.created_at?.seconds || 0;
-                      return lastB - lastA;
-                    });
-
-                    return conversations.map(conv => {
-                      const lastMessage = conv.messages[conv.messages.length - 1];
-                      const unread = conv.messages.filter((m: any) => !m.read && m.sender_role !== 'stringer').length;
-                      
-                      return (
-                        <button
-                          key={conv.id}
-                          onClick={() => setSelectedCustomerIdForChat(conv.id)}
-                          className={`w-full text-left p-3 rounded-2xl transition-all relative ${selectedCustomerIdForChat === conv.id ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'hover:bg-neutral-50 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300'}`}
-                        >
-                          <div className="flex justify-between items-start">
-                            <p className="font-bold text-sm truncate">{conv.name}</p>
-                            {unread > 0 && <span className="w-2 h-2 bg-red-500 rounded-full" />}
+                  {/* Derive unique customers from messages or use existing customers list */}
+                  {customers.map(customer => {
+                    const lastMsg = [...messages].filter(m => m.customer_id === customer.id).sort((a,b) => {
+                      const timeA = a.created_at?.seconds ? a.created_at.seconds * 1000 : new Date(a.created_at).getTime();
+                      const timeB = b.created_at?.seconds ? b.created_at.seconds * 1000 : new Date(b.created_at).getTime();
+                      return timeB - timeA;
+                    })[0];
+                    const unread = messages.filter(m => m.customer_id === customer.id && m.sender_role !== 'stringer' && !m.read).length;
+                    
+                    return (
+                      <button
+                        key={customer.id}
+                        onClick={() => setSelectedCustomerIdForChat(customer.id)}
+                        className={`w-full text-left p-3 rounded-2xl transition-all relative ${
+                          selectedCustomerIdForChat === customer.id 
+                            ? 'bg-primary text-white shadow-lg shadow-primary/20' 
+                            : 'hover:bg-neutral-50 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300'
+                        }`}
+                      >
+                        <div className="flex justify-between items-start">
+                          <div className="flex items-center gap-3 flex-1 min-w-0">
+                            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold flex-shrink-0">
+                              {customer.name?.charAt(0)?.toUpperCase() || 'C'}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-bold text-sm truncate">{customer.name}</p>
+                              <p className={`text-[10px] truncate mt-0.5 ${
+                                selectedCustomerIdForChat === customer.id ? 'text-white/70' : 'text-neutral-400'
+                              }`}>
+                                {lastMsg?.content || lastMsg?.message || 'No messages yet'}
+                              </p>
+                            </div>
                           </div>
-                          {lastMessage && (
-                            <p className={`text-[10px] truncate mt-0.5 ${selectedCustomerIdForChat === conv.id ? 'text-white/70' : 'text-neutral-400'}`}>
-                              {lastMessage.content || lastMessage.message}
+                          <div className="flex flex-col items-end gap-1 ml-2">
+                            {unread > 0 && (
+                              <span className="w-2 h-2 bg-red-500 rounded-full flex-shrink-0" />
+                            )}
+                            <p className={`text-[10px] ${
+                              selectedCustomerIdForChat === customer.id ? 'text-white/60' : 'text-neutral-400'
+                            }`}>
+                              {lastMsg ? new Date(lastMsg.created_at?.seconds * 1000 || lastMsg.created_at).toLocaleDateString('en-US', { 
+                                month: 'short', 
+                                day: 'numeric' 
+                              }) : ''}
                             </p>
-                          )}
-                        </button>
-                      );
-                    });
-                  })()}
-
-                  {customers.length === 0 && messages.length === 0 && (
-                    <p className="text-center text-xs text-neutral-400 p-4">No messages yet</p>
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                  {/* Handle messages without customer_id (old anonymous inquiries) */}
+                  {[...new Set(messages.filter(m => !m.customer_id && m.customer_email).map(m => m.customer_email))].map(email => {
+                    const lastMsg = [...messages].filter(m => m.customer_email === email).sort((a,b) => {
+                      const timeA = a.created_at?.seconds ? a.created_at.seconds * 1000 : new Date(a.created_at).getTime();
+                      const timeB = b.created_at?.seconds ? b.created_at.seconds * 1000 : new Date(b.created_at).getTime();
+                      return timeB - timeA;
+                    })[0];
+                    const unread = messages.filter(m => m.customer_email === email && m.sender_role !== 'stringer' && !m.read).length;
+                    
+                    return (
+                      <button
+                        key={email}
+                        onClick={() => setSelectedCustomerIdForChat(email)}
+                        className={`w-full text-left p-3 rounded-2xl transition-all relative ${
+                          selectedCustomerIdForChat === email 
+                            ? 'bg-primary text-white shadow-lg shadow-primary/20' 
+                            : 'hover:bg-neutral-50 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300'
+                        }`}
+                      >
+                        <div className="flex justify-between items-start">
+                          <div className="flex items-center gap-3 flex-1 min-w-0">
+                            <div className="w-10 h-10 rounded-full bg-neutral-200 dark:bg-neutral-700 flex items-center justify-center text-neutral-600 dark:text-neutral-300 font-bold flex-shrink-0">
+                              {email.charAt(0).toUpperCase()}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-bold text-sm truncate">{email}</p>
+                              <p className={`text-[10px] truncate mt-0.5 ${
+                                selectedCustomerIdForChat === email ? 'text-white/70' : 'text-neutral-400'
+                              }`}>
+                                {lastMsg?.content || lastMsg?.message || 'No messages yet'}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex flex-col items-end gap-1 ml-2">
+                            {unread > 0 && (
+                              <span className="w-2 h-2 bg-red-500 rounded-full flex-shrink-0" />
+                            )}
+                            <p className={`text-[10px] ${
+                              selectedCustomerIdForChat === email ? 'text-white/60' : 'text-neutral-400'
+                            }`}>
+                              {lastMsg ? new Date(lastMsg.created_at?.seconds * 1000 || lastMsg.created_at).toLocaleDateString('en-US', { 
+                                month: 'short', 
+                                day: 'numeric' 
+                              }) : ''}
+                            </p>
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                  {customers.length === 0 && messages.filter(m => !m.customer_id).length === 0 && (
+                    <div className="text-center py-8">
+                      <MessageSquare className="w-12 h-12 text-neutral-300 dark:text-neutral-600 mx-auto mb-4" />
+                      <p className="text-sm text-neutral-400">No conversations yet</p>
+                    </div>
                   )}
                 </div>
               </div>
 
-              {/* Chat Area */}
-              <div className="md:col-span-3 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-3xl overflow-hidden flex flex-col shadow-sm">
+              {/* Chat Area - Responsive */}
+              <div className={`flex-1 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-3xl overflow-hidden flex flex-col shadow-sm ${
+                selectedCustomerIdForChat ? 'block' : 'hidden lg:block'
+              }`}>
                 {selectedCustomerIdForChat ? (
                   <>
                     <div className="p-4 border-b border-neutral-100 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-800/50 flex items-center justify-between">
                       <div className="flex items-center gap-3">
+                        <button
+                          onClick={() => setSelectedCustomerIdForChat(null)}
+                          className="lg:hidden p-2 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 transition-colors"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
                         <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
-                          {customers.find(c => c.id === selectedCustomerIdForChat)?.name?.charAt(0) || selectedCustomerIdForChat.charAt(0).toUpperCase()}
+                          {customers.find(c => c.id === selectedCustomerIdForChat)?.name?.charAt(0) || 
+                           selectedCustomerIdForChat.charAt(0).toUpperCase()}
                         </div>
                         <div>
-                          <h3 className="font-bold text-primary">{customers.find(c => c.id === selectedCustomerIdForChat)?.name || selectedCustomerIdForChat}</h3>
+                          <h3 className="font-bold text-primary">
+                            {customers.find(c => c.id === selectedCustomerIdForChat)?.name || selectedCustomerIdForChat}
+                          </h3>
                           <p className="text-[10px] text-neutral-400 uppercase tracking-widest">
                             {customers.find(c => c.id === selectedCustomerIdForChat) ? 'Customer' : 'Inquiry'}
                           </p>
@@ -2971,7 +2965,7 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
                       </div>
                     </div>
 
-                    <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-neutral-50/30 dark:bg-neutral-900/30">
+                    <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-neutral-50/30 dark:bg-neutral-900/30">
                       {[...messages]
                         .filter(m => m.customer_id === selectedCustomerIdForChat || m.customer_email === selectedCustomerIdForChat)
                         .sort((a, b) => {
@@ -2979,132 +2973,102 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
                           const timeB = b.created_at?.seconds ? b.created_at.seconds * 1000 : new Date(b.created_at).getTime();
                           return timeA - timeB;
                         })
-                        .map((msg, idx) => (
-                        <div key={msg.id || idx} className={`flex ${msg.sender_role === 'stringer' ? 'justify-end' : 'justify-start'}`}>
-                          <div className={`max-w-[80%] p-4 rounded-2xl shadow-sm ${
-                            msg.sender_role === 'stringer' 
-                              ? 'bg-primary text-white rounded-tr-none' 
-                              : 'bg-white dark:bg-neutral-800 text-neutral-800 dark:text-neutral-200 border border-neutral-100 dark:border-neutral-700 rounded-tl-none'
-                          }`}>
-                            <p className="text-sm leading-relaxed">
-                              {msg.content || msg.message}
-                              {msg.title && <span className="block font-bold mt-1 text-xs opacity-80">{msg.title}</span>}
-                            </p>
-                            <div className="flex items-center justify-between gap-4 mt-2">
-                              <p className={`text-[10px] ${msg.sender_role === 'stringer' ? 'text-white/60' : 'text-neutral-400'}`}>
-                                {safeFormatDate(msg.created_at, 'h:mm a')}
+                        .map((message) => (
+                          <div
+                            key={message.id}
+                            className={`flex ${message.sender_role === 'stringer' ? 'justify-end' : 'justify-start'}`}
+                          >
+                            <div className={`max-w-[70%] lg:max-w-[60%] ${
+                              message.sender_role === 'stringer' 
+                                ? 'bg-primary text-white' 
+                                : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-white'
+                            } rounded-2xl p-3 shadow-sm`}>
+                              <p className="text-sm leading-relaxed">{message.content || message.message}</p>
+                              <p className={`text-[10px] mt-1 ${
+                                message.sender_role === 'stringer' ? 'text-white/70' : 'text-neutral-500 dark:text-neutral-400'
+                              }`}>
+                                {new Date(message.created_at?.seconds * 1000 || message.created_at).toLocaleTimeString('en-US', {
+                                  hour: 'numeric',
+                                  minute: '2-digit'
+                                })}
                               </p>
-                              {msg.sender_role === 'stringer' && msg.read && (
-                                <CheckCircle2 className="w-3 h-3 text-white/60" />
-                              )}
                             </div>
                           </div>
-                        </div>
-                      ))}
-                      <div ref={messagesEndRef} />
-                      {messages.filter(m => m.customer_id === selectedCustomerIdForChat).length === 0 && (
-                        <div className="h-full flex flex-col items-center justify-center text-neutral-400 opacity-40">
-                          <MessageSquare className="w-12 h-12 mb-2" />
-                          <p className="text-sm">No messages yet. Start the conversation!</p>
-                        </div>
-                      )}
+                        ))}
                     </div>
 
-                    <form onSubmit={handleSendMessage} className="p-4 border-t border-neutral-100 dark:border-neutral-800 bg-white dark:bg-neutral-900">
-                      <div className="flex gap-2">
+                    <div className="p-4 border-t border-neutral-100 dark:border-neutral-800 bg-white dark:bg-neutral-900">
+                      <form onSubmit={handleSendMessage} className="flex gap-2">
                         <input
                           type="text"
                           value={newMessage}
                           onChange={(e) => setNewMessage(e.target.value)}
-                          placeholder="Type your message..."
-                          className="flex-1 bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                          placeholder="Type a message..."
+                          className="flex-1 px-4 py-2 bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                         />
                         <button
                           type="submit"
-                          disabled={sendingMessage || !newMessage.trim()}
-                          className="bg-primary text-white p-3 rounded-2xl hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 disabled:opacity-50 disabled:shadow-none active:scale-95"
+                          disabled={!newMessage.trim() || sendingMessage}
+                          className="p-2 bg-primary text-white rounded-full hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                          <Send className="w-5 h-5" />
+                          <Send className="w-4 h-4" />
                         </button>
-                      </div>
-                    </form>
+                      </form>
+                    </div>
                   </>
                 ) : (
-                  <div className="flex-1 flex flex-col items-center justify-center text-neutral-400 p-8 text-center">
-                    <MessageSquare className="w-16 h-16 mb-4 opacity-10" />
-                    <h3 className="text-lg font-bold text-neutral-300 dark:text-neutral-600">Select a conversation</h3>
-                    <p className="text-sm max-w-xs">Choose a customer from the list to view your messages or start a new conversation.</p>
+                  <div className="flex-1 flex items-center justify-center p-8">
+                    <div className="text-center">
+                      <MessageSquare className="w-16 h-16 text-neutral-300 dark:text-neutral-600 mx-auto mb-4" />
+                      <h3 className="text-lg font-bold text-neutral-900 dark:text-white mb-2">Select a conversation</h3>
+                      <p className="text-sm text-neutral-500 dark:text-neutral-400">
+                        Choose a customer from the list to start messaging
+                      </p>
+                    </div>
                   </div>
                 )}
               </div>
             </div>
           )}
-        </div>
 
-        {/* Sidebar Actions / Stats */}
-        <div className="space-y-8">
-          <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-6 shadow-sm">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-primary tracking-tight">Shop Storefront</h3>
-              <button
-                onClick={handleRegenerateQR}
-                disabled={regeneratingQR || !shop?.name}
-                className="flex items-center gap-2 px-3 py-2 bg-primary/10 text-primary rounded-xl text-xs font-bold hover:bg-primary/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <RefreshCw className={`w-3 h-3 ${regeneratingQR ? 'animate-spin' : ''}`} />
-                {regeneratingQR ? 'Updating...' : 'Regenerate QR'}
-              </button>
-            </div>
-            <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-6">Customers can scan this to register and view their jobs at your shop.</p>
-            <div className="bg-neutral-50 dark:bg-neutral-800 p-4 rounded-2xl flex justify-center">
-              <QRCodeDisplay 
-                value={shop?.qr_code} 
-                label="Storefront QR" 
-                shopName={shop?.name}
-                shopPhone={shop?.phone}
-              />
-            </div>
-            {shop?.qr_code?.includes('_') && (
-              <div className="mt-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-900/50 rounded-xl">
-                <p className="text-xs text-yellow-700 dark:text-yellow-300">
-                  <strong>Update Available:</strong> Regenerate your QR code to use the new shop landing page format.
+          {/* Delete Confirmation Modal */}
+          {deleteConfirm && (
+            <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-50 p-4">
+              <div className="bg-white dark:bg-neutral-900 rounded-2xl p-6 max-w-md w-full shadow-2xl">
+                <h3 className="text-lg font-bold text-neutral-900 dark:text-white mb-2">Delete {deleteConfirm.type}</h3>
+                <p className="text-neutral-600 dark:text-neutral-400 mb-6">
+                  Are you sure you want to delete "{deleteConfirm.name}"? This action cannot be undone.
                 </p>
-              </div>
-            )}
-          </div>
-
-          <div className="bg-primary rounded-2xl p-6 text-white shadow-xl shadow-primary/20">
-            <h3 className="text-lg font-semibold mb-4 tracking-tight">Quick Stats</h3>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/10">
-                <p className="text-[10px] text-secondary font-bold uppercase tracking-wider">Pending</p>
-                <p className="text-2xl font-bold">{jobs.filter(j => j.status === 'pending').length}</p>
-              </div>
-              <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/10">
-                <p className="text-[10px] text-secondary font-bold uppercase tracking-wider">In Progress</p>
-                <p className="text-2xl font-bold">{jobs.filter(j => j.status === 'in-progress').length}</p>
-              </div>
-              <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/10">
-                <p className="text-[10px] text-accent font-bold uppercase tracking-wider">Completed</p>
-                <p className="text-2xl font-bold">{jobs.filter(j => j.status === 'completed').length}</p>
-              </div>
-              <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/10">
-                <p className="text-[10px] text-secondary font-bold uppercase tracking-wider">Unpaid</p>
-                <p className="text-2xl font-bold">{jobs.filter(j => j.payment_status === 'unpaid').length}</p>
-              </div>
-              <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/10 col-span-2">
-                <p className="text-[10px] text-accent font-bold uppercase tracking-wider">Total Revenue (Paid)</p>
-                <p className="text-2xl font-bold">
-                  ${jobs
-                    .filter(j => j.status === 'completed' && j.payment_status === 'paid')
-                    .reduce((acc, j) => acc + (j.price || 0), 0)
-                    .toLocaleString()}
-                </p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => {
+                      if (deleteConfirm.type === 'customer') {
+                        handleDeleteCustomer(deleteConfirm.id);
+                      } else if (deleteConfirm.type === 'job') {
+                        handleDeleteJob(deleteConfirm.id);
+                      } else if (deleteConfirm.type === 'racquet') {
+                        handleDeleteRacquet(deleteConfirm.id);
+                      } else if (deleteConfirm.type === 'message') {
+                        handleDeleteConversation(deleteConfirm.id);
+                      }
+                    }}
+                    className="flex-1 px-4 py-2 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 transition-colors"
+                  >
+                    Delete
+                  </button>
+                  <button
+                    onClick={() => setDeleteConfirm(null)}
+                    className="flex-1 px-4 py-2 bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 rounded-xl font-bold hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
-    </div>
+      </div>
+      </React.Fragment>
   );
 }

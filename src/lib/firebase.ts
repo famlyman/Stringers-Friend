@@ -43,13 +43,46 @@ export const requestNotificationPermission = async (userId: string) => {
         const { updateDoc, doc } = await import('firebase/firestore');
         await updateDoc(doc(db, 'users', userId), {
           fcmToken: token,
-          notificationsEnabled: true
+          notificationsEnabled: true,
+          lastTokenUpdate: new Date().toISOString()
         });
+        
+        console.log('Notification permission granted and token saved');
         return token;
       }
+    } else {
+      console.log('Notification permission denied');
     }
   } catch (error) {
     console.error('Error requesting notification permission:', error);
+  }
+};
+
+export const subscribeToPushNotifications = (userId: string, callback: (payload: any) => void) => {
+  if (typeof window === 'undefined' || !messaging) return null;
+  
+  return onMessage(messaging, (payload) => {
+    console.log('Received foreground message:', payload);
+    callback(payload);
+  });
+};
+
+export const sendPushNotification = async (token: string, title: string, body: string, data?: any) => {
+  try {
+    const response = await fetch("/api/send-notification", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token, title, body, data })
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Error sending push notification:', error);
+    throw error;
   }
 };
 

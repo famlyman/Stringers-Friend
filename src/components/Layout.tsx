@@ -2,6 +2,7 @@ import { ReactNode, useState, useEffect } from "react";
 import { Link, Outlet, useNavigate } from "react-router-dom";
 import { LayoutDashboard, Users, Package, LogOut, User, Sun, Moon, MessageSquare, Clock } from "lucide-react";
 import { useTheme } from "../context/ThemeContext";
+import { NotificationProvider, NotificationDropdown, useNotifications } from "../context/NotificationContext";
 import { collection, query, where, onSnapshot } from "firebase/firestore";
 import { db } from "../lib/firebase";
 
@@ -10,10 +11,11 @@ interface LayoutProps {
   onLogout: () => void;
 }
 
-export default function Layout({ user, onLogout }: LayoutProps) {
+function LayoutContent({ user, onLogout }: LayoutProps) {
   const navigate = useNavigate();
   const { darkMode, toggleDarkMode } = useTheme();
-  const [unreadCount, setUnreadCount] = useState(0);
+  const { unreadCount } = useNotifications();
+  const [messageUnreadCount, setMessageUnreadCount] = useState(0);
 
   useEffect(() => {
     if (!user) return;
@@ -26,9 +28,9 @@ export default function Layout({ user, onLogout }: LayoutProps) {
       if (user.role === 'stringer') {
         // Filter out messages sent by the stringer themselves
         const unread = snapshot.docs.filter(doc => doc.data().sender_role !== 'stringer').length;
-        setUnreadCount(unread);
+        setMessageUnreadCount(unread);
       } else {
-        setUnreadCount(snapshot.size);
+        setMessageUnreadCount(snapshot.size);
       }
     });
 
@@ -52,7 +54,7 @@ export default function Layout({ user, onLogout }: LayoutProps) {
           <Link to="/messages" className="flex flex-col md:flex-row items-center px-4 py-2 text-xs md:text-sm font-medium text-neutral-700 dark:text-neutral-300 rounded-lg hover:bg-primary/10 hover:text-primary dark:hover:text-primary transition-colors group shrink-0 relative">
             <MessageSquare className="w-5 h-5 md:w-4 md:h-4 md:mr-3 group-hover:text-primary" />
             <span className="mt-1 md:mt-0">Messages</span>
-            {unreadCount > 0 && (
+            {messageUnreadCount > 0 && (
               <span className="absolute top-2 right-2 md:top-2 md:left-6 flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
@@ -82,7 +84,7 @@ export default function Layout({ user, onLogout }: LayoutProps) {
           <Link to="/?tab=messages" className="flex flex-col md:flex-row items-center px-4 py-2 text-xs md:text-sm font-medium text-neutral-700 dark:text-neutral-300 rounded-lg hover:bg-primary/10 hover:text-primary dark:hover:text-primary transition-colors group shrink-0 relative">
             <MessageSquare className="w-5 h-5 md:w-4 md:h-4 md:mr-3 group-hover:text-primary" />
             <span className="mt-1 md:mt-0">Messages</span>
-            {unreadCount > 0 && (
+            {messageUnreadCount > 0 && (
               <span className="absolute top-2 right-2 md:top-2 md:left-6 flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
@@ -106,8 +108,9 @@ export default function Layout({ user, onLogout }: LayoutProps) {
           <div className="flex justify-between items-center">
             <div>
               <h1 className="text-xl font-bold text-white tracking-tight">Stringers Friend</h1>
-              <p className="text-[10px] text-secondary font-bold uppercase tracking-widest mt-1">Shop Management v1.1</p>
+              <p className="text-[10px] text-secondary font-bold uppercase tracking-widest mt-1">Shop Management</p>
             </div>
+            <NotificationDropdown />
           </div>
         </div>
 
@@ -139,6 +142,7 @@ export default function Layout({ user, onLogout }: LayoutProps) {
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-bg-card border-t border-border-main px-2 py-2 flex overflow-x-auto no-scrollbar items-center z-50 scroll-smooth">
         <div className="flex flex-nowrap items-center space-x-1 min-w-max px-2">
           <NavLinks />
+          <NotificationDropdown />
           <button
             onClick={onLogout}
             className="flex flex-col items-center px-4 py-2 text-xs font-medium text-red-600 shrink-0"
@@ -156,5 +160,13 @@ export default function Layout({ user, onLogout }: LayoutProps) {
         </div>
       </main>
     </div>
+  );
+}
+
+export default function Layout({ user, onLogout }: LayoutProps) {
+  return (
+    <NotificationProvider>
+      <LayoutContent user={user} onLogout={onLogout} />
+    </NotificationProvider>
   );
 }
