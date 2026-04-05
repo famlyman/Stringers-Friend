@@ -7,36 +7,74 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Helper to initialize Firebase Admin lazily
-function getFirebaseAdmin() {
-  if (!admin.apps.length) {
+let firebaseAdminInstance: typeof admin | null = null;
+let isInitializing = false;
+
+async function getFirebaseAdmin() {
+  if (admin.apps.length > 0) return admin;
+  if (firebaseAdminInstance) return firebaseAdminInstance;
+  if (isInitializing) {
+    // Wait a bit if another request is already initializing
+    await new Promise(resolve => setTimeout(resolve, 500));
+    if (admin.apps.length > 0) return admin;
+  }
+
+  isInitializing = true;
+  try {
+    const serviceAccountStr = process.env.FIREBASE_SERVICE_ACCOUNT;
+    if (!serviceAccountStr) {
+      console.warn("FIREBASE_SERVICE_ACCOUNT not found.");
+      isInitializing = false;
+      return null;
+    }
+
+    let serviceAccount;
     try {
-      const serviceAccountStr = process.env.FIREBASE_SERVICE_ACCOUNT;
-      if (!serviceAccountStr) {
-        console.warn("FIREBASE_SERVICE_ACCOUNT not found.");
-        return null;
-      }
+      serviceAccount = JSON.parse(serviceAccountStr);
+    } catch (parseError) {
+      console.error("Failed to parse FIREBASE_SERVICE_ACCOUNT JSON:", parseError);
+      isInitializing = false;
+      return null;
+    }
+    
+    // Fix private key if it has literal \n
+    if (serviceAccount.private_key) {
+      serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
+    }
 
-      const serviceAccount = JSON.parse(serviceAccountStr);
-      
-      // Fix private key if it has literal \n
-      if (serviceAccount.private_key) {
-        serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
-      }
-
+    if (!admin.apps.length) {
       admin.initializeApp({
         credential: admin.credential.cert(serviceAccount),
       });
       console.log("Firebase Admin initialized successfully.");
-    } catch (error) {
-      console.error("Error initializing Firebase Admin:", error);
-      return null;
     }
+    firebaseAdminInstance = admin;
+  } catch (error) {
+    console.error("Error initializing Firebase Admin:", error);
+  } finally {
+    isInitializing = false;
   }
-  return admin;
+  return firebaseAdminInstance;
 }
 
 const app = express();
 app.use(express.json());
+
+// Log environment status on startup (but don't log the actual secret)
+console.log("Server starting. FIREBASE_SERVICE_ACCOUNT present:", !!process.env.FIREBASE_SERVICE_ACCOUNT);
+if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+  console.log("FIREBASE_SERVICE_ACCOUNT length:", process.env.FIREBASE_SERVICE_ACCOUNT.length);
+}
+
+// Global error handler for Express
+app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  console.error("Global Express Error:", err);
+  res.status(500).json({
+    error: "Internal Server Error",
+    message: err.message,
+    stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
+  });
+});
 
 // Log all requests for debugging
 app.use((req, res, next) => {
@@ -57,7 +95,7 @@ app.post("/api/send-notification", async (req, res) => {
     return res.status(400).json({ error: "Token is required" });
   }
 
-  const firebaseAdmin = getFirebaseAdmin();
+  const firebaseAdmin = await getFirebaseAdmin();
   if (!firebaseAdmin) {
     return res.status(503).json({ error: "Firebase Admin not initialized. Check server logs for FIREBASE_SERVICE_ACCOUNT issues." });
   }
