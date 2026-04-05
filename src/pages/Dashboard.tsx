@@ -57,7 +57,7 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
   const [deleteConfirm, setDeleteConfirm] = useState<{ type: 'customer' | 'job' | 'racquet' | 'message', id: string, name?: string } | null>(null);
   const [customerSearch, setCustomerSearch] = useState("");
   const [jobSearch, setJobSearch] = useState("");
-  const [jobStatusFilter, setJobStatusFilter] = useState<string>("all");
+  const [jobStatusFilter, setJobStatusFilter] = useState<string>("active");
   const [expandedCustomerId, setExpandedCustomerId] = useState<string | null>(null);
   const [editingRacquet, setEditingRacquet] = useState<any | null>(null);
   const [editingJob, setEditingJob] = useState<any | null>(null);
@@ -727,7 +727,18 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
     (j.customer_name || "").toLowerCase().includes(jobSearch.toLowerCase()) ||
     (j.brand || "").toLowerCase().includes(jobSearch.toLowerCase()) ||
     (j.model || "").toLowerCase().includes(jobSearch.toLowerCase())
-  ).filter(j => jobStatusFilter === "all" ? true : j.status === jobStatusFilter);
+  ).filter(j => {
+    if (jobStatusFilter === "active") {
+      // Active jobs: pending, in-progress, or completed but unpaid
+      return j.status === "pending" || j.status === "in-progress" || (j.status === "completed" && j.payment_status === "unpaid");
+    }
+    if (jobStatusFilter === "archived") {
+      // Archived jobs: completed and paid
+      return j.status === "completed" && j.payment_status === "paid";
+    }
+    if (jobStatusFilter === "all") return true;
+    return j.status === jobStatusFilter;
+  });
 
   // Combine static strings with inventory strings
   const allStrings = JSON.parse(JSON.stringify(STRINGS)); // Deep clone to avoid mutating constant
@@ -1195,7 +1206,7 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-primary tracking-tight">{shop?.name}</h1>
-          <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-1">Manage your shop operations</p>
+          <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-1">Manage your shop operations v1.1</p>
         </div>
         <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
           <button 
@@ -2467,7 +2478,9 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
           {activeTab === 'jobs' && (
             <>
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-                <h2 className="text-lg font-semibold text-primary">Active Jobs</h2>
+                <h2 className="text-lg font-semibold text-primary">
+                  {jobStatusFilter === 'active' ? 'Active Jobs' : jobStatusFilter === 'archived' ? 'Archived Jobs' : 'All Jobs'}
+                </h2>
                 <div className="flex flex-wrap gap-2 w-full sm:w-auto">
                   <div className="relative flex-1 sm:flex-none">
                     <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
@@ -2484,7 +2497,9 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
                     onChange={(e) => setJobStatusFilter(e.target.value)}
                     className="px-3 py-2 text-sm border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-lg focus:ring-2 focus:ring-primary outline-none"
                   >
-                    <option value="all">All Status</option>
+                    <option value="active">Active Jobs</option>
+                    <option value="archived">Archived Jobs</option>
+                    <option value="all">All Jobs</option>
                     <option value="pending">Pending</option>
                     <option value="in-progress">In Progress</option>
                     <option value="completed">Completed</option>
@@ -2517,11 +2532,11 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
                         </td>
                         <td className="px-6 py-4">
                           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            job.status === 'completed' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' :
-                            job.status === 'in-progress' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400' :
+                            (job.status === 'completed' && job.payment_status === 'paid') ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' :
+                            (job.status === 'in-progress' || (job.status === 'completed' && job.payment_status === 'unpaid')) ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400' :
                             'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
                           }`}>
-                            {job.status.charAt(0).toUpperCase() + job.status.slice(1).replace('-', ' ')}
+                            {(job.status === 'completed' && job.payment_status === 'unpaid') ? 'In Progress' : job.status.charAt(0).toUpperCase() + job.status.slice(1).replace('-', ' ')}
                           </span>
                         </td>
                         <td className="px-6 py-4">
@@ -2827,97 +2842,105 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
               <div className="md:col-span-1 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-3xl overflow-hidden flex flex-col shadow-sm">
                 <div className="p-4 border-b border-neutral-100 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-800/50 flex justify-between items-center">
                   <h3 className="font-bold text-primary">Conversations</h3>
-                  {messages.some(m => !m.read && m.sender_role !== 'stringer') && (
-                    <button 
-                      onClick={handleMarkAllAsRead}
-                      className="text-[10px] bg-primary/10 text-primary px-2 py-1 rounded-lg font-bold hover:bg-primary/20 transition-all"
-                    >
-                      Mark All Read
-                    </button>
-                  )}
+                  <button 
+                    onClick={handleMarkAllAsRead}
+                    className="text-[10px] bg-primary/10 text-primary px-2 py-1 rounded-lg font-bold hover:bg-primary/20 transition-all flex items-center gap-1"
+                  >
+                    <CheckCircle2 className="w-3 h-3" />
+                    Mark All Read
+                  </button>
                 </div>
                 <div className="flex-1 overflow-y-auto p-2 space-y-1">
-                  {/* Derive unique customers from messages or use existing customers list */}
-                  {customers.map(customer => {
-                    const lastMsg = [...messages].filter(m => m.customer_id === customer.id).sort((a,b) => {
-                      const timeA = a.created_at?.seconds ? a.created_at.seconds * 1000 : new Date(a.created_at).getTime();
-                      const timeB = b.created_at?.seconds ? b.created_at.seconds * 1000 : new Date(b.created_at).getTime();
-                      return timeB - timeA;
-                    })[0];
-                    const unread = messages.filter(m => m.customer_id === customer.id && m.sender_role !== 'stringer' && !m.read).length;
-                    
-                    return (
-                      <button
-                        key={customer.id}
-                        onClick={() => setSelectedCustomerIdForChat(customer.id)}
-                        className={`w-full text-left p-3 rounded-2xl transition-all relative ${selectedCustomerIdForChat === customer.id ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'hover:bg-neutral-50 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300'}`}
-                      >
-                        <div className="flex justify-between items-start">
-                          <p className="font-bold text-sm truncate">{customer.name}</p>
-                          {unread > 0 && <span className="w-2 h-2 bg-red-500 rounded-full" />}
-                        </div>
-                        {lastMsg && (
-                          <p className={`text-[10px] truncate mt-0.5 ${selectedCustomerIdForChat === customer.id ? 'text-white/70' : 'text-neutral-400'}`}>
-                            {lastMsg.content || lastMsg.message}
-                          </p>
-                        )}
-                      </button>
-                    );
-                  })}
-                  {/* Handle messages without customer_id (old anonymous inquiries) */}
-                  {[...new Set(messages.filter(m => !m.customer_id && m.customer_email).map(m => m.customer_email))].map(email => {
-                    const lastMsg = [...messages].filter(m => m.customer_email === email).sort((a,b) => {
-                      const timeA = a.created_at?.seconds ? a.created_at.seconds * 1000 : new Date(a.created_at).getTime();
-                      const timeB = b.created_at?.seconds ? b.created_at.seconds * 1000 : new Date(b.created_at).getTime();
-                      return timeB - timeA;
-                    })[0];
-                    const unread = messages.filter(m => m.customer_email === email && m.sender_role !== 'stringer' && !m.read).length;
-                    
-                    return (
-                      <button
-                        key={email}
-                        onClick={() => setSelectedCustomerIdForChat(email)} // Use email as ID for chat
-                        className={`w-full text-left p-3 rounded-2xl transition-all relative ${selectedCustomerIdForChat === email ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'hover:bg-neutral-50 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300'}`}
-                      >
-                        <div className="flex justify-between items-start">
-                          <p className="font-bold text-sm truncate">{email}</p>
-                          {unread > 0 && <span className="w-2 h-2 bg-red-500 rounded-full" />}
-                        </div>
-                        {lastMsg && (
-                          <p className={`text-[10px] truncate mt-0.5 ${selectedCustomerIdForChat === email ? 'text-white/70' : 'text-neutral-400'}`}>
-                            {lastMsg.content || lastMsg.message}
-                          </p>
-                        )}
-                      </button>
-                    );
-                  })}
-                  {/* Handle messages with no customer_id and no customer_email (orphaned messages) */}
-                  {[...new Set(messages.filter(m => !m.customer_id && !m.customer_email).map(m => m.id))].length > 0 && (
-                    <div className="pt-4 pb-2 px-3">
-                      <p className="text-[10px] font-black text-neutral-400 uppercase tracking-widest">Other Inquiries</p>
-                    </div>
-                  )}
-                  {messages.filter(m => !m.customer_id && !m.customer_email).map(msg => {
-                    const unread = !msg.read && msg.sender_role !== 'stringer';
-                    
-                    return (
-                      <button
-                        key={msg.id}
-                        onClick={() => setSelectedCustomerIdForChat(msg.id)}
-                        className={`w-full text-left p-3 rounded-2xl transition-all relative ${selectedCustomerIdForChat === msg.id ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'hover:bg-neutral-50 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300'}`}
-                      >
-                        <div className="flex justify-between items-start">
-                          <p className="font-bold text-sm truncate">{msg.sender_name || "Unknown Sender"}</p>
-                          {unread && <span className="w-2 h-2 bg-red-500 rounded-full" />}
-                        </div>
-                        <p className={`text-[10px] truncate mt-0.5 ${selectedCustomerIdForChat === msg.id ? 'text-white/70' : 'text-neutral-400'}`}>
-                          {msg.content || msg.message}
-                        </p>
-                      </button>
-                    );
-                  })}
-                  {customers.length === 0 && messages.filter(m => !m.customer_id).length === 0 && (
-                    <p className="text-center text-xs text-neutral-400 p-4">No customers yet</p>
+                  {/* Derive unique conversations from messages */}
+                  {(() => {
+                    const conversations: any[] = [];
+                    const processedIds = new Set<string>();
+                    const processedEmails = new Set<string>();
+
+                    // First, add conversations for known customers
+                    customers.forEach(customer => {
+                      const customerMessages = messages.filter(m => m.customer_id === customer.id || (m.customer_email && m.customer_email === customer.email));
+                      if (customerMessages.length > 0) {
+                        conversations.push({
+                          id: customer.id,
+                          name: customer.name,
+                          email: customer.email,
+                          messages: customerMessages,
+                          type: 'customer'
+                        });
+                        processedIds.add(customer.id);
+                        if (customer.email) processedEmails.add(customer.email);
+                      }
+                    });
+
+                    // Then, add conversations for unknown customers/leads from messages
+                    messages.forEach(m => {
+                      if (m.customer_id && !processedIds.has(m.customer_id)) {
+                        const customerMessages = messages.filter(msg => msg.customer_id === m.customer_id);
+                        conversations.push({
+                          id: m.customer_id,
+                          name: m.sender_name || "Unknown Customer",
+                          email: m.customer_email,
+                          messages: customerMessages,
+                          type: 'unknown'
+                        });
+                        processedIds.add(m.customer_id);
+                      } else if (!m.customer_id && m.customer_email && !processedEmails.has(m.customer_email)) {
+                        const customerMessages = messages.filter(msg => msg.customer_email === m.customer_email);
+                        conversations.push({
+                          id: m.customer_email,
+                          name: m.sender_name || "Unknown Lead",
+                          email: m.customer_email,
+                          messages: customerMessages,
+                          type: 'email'
+                        });
+                        processedEmails.add(m.customer_email);
+                      } else if (!m.customer_id && !m.customer_email && !processedIds.has(m.id)) {
+                        // Orphaned message
+                        conversations.push({
+                          id: m.id,
+                          name: m.sender_name || "Orphaned Message",
+                          email: null,
+                          messages: [m],
+                          type: 'orphaned'
+                        });
+                        processedIds.add(m.id);
+                      }
+                    });
+
+                    // Sort conversations by last message date
+                    conversations.sort((a, b) => {
+                      const lastA = a.messages[a.messages.length - 1]?.created_at?.seconds || 0;
+                      const lastB = b.messages[b.messages.length - 1]?.created_at?.seconds || 0;
+                      return lastB - lastA;
+                    });
+
+                    return conversations.map(conv => {
+                      const lastMessage = conv.messages[conv.messages.length - 1];
+                      const unread = conv.messages.filter((m: any) => !m.read && m.sender_role !== 'stringer').length;
+                      
+                      return (
+                        <button
+                          key={conv.id}
+                          onClick={() => setSelectedCustomerIdForChat(conv.id)}
+                          className={`w-full text-left p-3 rounded-2xl transition-all relative ${selectedCustomerIdForChat === conv.id ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'hover:bg-neutral-50 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300'}`}
+                        >
+                          <div className="flex justify-between items-start">
+                            <p className="font-bold text-sm truncate">{conv.name}</p>
+                            {unread > 0 && <span className="w-2 h-2 bg-red-500 rounded-full" />}
+                          </div>
+                          {lastMessage && (
+                            <p className={`text-[10px] truncate mt-0.5 ${selectedCustomerIdForChat === conv.id ? 'text-white/70' : 'text-neutral-400'}`}>
+                              {lastMessage.content || lastMessage.message}
+                            </p>
+                          )}
+                        </button>
+                      );
+                    });
+                  })()}
+
+                  {customers.length === 0 && messages.length === 0 && (
+                    <p className="text-center text-xs text-neutral-400 p-4">No messages yet</p>
                   )}
                 </div>
               </div>

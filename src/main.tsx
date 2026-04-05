@@ -1,3 +1,4 @@
+// Force build to ensure all changes are picked up
 import {StrictMode} from 'react';
 import {createRoot} from 'react-dom/client';
 import App from './App.tsx';

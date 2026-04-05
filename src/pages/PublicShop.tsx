@@ -120,8 +120,9 @@ export default function PublicShop() {
     }
     
     // Basic validation
+    console.log("Submitting contact form...", contactForm);
     if (!contactForm.name.trim() || !contactForm.email.trim() || !contactForm.content.trim()) {
-      console.log("Missing required fields");
+      setSubmitError("Please fill in all required fields (Name, Email, and Message).");
       return;
     }
     
@@ -339,7 +340,7 @@ export default function PublicShop() {
               Experienced Racquet Stringing Services
             </div>
             <h1 className="text-5xl md:text-7xl font-black text-neutral-900 dark:text-white tracking-tight mb-6">
-              {shop.name}
+              {shop.name} <span className="text-xs text-neutral-400 font-normal">v1.1</span>
             </h1>
             <p className="text-xl md:text-2xl text-neutral-600 dark:text-neutral-300 max-w-3xl mx-auto mb-8 leading-relaxed">
               Experienced racquet stringing with precision, care, and quick turnaround. 
