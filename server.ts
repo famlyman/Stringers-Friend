@@ -89,18 +89,23 @@ app.get("/api/health", (req, res) => {
 
 // Push Notification Endpoint
 app.post("/api/send-notification", async (req, res) => {
-  const { token, title, body, data } = req.body;
-
-  if (!token) {
-    return res.status(400).json({ error: "Token is required" });
-  }
-
-  const firebaseAdmin = await getFirebaseAdmin();
-  if (!firebaseAdmin) {
-    return res.status(503).json({ error: "Firebase Admin not initialized. Check server logs for FIREBASE_SERVICE_ACCOUNT issues." });
-  }
-
+  console.log("Received send-notification request");
   try {
+    const { token, title, body, data } = req.body;
+    console.log("Request body:", JSON.stringify({ token: token ? token.substring(0, 10) + "..." : null, title, body, data }));
+
+    if (!token) {
+      return res.status(400).json({ error: "Token is required" });
+    }
+
+    const firebaseAdmin = await getFirebaseAdmin();
+    if (!firebaseAdmin) {
+      return res.status(503).json({ 
+        error: "Firebase Admin not initialized", 
+        details: "Check server logs for FIREBASE_SERVICE_ACCOUNT issues. Make sure the environment variable is set correctly in Vercel." 
+      });
+    }
+
     console.log(`Attempting to send notification to token: ${token.substring(0, 10)}...`);
     const message = {
       notification: { 
@@ -115,9 +120,8 @@ app.post("/api/send-notification", async (req, res) => {
     console.log(`Successfully sent message: ${response}`);
     res.json({ success: true, messageId: response });
   } catch (error: any) {
-    console.error("Error sending push notification:", error);
+    console.error("Error in send-notification handler:", error);
     
-    // Provide more detailed error info to the client for debugging
     const errorDetails = {
       message: error.message,
       code: error.code,

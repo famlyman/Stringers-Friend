@@ -13,6 +13,15 @@ export default defineConfig(({mode}) => {
       VitePWA({
         registerType: 'autoUpdate',
         includeAssets: ['icon.svg', 'firebase-messaging-sw.js'],
+        workbox: {
+          navigateFallbackDenylist: [/^\/api/],
+          runtimeCaching: [
+            {
+              urlPattern: /^\/api/,
+              handler: 'NetworkOnly',
+            },
+          ],
+        },
         manifest: {
           name: 'Stringers Friend',
           short_name: 'Stringers',
