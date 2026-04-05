@@ -211,7 +211,12 @@ export default function QRCodeDisplay({
         setTimeout(() => setIsCopied(false), 2000);
       }
     } catch (err) {
-      console.error("Error sharing:", err);
+      if (err instanceof Error && err.name === 'AbortError') {
+        // User cancelled the share - this is expected behavior
+        console.log("Share operation was cancelled by the user.");
+      } else {
+        console.error("Error sharing:", err);
+      }
     }
     setIsSharing(false);
   };

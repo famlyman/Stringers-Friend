@@ -69,11 +69,26 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
     // Show browser notification if permission granted
     if (permissionGranted && 'Notification' in window && Notification.permission === 'granted') {
-      new Notification(notification.title, {
-        body: notification.body,
-        icon: '/icon.svg',
-        tag: newNotification.id
-      });
+      const showBrowserNotification = async () => {
+        const registration = await navigator.serviceWorker.ready;
+        const url = window.location.origin + (notification.data?.link || '/');
+        
+        registration.showNotification(notification.title, {
+          body: notification.body,
+          icon: '/icon.svg',
+          badge: '/icon.svg',
+          tag: newNotification.id,
+          requireInteraction: true,
+          vibrate: [100, 50, 100],
+          data: { url },
+          actions: [
+            { action: 'open', title: 'View' },
+            { action: 'close', title: 'Dismiss' }
+          ]
+        } as any);
+      };
+      
+      showBrowserNotification();
     }
   };
 
