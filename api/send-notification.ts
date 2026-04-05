@@ -19,7 +19,16 @@ async function getFirebaseAdmin() {
     try {
       serviceAccount = JSON.parse(serviceAccountStr);
     } catch (parseError: any) {
-      return { error: "FIREBASE_SERVICE_ACCOUNT is not valid JSON.", details: parseError.message };
+      let hint = "";
+      if (serviceAccountStr.trim().startsWith('"type"')) {
+        hint = " It looks like you might have missed the opening '{' brace when copying the JSON.";
+      } else if (!serviceAccountStr.trim().startsWith('{')) {
+        hint = " The value does not start with '{'. Make sure you copied the entire JSON file contents.";
+      }
+      return { 
+        error: "FIREBASE_SERVICE_ACCOUNT is not valid JSON." + hint, 
+        details: parseError.message 
+      };
     }
     
     if (serviceAccount.private_key) {
