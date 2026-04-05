@@ -55,6 +55,7 @@ async function startServer() {
     }
 
     try {
+      console.log(`Attempting to send notification to token: ${token.substring(0, 10)}...`);
       const message = {
         notification: { title, body },
         token: token,
@@ -62,10 +63,11 @@ async function startServer() {
       };
 
       const response = await admin.messaging().send(message);
+      console.log(`Successfully sent message: ${response}`);
       res.json({ success: true, messageId: response });
     } catch (error) {
       console.error("Error sending push notification:", error);
-      res.status(500).json({ error: "Failed to send notification" });
+      res.status(500).json({ error: "Failed to send notification", details: error instanceof Error ? error.message : String(error) });
     }
   });
 

@@ -205,13 +205,26 @@ export default function QRCodeDisplay({
           text: `Label for ${label || value}`
         });
       } else {
-        const item = new ClipboardItem({ 'image/png': blob });
-        await navigator.clipboard.write([item]);
-        setIsCopied(true);
-        setTimeout(() => setIsCopied(false), 2000);
+        // Fallback to clipboard for images
+        try {
+          const item = new ClipboardItem({ 'image/png': blob });
+          await navigator.clipboard.write([item]);
+          setIsCopied(true);
+          setTimeout(() => setIsCopied(false), 2000);
+        } catch (clipboardErr) {
+          console.warn("Clipboard image write failed, falling back to text:", clipboardErr);
+          // Final fallback: just copy the URL text
+          const isShopQR = !value.includes('_');
+          const fullUrl = isShopQR 
+            ? `${window.location.origin}/${value}`
+            : `${window.location.origin}/scan/${value}`;
+          await navigator.clipboard.writeText(fullUrl);
+          setIsCopied(true);
+          setTimeout(() => setIsCopied(false), 2000);
+        }
       }
     } catch (err) {
-      if (err instanceof Error && err.name === 'AbortError') {
+      if (err instanceof Error && (err.name === 'AbortError' || err.message.includes('Share canceled'))) {
         // User cancelled the share - this is expected behavior
         console.log("Share operation was cancelled by the user.");
       } else {

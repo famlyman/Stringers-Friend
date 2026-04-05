@@ -40,6 +40,7 @@ export const requestNotificationPermission = async (userId: string) => {
       });
       
       if (token) {
+        console.log('FCM Token retrieved:', token.substring(0, 10) + '...');
         const { updateDoc, doc } = await import('firebase/firestore');
         await updateDoc(doc(db, 'users', userId), {
           fcmToken: token,
@@ -47,7 +48,7 @@ export const requestNotificationPermission = async (userId: string) => {
           lastTokenUpdate: new Date().toISOString()
         });
         
-        console.log('Notification permission granted and token saved');
+        console.log('Notification permission granted and token saved to Firestore for user:', userId);
         return token;
       }
     } else {

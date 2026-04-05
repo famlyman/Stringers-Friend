@@ -1,10 +1,10 @@
 import { ReactNode, useState, useEffect } from "react";
 import { Link, Outlet, useNavigate } from "react-router-dom";
-import { LayoutDashboard, Users, Package, LogOut, User, Sun, Moon, MessageSquare, Clock } from "lucide-react";
+import { LayoutDashboard, Users, Package, LogOut, User, Sun, Moon, MessageSquare, Clock, Bell, X } from "lucide-react";
 import { useTheme } from "../context/ThemeContext";
 import { NotificationProvider, NotificationDropdown, useNotifications } from "../context/NotificationContext";
 import { collection, query, where, onSnapshot } from "firebase/firestore";
-import { db } from "../lib/firebase";
+import { db, requestNotificationPermission } from "../lib/firebase";
 
 interface LayoutProps {
   user: any;
@@ -16,9 +16,26 @@ function LayoutContent({ user, onLogout }: LayoutProps) {
   const { darkMode, toggleDarkMode } = useTheme();
   const { unreadCount } = useNotifications();
   const [messageUnreadCount, setMessageUnreadCount] = useState(0);
+  const [showPushPrompt, setShowPushPrompt] = useState(false);
 
   useEffect(() => {
     if (!user) return;
+
+    // Check if push notifications are enabled
+    const checkPushStatus = async () => {
+      if (typeof window !== 'undefined' && 'Notification' in window) {
+        if (Notification.permission === 'default') {
+          // Check if we've already asked recently (using localStorage)
+          const lastPrompt = localStorage.getItem('lastPushPrompt');
+          const now = Date.now();
+          if (!lastPrompt || now - parseInt(lastPrompt) > 24 * 60 * 60 * 1000) {
+            setShowPushPrompt(true);
+          }
+        }
+      }
+    };
+
+    checkPushStatus();
 
     const messagesQuery = user.role === 'stringer'
       ? query(collection(db, "messages"), where("shop_id", "==", user.shop_id), where("read", "==", false))
@@ -154,7 +171,47 @@ function LayoutContent({ user, onLogout }: LayoutProps) {
       </nav>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-auto pb-20 md:pb-0">
+      <main className="flex-1 overflow-auto pb-20 md:pb-0 relative">
+        {showPushPrompt && (
+          <div className="sticky top-4 left-4 right-4 z-40 mx-auto max-w-2xl">
+            <div className="bg-primary text-white p-4 rounded-2xl shadow-xl flex items-center justify-between gap-4 animate-in slide-in-from-top-4 duration-300">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-white/20 rounded-lg">
+                  <Bell className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="font-bold text-sm">Enable Push Notifications</p>
+                  <p className="text-xs text-white/80">Get real-time alerts for new messages and job updates.</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={async () => {
+                    try {
+                      await requestNotificationPermission(user.uid);
+                      setShowPushPrompt(false);
+                      localStorage.setItem('lastPushPrompt', Date.now().toString());
+                    } catch (err) {
+                      console.error("Error enabling notifications:", err);
+                    }
+                  }}
+                  className="px-4 py-2 bg-white text-primary rounded-xl text-xs font-bold hover:bg-white/90 transition-all whitespace-nowrap"
+                >
+                  Enable
+                </button>
+                <button
+                  onClick={() => {
+                    setShowPushPrompt(false);
+                    localStorage.setItem('lastPushPrompt', Date.now().toString());
+                  }}
+                  className="p-2 hover:bg-white/10 rounded-lg transition-all"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
         <div className="max-w-7xl mx-auto p-4 md:p-8">
           <Outlet />
         </div>

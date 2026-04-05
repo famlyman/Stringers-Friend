@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { doc, getDoc, updateDoc, deleteDoc, collection, query, where, getDocs, writeBatch } from "firebase/firestore";
 import { updatePassword, updateEmail, reauthenticateWithCredential, EmailAuthProvider, deleteUser } from "firebase/auth";
-import { db, auth } from "../lib/firebase";
-import { User, Mail, Phone, Lock, Store, Save, AlertCircle, CheckCircle2, Loader2, Sun, Moon } from "lucide-react";
+import { db, auth, requestNotificationPermission } from "../lib/firebase";
+import { User, Mail, Phone, Lock, Store, Save, AlertCircle, CheckCircle2, Loader2, Sun, Moon, Bell, Send } from "lucide-react";
 import { useTheme } from "../context/ThemeContext";
 
 interface ProfileProps {
@@ -415,6 +415,85 @@ export default function Profile({ user }: ProfileProps) {
 
         {/* Security / Password */}
         <div className="space-y-8">
+          <section className="bg-white dark:bg-neutral-900 rounded-3xl border border-neutral-200 dark:border-neutral-800 shadow-sm overflow-hidden">
+            <div className="p-6 border-b border-neutral-100 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-800/50 flex items-center gap-3">
+              <div className="p-2 bg-primary/10 rounded-lg">
+                <Bell className="w-5 h-5 text-primary" />
+              </div>
+              <h2 className="font-bold text-neutral-900 dark:text-white">Notifications</h2>
+            </div>
+            <div className="p-6 space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-bold text-neutral-900 dark:text-white">Push Notifications</p>
+                  <p className="text-xs text-neutral-500 dark:text-neutral-400">Receive alerts on your device.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    setSaving(true);
+                    try {
+                      const token = await requestNotificationPermission(user.uid);
+                      if (token) {
+                        setSuccess("Push notifications enabled!");
+                      } else {
+                        setError("Failed to enable push notifications. Check browser permissions.");
+                      }
+                    } catch (err: any) {
+                      setError(err.message || "Error enabling notifications.");
+                    } finally {
+                      setSaving(false);
+                    }
+                  }}
+                  className="px-4 py-2 bg-primary/10 text-primary rounded-xl text-xs font-bold hover:bg-primary hover:text-white transition-all"
+                >
+                  Enable / Refresh
+                </button>
+              </div>
+              
+              <button
+                type="button"
+                onClick={async () => {
+                  setSaving(true);
+                  try {
+                    const userDoc = await getDoc(doc(db, "users", user.uid));
+                    const fcmToken = userDoc.data()?.fcmToken;
+                    if (!fcmToken) {
+                      setError("No FCM token found. Please enable notifications first.");
+                      return;
+                    }
+                    
+                    const response = await fetch("/api/send-notification", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        token: fcmToken,
+                        title: "Test Notification",
+                        body: "If you see this, push notifications are working correctly!",
+                        data: { type: "test" }
+                      })
+                    });
+                    
+                    const result = await response.json();
+                    if (result.success) {
+                      setSuccess("Test notification sent! Check your device.");
+                    } else {
+                      setError(`Failed to send test notification: ${result.details || result.error}`);
+                    }
+                  } catch (err: any) {
+                    setError(err.message || "Error sending test notification.");
+                  } finally {
+                    setSaving(false);
+                  }
+                }}
+                className="w-full py-3 bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-xl font-bold hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-all flex items-center justify-center gap-2"
+              >
+                <Send className="w-4 h-4" />
+                Send Test Notification
+              </button>
+            </div>
+          </section>
+
           <section className="bg-white dark:bg-neutral-900 rounded-3xl border border-neutral-200 dark:border-neutral-800 shadow-sm overflow-hidden">
             <div className="p-6 border-b border-neutral-100 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-800/50 flex items-center gap-3">
               <div className="p-2 bg-primary/10 rounded-lg">
