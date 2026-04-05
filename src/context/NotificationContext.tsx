@@ -71,7 +71,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     if (permissionGranted && 'Notification' in window && Notification.permission === 'granted') {
       new Notification(notification.title, {
         body: notification.body,
-        icon: '/favicon.ico',
+        icon: '/icon.svg',
         tag: newNotification.id
       });
     }

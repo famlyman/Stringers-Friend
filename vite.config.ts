@@ -12,18 +12,30 @@ export default defineConfig(({mode}) => {
       tailwindcss(),
       VitePWA({
         registerType: 'autoUpdate',
-        includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
+        includeAssets: ['icon.svg'],
         manifest: {
-          name: 'StringersFriend',
-          short_name: 'StringersFriend',
-          description: 'Professional Tennis Stringing Shop Management',
+          name: 'Stringers Friend',
+          short_name: 'Stringers',
+          description: 'Professional racquet stringing shop management - track jobs, inventory, and customer communications',
           theme_color: '#2563eb',
           icons: [
             {
               src: 'icon.svg',
+              sizes: '192x192',
+              type: 'image/svg+xml',
+              purpose: 'any'
+            },
+            {
+              src: 'icon.svg',
               sizes: '512x512',
               type: 'image/svg+xml',
-              purpose: 'any maskable'
+              purpose: 'any'
+            },
+            {
+              src: 'icon.svg',
+              sizes: '512x512',
+              type: 'image/svg+xml',
+              purpose: 'maskable'
             }
           ]
         }
