@@ -12,7 +12,7 @@ export default defineConfig(({mode}) => {
       tailwindcss(),
       VitePWA({
         registerType: 'autoUpdate',
-        includeAssets: ['icon.svg'],
+        includeAssets: ['icon.svg', 'firebase-messaging-sw.js'],
         manifest: {
           name: 'Stringers Friend',
           short_name: 'Stringers',
