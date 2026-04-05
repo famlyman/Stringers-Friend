@@ -93,14 +93,18 @@ export default function Inventory({ user }: { user: any }) {
 
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log("Updating inventory item:", editingItem);
     try {
       const { id, ...data } = editingItem;
+      console.log("Data to update:", data);
       await updateDoc(doc(db, "inventory", id), {
         ...data,
         updated_at: serverTimestamp()
       });
+      console.log("Update successful");
       setEditingItem(null);
     } catch (err) {
+      console.error("Error updating inventory item:", err);
       handleFirestoreError(err, OperationType.UPDATE, `inventory/${editingItem.id}`);
     }
   };

@@ -398,8 +398,11 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
   // Mark messages as read when a conversation is selected
   useEffect(() => {
     if (selectedCustomerIdForChat && activeTab === 'messages') {
+      const isEmailChat = selectedCustomerIdForChat.includes('@');
       const unreadMessages = messages.filter(
-        m => m.customer_id === selectedCustomerIdForChat && m.sender_role !== 'stringer' && !m.read
+        m => isEmailChat 
+          ? m.customer_email === selectedCustomerIdForChat && m.sender_role !== 'stringer' && !m.read
+          : m.customer_id === selectedCustomerIdForChat && m.sender_role !== 'stringer' && !m.read
       );
       
       if (unreadMessages.length > 0) {

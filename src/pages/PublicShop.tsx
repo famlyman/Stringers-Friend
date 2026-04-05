@@ -118,6 +118,17 @@ export default function PublicShop() {
       return;
     }
     
+    // Basic validation
+    if (!contactForm.name.trim() || !contactForm.email.trim() || !contactForm.content.trim()) {
+      console.log("Missing required fields");
+      return;
+    }
+    
+    if (contactForm.register && !contactForm.password) {
+      console.log("Registration requested but no password provided");
+      return;
+    }
+    
     setSubmitting(true);
     try {
       let currentUid = user?.uid;
