@@ -60,7 +60,10 @@ app.post("/api/send-notification", async (req, res) => {
   try {
     console.log(`Attempting to send notification to token: ${token.substring(0, 10)}...`);
     const message = {
-      notification: { title, body },
+      notification: { 
+        title: title || "New Notification", 
+        body: body || "You have a new update." 
+      },
       token: token,
       data: data || {},
     };
@@ -68,9 +71,21 @@ app.post("/api/send-notification", async (req, res) => {
     const response = await admin.messaging().send(message);
     console.log(`Successfully sent message: ${response}`);
     res.json({ success: true, messageId: response });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error sending push notification:", error);
-    res.status(500).json({ error: "Failed to send notification", details: error instanceof Error ? error.message : String(error) });
+    
+    // Provide more detailed error info to the client for debugging
+    const errorDetails = {
+      message: error.message,
+      code: error.code,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    };
+    
+    res.status(500).json({ 
+      error: "Failed to send notification", 
+      details: error.message,
+      firebaseError: errorDetails
+    });
   }
 });
 
