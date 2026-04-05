@@ -450,47 +450,6 @@ export default function Profile({ user }: ProfileProps) {
                   Enable / Refresh
                 </button>
               </div>
-              
-              <button
-                type="button"
-                onClick={async () => {
-                  setSaving(true);
-                  try {
-                    const userDoc = await getDoc(doc(db, "users", user.uid));
-                    const fcmToken = userDoc.data()?.fcmToken;
-                    if (!fcmToken) {
-                      setError("No FCM token found. Please enable notifications first.");
-                      return;
-                    }
-                    
-                    const response = await fetch("/api/send-notification", {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({
-                        token: fcmToken,
-                        title: "Test Notification",
-                        body: "If you see this, push notifications are working correctly!",
-                        data: { type: "test" }
-                      })
-                    });
-                    
-                    const result = await response.json();
-                    if (result.success) {
-                      setSuccess("Test notification sent! Check your device.");
-                    } else {
-                      setError(`Failed to send test notification: ${result.details || result.error}`);
-                    }
-                  } catch (err: any) {
-                    setError(err.message || "Error sending test notification.");
-                  } finally {
-                    setSaving(false);
-                  }
-                }}
-                className="w-full py-3 bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-xl font-bold hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-all flex items-center justify-center gap-2"
-              >
-                <Send className="w-4 h-4" />
-                Send Test Notification
-              </button>
             </div>
           </section>
 

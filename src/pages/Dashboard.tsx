@@ -1449,7 +1449,7 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
                       type="text" 
                       placeholder="Enter Brand" 
                       required
-                      value={editingRacquet.brand}
+                      value={editingRacquet.brand || ""}
                       onChange={e => setEditingRacquet({...editingRacquet, brand: e.target.value})}
                       className="w-full mt-2 px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-xl outline-none focus:ring-2 focus:ring-primary"
                     />
@@ -1462,12 +1462,12 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
                       type="text" 
                       placeholder="Search or enter model" 
                       required
-                      value={editingRacquet.model}
+                      value={editingRacquet.model || ""}
                       onChange={e => {
                         setEditingRacquet({...editingRacquet, model: e.target.value});
                         handleSearchModels(e.target.value, true);
                       }}
-                      onFocus={() => editingRacquet.model.length >= 2 && setShowModelSuggestions(true)}
+                      onFocus={() => (editingRacquet.model || "").length >= 2 && setShowModelSuggestions(true)}
                       className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-xl outline-none focus:ring-2 focus:ring-primary"
                     />
                     {searchingModels && (
