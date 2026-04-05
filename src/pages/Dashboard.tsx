@@ -3067,6 +3067,42 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
             </div>
           )}
         </div>
+
+        {/* Right Column - Shop Info & QR Code */}
+        <div className="lg:col-span-1 space-y-6">
+          {/* Shop QR Code Card */}
+          <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-3xl p-6 shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-bold text-primary">Storefront QR</h3>
+              <button
+                onClick={handleRegenerateQR}
+                disabled={regeneratingQR || !shop?.name}
+                className="flex items-center gap-2 px-3 py-2 bg-primary/10 text-primary rounded-xl text-xs font-bold hover:bg-primary/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <RefreshCw className={`w-3 h-3 ${regeneratingQR ? 'animate-spin' : ''}`} />
+                {regeneratingQR ? 'Updating...' : 'Regenerate'}
+              </button>
+            </div>
+            <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-6">
+              Customers can scan this to register and view their jobs at your shop.
+            </p>
+            <div className="bg-neutral-50 dark:bg-neutral-800 p-4 rounded-2xl flex justify-center">
+              <QRCodeDisplay 
+                value={shop?.qr_code} 
+                label="Storefront QR" 
+                shopName={shop?.name}
+                shopPhone={shop?.phone}
+              />
+            </div>
+            {shop?.qr_code?.includes('_') && (
+              <div className="mt-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-900/50 rounded-xl">
+                <p className="text-xs text-yellow-700 dark:text-yellow-300">
+                  <strong>Update Available:</strong> Regenerate your QR code to use the new shop landing page format.
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
       </div>
       </React.Fragment>
