@@ -1,26 +1,29 @@
 import express from "express";
 import path from "path";
 import { fileURLToPath } from "url";
-import admin from "firebase-admin";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Helper to initialize Firebase Admin lazily
-let firebaseAdminInstance: typeof admin | null = null;
+let firebaseAdminInstance: any = null;
 let isInitializing = false;
 
 async function getFirebaseAdmin() {
-  if (admin.apps.length > 0) return admin;
-  if (firebaseAdminInstance) return firebaseAdminInstance;
-  if (isInitializing) {
-    // Wait a bit if another request is already initializing
-    await new Promise(resolve => setTimeout(resolve, 500));
-    if (admin.apps.length > 0) return admin;
-  }
-
-  isInitializing = true;
   try {
+    // Dynamic import to avoid top-level issues
+    const admin = await import("firebase-admin");
+    const adminApp = admin.default || admin;
+
+    if (adminApp.apps.length > 0) return adminApp;
+    if (firebaseAdminInstance) return firebaseAdminInstance;
+    
+    if (isInitializing) {
+      await new Promise(resolve => setTimeout(resolve, 500));
+      if (adminApp.apps.length > 0) return adminApp;
+    }
+
+    isInitializing = true;
     const serviceAccountStr = process.env.FIREBASE_SERVICE_ACCOUNT;
     if (!serviceAccountStr) {
       console.warn("FIREBASE_SERVICE_ACCOUNT not found.");
@@ -37,24 +40,24 @@ async function getFirebaseAdmin() {
       return null;
     }
     
-    // Fix private key if it has literal \n
     if (serviceAccount.private_key) {
       serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
     }
 
-    if (!admin.apps.length) {
-      admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount),
+    if (!adminApp.apps.length) {
+      adminApp.initializeApp({
+        credential: adminApp.credential.cert(serviceAccount),
       });
       console.log("Firebase Admin initialized successfully.");
     }
-    firebaseAdminInstance = admin;
+    firebaseAdminInstance = adminApp;
+    return firebaseAdminInstance;
   } catch (error) {
-    console.error("Error initializing Firebase Admin:", error);
+    console.error("CRITICAL Error in getFirebaseAdmin:", error);
+    return null;
   } finally {
     isInitializing = false;
   }
-  return firebaseAdminInstance;
 }
 
 const app = express();
@@ -66,16 +69,6 @@ if (process.env.FIREBASE_SERVICE_ACCOUNT) {
   console.log("FIREBASE_SERVICE_ACCOUNT length:", process.env.FIREBASE_SERVICE_ACCOUNT.length);
 }
 
-// Global error handler for Express
-app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
-  console.error("Global Express Error:", err);
-  res.status(500).json({
-    error: "Internal Server Error",
-    message: err.message,
-    stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
-  });
-});
-
 // Log all requests for debugging
 app.use((req, res, next) => {
   console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
@@ -84,7 +77,7 @@ app.use((req, res, next) => {
 
 // API Health Check
 app.get("/api/health", (req, res) => {
-  res.json({ status: "ok", timestamp: new Date().toISOString() });
+  res.json({ status: "ok", timestamp: new Date().toISOString(), vercel: !!process.env.VERCEL });
 });
 
 // Push Notification Endpoint
@@ -120,20 +113,32 @@ app.post("/api/send-notification", async (req, res) => {
     console.log(`Successfully sent message: ${response}`);
     res.json({ success: true, messageId: response });
   } catch (error: any) {
-    console.error("Error in send-notification handler:", error);
+    console.error("CRITICAL Error in send-notification handler:", error);
     
     const errorDetails = {
       message: error.message,
       code: error.code,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      stack: error.stack
     };
     
     res.status(500).json({ 
       error: "Failed to send notification", 
       details: error.message,
-      firebaseError: errorDetails
+      firebaseError: errorDetails,
+      timestamp: new Date().toISOString()
     });
   }
+});
+
+// Global error handler for Express (MUST be after routes)
+app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  console.error("Global Express Error Catch-all:", err);
+  res.status(500).json({
+    error: "Internal Server Error",
+    message: err.message,
+    stack: err.stack,
+    timestamp: new Date().toISOString()
+  });
 });
 
 async function startServer() {
