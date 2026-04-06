@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
 import { doc, getDoc, onSnapshot } from 'firebase/firestore';
-import { auth, db, handleFirestoreError, OperationType } from '../lib/firebase';
+import { auth, db } from '../lib/firebase';
 
 interface UserProfile {
   uid: string;
@@ -57,7 +57,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setLoading(false);
         }, (error) => {
           clearTimeout(timeoutId);
-          handleFirestoreError(error, OperationType.GET, `users/${firebaseUser.uid}`);
+          console.error("Error fetching user profile:", error);
           setProfile(null);
           setLoading(false);
         });

@@ -79,9 +79,8 @@ export default function PublicShop() {
       }
       setIsCustomerOfShop(true);
       navigate("/");
-    } catch (err: any) {
+    } catch (err) {
       console.error("Error joining shop:", err);
-      handleFirestoreError(err, OperationType.WRITE, "customers");
     } finally {
       setJoining(false);
     }
@@ -90,17 +89,13 @@ export default function PublicShop() {
   useEffect(() => {
     const checkCustomerStatus = async () => {
       if (user && shop) {
-        try {
-          const q = query(
-            collection(db, "customers"),
-            where("email", "==", user.email),
-            where("shop_id", "==", shop.id)
-          );
-          const snap = await getDocs(q);
-          setIsCustomerOfShop(!snap.empty);
-        } catch (err) {
-          console.error("Error checking customer status:", err);
-        }
+        const q = query(
+          collection(db, "customers"),
+          where("email", "==", user.email),
+          where("shop_id", "==", shop.id)
+        );
+        const snap = await getDocs(q);
+        setIsCustomerOfShop(!snap.empty);
       }
     };
     checkCustomerStatus();
@@ -156,7 +151,6 @@ export default function PublicShop() {
           });
         } catch (authErr: any) {
           console.error("Error creating account during service request:", authErr);
-          // Don't throw here, we can still try to create the message
         }
       }
 
@@ -214,7 +208,7 @@ export default function PublicShop() {
       setSelectedService(null);
     } catch (err: any) {
       console.error("Error sending message:", err);
-      handleFirestoreError(err, OperationType.WRITE, "messages");
+      handleFirestoreError(err, OperationType.CREATE, "messages");
       setSubmitError(err.message || "Failed to send message. Please try again.");
     } finally {
       setSubmitting(false);
@@ -232,6 +226,7 @@ export default function PublicShop() {
         const querySnapshot = await getDocs(q);
 
         console.log("Query snapshot size:", querySnapshot.size);
+        console.log("Query snapshot docs:", querySnapshot.docs);
 
         if (querySnapshot.empty) {
           console.log("Shop not found for slug:", slug);
@@ -255,11 +250,11 @@ export default function PublicShop() {
             );
             const inventorySnapshot = await getDocs(inventoryQuery);
             
-            const stringServices = inventorySnapshot.docs.map(docSnap => ({
-              id: docSnap.id,
-              name: docSnap.data().name,
-              price: docSnap.data().price,
-              description: `${docSnap.data().brand || ''} ${docSnap.data().packaging || docSnap.data().sub_type || ''}`.trim()
+            const stringServices = inventorySnapshot.docs.map(doc => ({
+              id: doc.id,
+              name: doc.data().name,
+              price: doc.data().price,
+              description: `${doc.data().brand || ''} ${doc.data().packaging || doc.data().sub_type || ''}`.trim()
             }));
             
             setServices(stringServices);
@@ -286,17 +281,16 @@ export default function PublicShop() {
         );
         const inventorySnapshot = await getDocs(inventoryQuery);
         
-        const stringServices = inventorySnapshot.docs.map(docSnap => ({
-          id: docSnap.id,
-          name: docSnap.data().name,
-          price: docSnap.data().price,
-          description: `${docSnap.data().brand || ''} ${docSnap.data().packaging || docSnap.data().sub_type || ''}`.trim()
+        const stringServices = inventorySnapshot.docs.map(doc => ({
+          id: doc.id,
+          name: doc.data().name,
+          price: doc.data().price,
+          description: `${doc.data().brand || ''} ${doc.data().packaging || doc.data().sub_type || ''}`.trim()
         }));
         
         setServices(stringServices);
-      } catch (err: any) {
+      } catch (err) {
         console.error("Error fetching shop:", err);
-        handleFirestoreError(err, OperationType.GET, "shops");
         setError("Failed to load shop information");
       } finally {
         setLoading(false);

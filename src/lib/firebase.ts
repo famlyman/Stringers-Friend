@@ -19,12 +19,7 @@ const firebaseConfig = {
 
 // Initialize Firebase SDK
 const app = initializeApp(firebaseConfig);
-
-// Initialize Firestore with the specific database ID if provided, otherwise use default
-export const db = firebaseConfig.firestoreDatabaseId && firebaseConfig.firestoreDatabaseId !== "(default)"
-  ? getFirestore(app, firebaseConfig.firestoreDatabaseId)
-  : getFirestore(app);
-
+export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
 export const auth = getAuth(app);
 export const messaging = typeof window !== 'undefined' ? getMessaging(app) : null;
 
@@ -46,8 +41,7 @@ export const requestNotificationPermission = async (userId: string) => {
       
       if (token) {
         console.log('FCM Token retrieved:', token.substring(0, 10) + '...');
-        // Use the already imported 'doc' and 'db'
-        const { updateDoc } = await import('firebase/firestore');
+        const { updateDoc, doc } = await import('firebase/firestore');
         await updateDoc(doc(db, 'users', userId), {
           fcmToken: token,
           notificationsEnabled: true,

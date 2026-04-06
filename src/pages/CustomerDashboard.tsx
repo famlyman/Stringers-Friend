@@ -103,13 +103,14 @@ export default function CustomerDashboard({ user, initialTab = 'jobs' }: { user:
     model_custom: '',
     serial_number: '',
     head_size: '100',
-    pattern: '16x19',
-    tension: '50-60',
-    length: '27',
-    skip_m_holes: '',
-    tie_off_m: '',
-    start_c: '',
-    tie_off_c: '',
+    string_pattern_mains: '16',
+    string_pattern_crosses: '19',
+    mains_skip: '',
+    mains_tie_off: '',
+    crosses_start: '',
+    crosses_tie_off: '',
+    one_piece_length: '',
+    two_piece_length: '',
     stringing_instructions: '',
     string_main_brand: '',
     string_main_model: '',
@@ -137,9 +138,7 @@ export default function CustomerDashboard({ user, initialTab = 'jobs' }: { user:
       where("type", "==", "string")
     );
     const unsubscribeInventory = onSnapshot(inventoryQuery, (snapshot) => {
-      setInventoryStrings(snapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() })));
-    }, (error) => {
-      handleFirestoreError(error, OperationType.LIST, "inventory");
+      setInventoryStrings(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
     });
 
     return () => unsubscribeInventory();
@@ -162,13 +161,14 @@ export default function CustomerDashboard({ user, initialTab = 'jobs' }: { user:
         setNewRacquetData(prev => ({
           ...prev,
           head_size: specs.headSize.toString(),
-          pattern: specs.pattern || `${specs.patternMains}x${specs.patternCrosses}`,
-          tension: specs.tension || `${specs.tensionRangeMin}-${specs.tensionRangeMax}`,
-          length: specs.length || "27",
-          skip_m_holes: specs.skip_m_holes || specs.mainsSkip || '',
-          tie_off_m: specs.tie_off_m || specs.mainsTieOff || '',
-          start_c: specs.start_c || specs.crossesStart || '',
-          tie_off_c: specs.tie_off_c || specs.crossesTieOff || '',
+          string_pattern_mains: specs.patternMains.toString(),
+          string_pattern_crosses: specs.patternCrosses.toString(),
+          mains_skip: specs.mainsSkip || '',
+          mains_tie_off: specs.mainsTieOff || '',
+          crosses_start: specs.crossesStart || '',
+          crosses_tie_off: specs.crossesTieOff || '',
+          one_piece_length: specs.onePieceLength?.toString() || '',
+          two_piece_length: specs.twoPieceLength?.toString() || '',
           stringing_instructions: specs.stringingInstructions || '',
         }));
       } else {
@@ -218,9 +218,9 @@ export default function CustomerDashboard({ user, initialTab = 'jobs' }: { user:
     );
 
     const unsubscribeJobs = onSnapshot(qJobs, (snapshot) => {
-      const jobList = snapshot.docs.map(docSnap => ({
-        id: docSnap.id,
-        ...docSnap.data()
+      const jobList = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
       }));
       setJobs(jobList);
     }, (error) => {
@@ -235,15 +235,18 @@ export default function CustomerDashboard({ user, initialTab = 'jobs' }: { user:
     );
 
     const unsubscribeRacquets = onSnapshot(qRacquets, (snapshot) => {
-      const racquetList = snapshot.docs.map(docSnap => ({
-        id: docSnap.id,
-        ...docSnap.data()
+      const racquetList = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
       }));
       setRacquets(racquetList);
       setAllRacquets(racquetList);
       setLoading(false);
     }, (error) => {
-      handleFirestoreError(error, OperationType.LIST, "racquets");
+      // If customer_email index doesn't exist yet, it might fail. 
+      // In a real app, we'd ensure the index is created.
+      console.error("Error fetching racquets:", error);
+      setLoading(false);
     });
 
     // Fetch Customer Info
@@ -283,8 +286,6 @@ export default function CustomerDashboard({ user, initialTab = 'jobs' }: { user:
           console.error("Error creating customer record:", error);
         }
       }
-    }, (error) => {
-      handleFirestoreError(error, OperationType.GET, "customers");
     });
 
     // Fetch Notifications
@@ -295,13 +296,11 @@ export default function CustomerDashboard({ user, initialTab = 'jobs' }: { user:
     );
 
     const unsubscribeNotifications = onSnapshot(qNotifications, (snapshot) => {
-      const notificationList = snapshot.docs.map(docSnap => ({
-        id: docSnap.id,
-        ...docSnap.data()
+      const notificationList = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
       }));
       setNotifications(notificationList);
-    }, (error) => {
-      handleFirestoreError(error, OperationType.LIST, "notifications");
     });
 
     // Fetch Messages
@@ -312,9 +311,9 @@ export default function CustomerDashboard({ user, initialTab = 'jobs' }: { user:
     );
 
     const unsubscribeMessages = onSnapshot(qMessages, (snapshot) => {
-      const messageList = snapshot.docs.map(docSnap => ({
-        id: docSnap.id,
-        ...docSnap.data()
+      const messageList = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
       }));
       setMessages(messageList);
     }, (error) => {
@@ -324,9 +323,9 @@ export default function CustomerDashboard({ user, initialTab = 'jobs' }: { user:
     // Fetch Shops
     const qShops = query(collection(db, "shops"));
     const unsubscribeShops = onSnapshot(qShops, (snapshot) => {
-      const shopList = snapshot.docs.map(docSnap => ({
-        id: docSnap.id,
-        ...docSnap.data()
+      const shopList = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
       }));
       setShops(shopList);
       
@@ -334,8 +333,6 @@ export default function CustomerDashboard({ user, initialTab = 'jobs' }: { user:
       if (shopList.length > 0 && !selectedShopId) {
         setSelectedShopId(shopList[0].id);
       }
-    }, (error) => {
-      handleFirestoreError(error, OperationType.LIST, "shops");
     });
 
     // Sync existing racquets and jobs that might be missing customer_email
@@ -425,7 +422,7 @@ export default function CustomerDashboard({ user, initialTab = 'jobs' }: { user:
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      setInventoryStrings(snapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() })));
+      setInventoryStrings(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
     });
 
     return () => unsubscribe();
@@ -601,13 +598,14 @@ export default function CustomerDashboard({ user, initialTab = 'jobs' }: { user:
         model,
         serial_number: newRacquetData.serial_number,
         head_size: Number(newRacquetData.head_size),
-        pattern: newRacquetData.pattern,
-        tension: newRacquetData.tension,
-        length: newRacquetData.length,
-        skip_m_holes: newRacquetData.skip_m_holes,
-        tie_off_m: newRacquetData.tie_off_m,
-        start_c: newRacquetData.start_c,
-        tie_off_c: newRacquetData.tie_off_c,
+        string_pattern_mains: Number(newRacquetData.string_pattern_mains),
+        string_pattern_crosses: Number(newRacquetData.string_pattern_crosses),
+        mains_skip: newRacquetData.mains_skip,
+        mains_tie_off: newRacquetData.mains_tie_off,
+        crosses_start: newRacquetData.crosses_start,
+        crosses_tie_off: newRacquetData.crosses_tie_off,
+        one_piece_length: Number(newRacquetData.one_piece_length) || 0,
+        two_piece_length: Number(newRacquetData.two_piece_length) || 0,
         stringing_instructions: newRacquetData.stringing_instructions,
         current_string_main: stringMain || "Not strung yet",
         current_string_cross: stringCross || "Not strung yet",
@@ -621,9 +619,9 @@ export default function CustomerDashboard({ user, initialTab = 'jobs' }: { user:
       setShowAddRacquetModal(false);
       setNewRacquetData({
         brand: '', brand_custom: '', model: '', model_custom: '', serial_number: '',
-        head_size: '100', pattern: '16x19', tension: '50-60', length: '27',
-        skip_m_holes: '', tie_off_m: '', start_c: '', tie_off_c: '',
-        stringing_instructions: '',
+        head_size: '100', string_pattern_mains: '16', string_pattern_crosses: '19',
+        mains_skip: '', mains_tie_off: '', crosses_start: '', crosses_tie_off: '',
+        one_piece_length: '', two_piece_length: '', stringing_instructions: '',
         string_main_brand: '', string_main_model: '', string_main_brand_custom: '', string_main_model_custom: '', string_main_gauge: '',
         string_cross_brand: '', string_cross_model: '', string_cross_brand_custom: '', string_cross_model_custom: '', string_cross_gauge: '',
         current_tension_main: '', current_tension_cross: ''
@@ -1256,47 +1254,35 @@ export default function CustomerDashboard({ user, initialTab = 'jobs' }: { user:
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Head Size (sq in)</label>
-                  <input
-                    type="number"
-                    required
-                    value={newRacquetData.head_size}
-                    onChange={(e) => setNewRacquetData({...newRacquetData, head_size: e.target.value})}
-                    className="w-full px-4 py-2 rounded-xl bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 focus:ring-2 focus:ring-primary/20 outline-none transition-all text-sm"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Length (in)</label>
-                  <input
-                    type="text"
-                    required
-                    value={newRacquetData.length}
-                    onChange={(e) => setNewRacquetData({...newRacquetData, length: e.target.value})}
-                    className="w-full px-4 py-2 rounded-xl bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 focus:ring-2 focus:ring-primary/20 outline-none transition-all text-sm"
-                  />
-                </div>
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Head Size (sq in)</label>
+                <input
+                  type="number"
+                  required
+                  value={newRacquetData.head_size}
+                  onChange={(e) => setNewRacquetData({...newRacquetData, head_size: e.target.value})}
+                  className="w-full px-4 py-2 rounded-xl bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 focus:ring-2 focus:ring-primary/20 outline-none transition-all text-sm"
+                />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Pattern</label>
+                  <label className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Mains</label>
                   <input
-                    type="text"
+                    type="number"
                     required
-                    value={newRacquetData.pattern}
-                    onChange={(e) => setNewRacquetData({...newRacquetData, pattern: e.target.value})}
+                    value={newRacquetData.string_pattern_mains}
+                    onChange={(e) => setNewRacquetData({...newRacquetData, string_pattern_mains: e.target.value})}
                     className="w-full px-4 py-2 rounded-xl bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 focus:ring-2 focus:ring-primary/20 outline-none transition-all text-sm"
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Recommended Tension</label>
+                  <label className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Crosses</label>
                   <input
-                    type="text"
+                    type="number"
                     required
-                    value={newRacquetData.tension}
-                    onChange={(e) => setNewRacquetData({...newRacquetData, tension: e.target.value})}
+                    value={newRacquetData.string_pattern_crosses}
+                    onChange={(e) => setNewRacquetData({...newRacquetData, string_pattern_crosses: e.target.value})}
                     className="w-full px-4 py-2 rounded-xl bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 focus:ring-2 focus:ring-primary/20 outline-none transition-all text-sm"
                   />
                 </div>
@@ -1311,8 +1297,8 @@ export default function CustomerDashboard({ user, initialTab = 'jobs' }: { user:
                     <input 
                       type="text" 
                       placeholder="7H, 9H, 7T, 9T" 
-                      value={newRacquetData.skip_m_holes}
-                      onChange={e => setNewRacquetData({...newRacquetData, skip_m_holes: e.target.value})}
+                      value={newRacquetData.mains_skip}
+                      onChange={e => setNewRacquetData({...newRacquetData, mains_skip: e.target.value})}
                       className="w-full px-3 py-1.5 text-sm border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-lg outline-none focus:ring-2 focus:ring-primary"
                     />
                   </div>
@@ -1321,8 +1307,8 @@ export default function CustomerDashboard({ user, initialTab = 'jobs' }: { user:
                     <input 
                       type="text" 
                       placeholder="8T" 
-                      value={newRacquetData.tie_off_m}
-                      onChange={e => setNewRacquetData({...newRacquetData, tie_off_m: e.target.value})}
+                      value={newRacquetData.mains_tie_off}
+                      onChange={e => setNewRacquetData({...newRacquetData, mains_tie_off: e.target.value})}
                       className="w-full px-3 py-1.5 text-sm border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-lg outline-none focus:ring-2 focus:ring-primary"
                     />
                   </div>
@@ -1331,8 +1317,8 @@ export default function CustomerDashboard({ user, initialTab = 'jobs' }: { user:
                     <input 
                       type="text" 
                       placeholder="Head" 
-                      value={newRacquetData.start_c}
-                      onChange={e => setNewRacquetData({...newRacquetData, start_c: e.target.value})}
+                      value={newRacquetData.crosses_start}
+                      onChange={e => setNewRacquetData({...newRacquetData, crosses_start: e.target.value})}
                       className="w-full px-3 py-1.5 text-sm border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-lg outline-none focus:ring-2 focus:ring-primary"
                     />
                   </div>
@@ -1341,8 +1327,30 @@ export default function CustomerDashboard({ user, initialTab = 'jobs' }: { user:
                     <input 
                       type="text" 
                       placeholder="5H, 11T" 
-                      value={newRacquetData.tie_off_c}
-                      onChange={e => setNewRacquetData({...newRacquetData, tie_off_c: e.target.value})}
+                      value={newRacquetData.crosses_tie_off}
+                      onChange={e => setNewRacquetData({...newRacquetData, crosses_tie_off: e.target.value})}
+                      className="w-full px-3 py-1.5 text-sm border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-lg outline-none focus:ring-2 focus:ring-primary"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-neutral-500 uppercase">1-Piece (ft)</label>
+                    <input 
+                      type="number" 
+                      placeholder="33" 
+                      value={newRacquetData.one_piece_length}
+                      onChange={e => setNewRacquetData({...newRacquetData, one_piece_length: e.target.value})}
+                      className="w-full px-3 py-1.5 text-sm border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-lg outline-none focus:ring-2 focus:ring-primary"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-neutral-500 uppercase">2-Piece (ft)</label>
+                    <input 
+                      type="number" 
+                      placeholder="20/18" 
+                      value={newRacquetData.two_piece_length}
+                      onChange={e => setNewRacquetData({...newRacquetData, two_piece_length: e.target.value})}
                       className="w-full px-3 py-1.5 text-sm border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-lg outline-none focus:ring-2 focus:ring-primary"
                     />
                   </div>

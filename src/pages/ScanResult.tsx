@@ -54,9 +54,8 @@ export default function ScanResult() {
       }
       setJoined(true);
       setTimeout(() => navigate("/"), 1500);
-    } catch (err: any) {
+    } catch (err) {
       console.error("Error joining shop:", err);
-      handleFirestoreError(err, OperationType.WRITE, "customers");
       setError("Failed to join shop. Please try again.");
     } finally {
       setJoining(false);
@@ -117,8 +116,8 @@ export default function ScanResult() {
             const q = query(collection(db, "racquets"), where("qr_code", "==", cleanCode));
             const snap = await getDocs(q);
             if (!snap.empty) {
-              const docSnap = snap.docs[0];
-              racquetData = { id: docSnap.id, ...docSnap.data() };
+              const doc = snap.docs[0];
+              racquetData = { id: doc.id, ...doc.data() };
             }
           }
 
@@ -133,7 +132,7 @@ export default function ScanResult() {
               limit(10)
             );
             const jobsSnap = await getDocs(jobsQ);
-            const jobs = jobsSnap.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() }));
+            const jobs = jobsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
             setResult({
               type: "racquet",
@@ -158,8 +157,8 @@ export default function ScanResult() {
             const q = query(collection(db, "inventory"), where("qr_code", "==", cleanCode));
             const snap = await getDocs(q);
             if (!snap.empty) {
-              const docSnap = snap.docs[0];
-              itemData = { id: docSnap.id, ...docSnap.data() };
+              const doc = snap.docs[0];
+              itemData = { id: doc.id, ...doc.data() };
             }
           }
 
@@ -186,7 +185,7 @@ export default function ScanResult() {
             const customerData = customerDoc.exists() ? customerDoc.data() : { name: "Unknown", email: "Unknown" };
             const jobsQ = query(collection(db, "jobs"), where("racquet_id", "==", racquetData.id), orderBy("created_at", "desc"), limit(10));
             const jobsSnap = await getDocs(jobsQ);
-            const jobs = jobsSnap.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() }));
+            const jobs = jobsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             setResult({ type: "racquet", data: { ...racquetData, customer_name: customerData.name, customer_email: customerData.email }, jobs });
             return;
           }
@@ -199,9 +198,8 @@ export default function ScanResult() {
 
           setError("Invalid QR code format or item not found");
         }
-      } catch (err: any) {
+      } catch (err) {
         console.error(err);
-        handleFirestoreError(err, OperationType.GET, "scan");
         setError("Failed to fetch data from Firestore");
       } finally {
         setLoading(false);
@@ -357,16 +355,8 @@ export default function ScanResult() {
                   <p className="text-sm font-medium text-neutral-900 dark:text-white">{result.data.head_size ? `${result.data.head_size} sq in` : 'N/A'}</p>
                 </div>
                 <div className="bg-neutral-50 dark:bg-neutral-900/50 p-4 rounded-xl border border-neutral-100 dark:border-neutral-700/50">
-                  <p className="text-xs text-neutral-400 dark:text-neutral-500 uppercase tracking-wider font-bold">Pattern</p>
-                  <p className="text-sm font-medium text-neutral-900 dark:text-white">{result.data.pattern || 'N/A'}</p>
-                </div>
-                <div className="bg-neutral-50 dark:bg-neutral-900/50 p-4 rounded-xl border border-neutral-100 dark:border-neutral-700/50">
-                  <p className="text-xs text-neutral-400 dark:text-neutral-500 uppercase tracking-wider font-bold">Tension</p>
-                  <p className="text-sm font-medium text-neutral-900 dark:text-white">{result.data.tension || 'N/A'}</p>
-                </div>
-                <div className="bg-neutral-50 dark:bg-neutral-900/50 p-4 rounded-xl border border-neutral-100 dark:border-neutral-700/50">
-                  <p className="text-xs text-neutral-400 dark:text-neutral-500 uppercase tracking-wider font-bold">Length</p>
-                  <p className="text-sm font-medium text-neutral-900 dark:text-white">{result.data.length || 'N/A'}</p>
+                  <p className="text-xs text-neutral-400 dark:text-neutral-500 uppercase tracking-wider font-bold">String Pattern</p>
+                  <p className="text-sm font-medium text-neutral-900 dark:text-white">{result.data.string_pattern_mains ? `${result.data.string_pattern_mains}x${result.data.string_pattern_crosses}` : 'N/A'}</p>
                 </div>
                 <div className="bg-neutral-50 dark:bg-neutral-900/50 p-4 rounded-xl border border-neutral-100 dark:border-neutral-700/50">
                   <p className="text-xs text-neutral-400 dark:text-neutral-500 uppercase tracking-wider font-bold">Customer Email</p>
