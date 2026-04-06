@@ -47,9 +47,9 @@ export default function Inventory({ user }: { user: any }) {
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const inventoryItems = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
+      const inventoryItems = snapshot.docs.map(docSnap => ({
+        id: docSnap.id,
+        ...docSnap.data()
       }));
       setItems(inventoryItems);
       setLoading(false);

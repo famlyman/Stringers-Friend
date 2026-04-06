@@ -1,6 +1,7 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../lib/firebase";
+import { supabase } from "../lib/supabase";
 import { PREDEFINED_RACQUETS } from "../data/racquetDatabase";
 
 export interface RacquetSpec {
@@ -18,17 +19,66 @@ export interface RacquetSpec {
   onePieceLength?: string;
   twoPieceLength?: string;
   stringingInstructions?: string;
-  length?: number;
+  length?: string;
   unstrungWeight?: number;
   balance?: string;
   swingweight?: number;
   stiffness?: number;
   beamWidth?: string;
+  // Supabase specific fields
+  tension?: string;
+  pattern?: string;
+  skip_m_holes?: string;
+  tie_off_m?: string;
+  start_c?: string;
+  tie_off_c?: string;
+  racquet_name?: string;
 }
 
 export const racquetSpecsService = {
   async getSpecs(brand: string, model: string): Promise<RacquetSpec | null> {
-    // 1. Check Local Predefined Database
+    // 1. Check Supabase First
+    try {
+      const { data, error } = await supabase
+        .from('racquets')
+        .select('*')
+        .eq('brand', brand)
+        .eq('racquet_name', model)
+        .single();
+
+      if (data && !error) {
+        console.log("Returning Supabase racquet specs for:", brand, model);
+        // Map Supabase fields to RacquetSpec
+        const patternParts = data.pattern?.split('x') || [];
+        const tensionParts = data.tension?.split('-') || [];
+        
+        return {
+          brand: data.brand,
+          model: data.racquet_name,
+          headSize: 0, // Not in Supabase schema
+          patternMains: parseInt(patternParts[0]) || 0,
+          patternCrosses: parseInt(patternParts[1]) || 0,
+          tensionRangeMin: parseInt(tensionParts[0]) || 0,
+          tensionRangeMax: parseInt(tensionParts[1]) || 0,
+          mainsSkip: data.skip_m_holes,
+          mainsTieOff: data.tie_off_m,
+          crossesStart: data.start_c,
+          crossesTieOff: data.tie_off_c,
+          length: data.length,
+          tension: data.tension,
+          pattern: data.pattern,
+          skip_m_holes: data.skip_m_holes,
+          tie_off_m: data.tie_off_m,
+          start_c: data.start_c,
+          tie_off_c: data.tie_off_c,
+          racquet_name: data.racquet_name
+        };
+      }
+    } catch (supabaseError) {
+      console.warn("Error checking Supabase racquet specs:", supabaseError);
+    }
+
+    // 2. Check Local Predefined Database
     const brandData = PREDEFINED_RACQUETS[brand];
     if (brandData && brandData[model]) {
       console.log("Returning predefined racquet specs for:", brand, model);
@@ -143,7 +193,23 @@ export const racquetSpecsService = {
   },
 
   async searchModels(brand: string, query: string): Promise<string[]> {
-    // 1. Check Cache First
+    // 1. Check Supabase First
+    try {
+      const { data, error } = await supabase
+        .from('racquets')
+        .select('racquet_name')
+        .eq('brand', brand)
+        .ilike('racquet_name', `%${query}%`);
+
+      if (data && !error && data.length > 0) {
+        console.log("Returning Supabase model search results for:", brand, query);
+        return data.map(r => r.racquet_name);
+      }
+    } catch (supabaseError) {
+      console.warn("Error searching Supabase models:", supabaseError);
+    }
+
+    // 2. Check Cache First
     const cacheId = `search_${brand.toLowerCase().replace(/\s+/g, '_')}_${query.toLowerCase().replace(/\s+/g, '_')}`;
     try {
       const cacheRef = doc(db, "racquet_specs_cache", cacheId);

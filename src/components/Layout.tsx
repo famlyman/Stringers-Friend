@@ -4,7 +4,7 @@ import { LayoutDashboard, Users, Package, LogOut, User, Sun, Moon, MessageSquare
 import { useTheme } from "../context/ThemeContext";
 import { NotificationProvider, NotificationDropdown, useNotifications } from "../context/NotificationContext";
 import { collection, query, where, onSnapshot } from "firebase/firestore";
-import { db, requestNotificationPermission } from "../lib/firebase";
+import { db, requestNotificationPermission, handleFirestoreError, OperationType } from "../lib/firebase";
 
 interface LayoutProps {
   user: any;
@@ -44,11 +44,13 @@ function LayoutContent({ user, onLogout }: LayoutProps) {
     const unsubscribe = onSnapshot(messagesQuery, (snapshot) => {
       if (user.role === 'stringer') {
         // Filter out messages sent by the stringer themselves
-        const unread = snapshot.docs.filter(doc => doc.data().sender_role !== 'stringer').length;
+        const unread = snapshot.docs.filter(docSnap => docSnap.data().sender_role !== 'stringer').length;
         setMessageUnreadCount(unread);
       } else {
         setMessageUnreadCount(snapshot.size);
       }
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, "messages");
     });
 
     return () => unsubscribe();

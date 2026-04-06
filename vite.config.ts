@@ -14,6 +14,7 @@ export default defineConfig(({mode}) => {
         registerType: 'autoUpdate',
         includeAssets: ['icon.svg', 'firebase-messaging-sw.js'],
         workbox: {
+          maximumFileSizeToCacheInBytes: 4000000,
           navigateFallbackDenylist: [/^\/api/],
           runtimeCaching: [
             {

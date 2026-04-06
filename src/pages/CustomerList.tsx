@@ -165,6 +165,8 @@ export default function CustomerList({ user }: { user: any }) {
       if (docSnap.exists()) {
         setShop(docSnap.data());
       }
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, `shops/${user.shop_id}`);
     });
 
     const q = query(
@@ -173,9 +175,9 @@ export default function CustomerList({ user }: { user: any }) {
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const customerList = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
+      const customerList = snapshot.docs.map(docSnap => ({
+        id: docSnap.id,
+        ...docSnap.data()
       }));
       setCustomers(customerList);
       setLoading(false);
@@ -190,7 +192,9 @@ export default function CustomerList({ user }: { user: any }) {
       where("shop_id", "==", user.shop_id)
     );
     const unsubscribeAllRacquets = onSnapshot(racquetsQuery, (snapshot) => {
-      setAllRacquets(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      setAllRacquets(snapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() })));
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, "racquets");
     });
 
     // Fetch Inventory Strings
@@ -200,7 +204,9 @@ export default function CustomerList({ user }: { user: any }) {
       where("type", "==", "string")
     );
     const unsubscribeInventory = onSnapshot(inventoryQuery, (snapshot) => {
-      setInventoryStrings(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      setInventoryStrings(snapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() })));
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, "inventory");
     });
 
     return () => {
@@ -224,9 +230,9 @@ export default function CustomerList({ user }: { user: any }) {
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const racquetList = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
+      const racquetList = snapshot.docs.map(docSnap => ({
+        id: docSnap.id,
+        ...docSnap.data()
       }));
       setRacquets(racquetList);
     }, (error) => {
