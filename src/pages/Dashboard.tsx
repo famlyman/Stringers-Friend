@@ -1551,7 +1551,7 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
                 <div className="space-y-2">
                   <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300">Current Main String Brand</label>
                   <select 
-                    value={STRINGS.find(brand => editingRacquet.current_string_main?.startsWith(brand.brand))?.brand || "Other"}
+                    value={STRINGS.find(brand => editingRacquet.current_string_main?.startsWith(brand.brand))?.brand || ""}
                     onChange={e => {
                       const val = e.target.value;
                       if (val === "Other") {
@@ -1579,7 +1579,7 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
                   )}
                   {STRINGS.some(brand => editingRacquet.current_string_main?.startsWith(brand.brand)) && (
                     <select 
-                      value={editingRacquet.current_string_main?.split(' ').slice(1).join(' ') || ""}
+                      value={(editingRacquet.current_string_main?.split(' ').slice(1, -1).join(' ') || "")}
                       onChange={e => {
                         const brand = STRINGS.find(b => editingRacquet.current_string_main?.startsWith(b.brand))?.brand;
                         setEditingRacquet({...editingRacquet, current_string_main: brand + " " + e.target.value});
@@ -1597,7 +1597,7 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
                 <div className="space-y-2">
                   <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300">Current Cross String Brand</label>
                   <select 
-                    value={editingRacquet.current_string_cross === editingRacquet.current_string_main ? "Same as Mains" : (STRINGS.find(brand => editingRacquet.current_string_cross?.startsWith(brand.brand))?.brand || "Other")}
+                    value={editingRacquet.current_string_cross === editingRacquet.current_string_main ? "Same as Mains" : (STRINGS.find(brand => editingRacquet.current_string_cross?.startsWith(brand.brand))?.brand || "")}
                     onChange={e => {
                       const val = e.target.value;
                       if (val === "Same as Mains") {
@@ -1628,7 +1628,7 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
                   )}
                   {editingRacquet.current_string_cross !== editingRacquet.current_string_main && STRINGS.some(brand => editingRacquet.current_string_cross?.startsWith(brand.brand)) && (
                     <select 
-                      value={editingRacquet.current_string_cross?.split(' ').slice(1).join(' ') || ""}
+                      value={(editingRacquet.current_string_cross?.split(' ').slice(1, -1).join(' ') || "")}
                       onChange={e => {
                         const brand = STRINGS.find(b => editingRacquet.current_string_cross?.startsWith(b.brand))?.brand;
                         setEditingRacquet({...editingRacquet, current_string_cross: brand + " " + e.target.value});
