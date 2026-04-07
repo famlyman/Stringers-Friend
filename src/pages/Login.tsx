@@ -114,8 +114,9 @@ export default function Login() {
     setError("");
 
     try {
+      const redirectUrl = import.meta.env.VITE_APP_URL || window.location.origin;
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/`,
+        redirectTo: `${redirectUrl}/`,
       });
 
       if (resetError) {
