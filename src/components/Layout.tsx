@@ -3,8 +3,7 @@ import { Link, Outlet, useNavigate } from "react-router-dom";
 import { LayoutDashboard, Users, Package, LogOut, User, Sun, Moon, MessageSquare, Clock, Bell, X } from "lucide-react";
 import { useTheme } from "../context/ThemeContext";
 import { NotificationProvider, NotificationDropdown, useNotifications } from "../context/NotificationContext";
-import { collection, query, where, onSnapshot } from "firebase/firestore";
-import { db, requestNotificationPermission } from "../lib/firebase";
+import { supabase } from "../lib/supabase";
 
 interface LayoutProps {
   user: any;
@@ -37,21 +36,18 @@ function LayoutContent({ user, onLogout }: LayoutProps) {
 
     checkPushStatus();
 
-    const messagesQuery = user.role === 'stringer'
-      ? query(collection(db, "messages"), where("shop_id", "==", user.shop_id), where("read", "==", false))
-      : query(collection(db, "messages"), where("customer_email", "==", user.email), where("sender_role", "==", "stringer"), where("read", "==", false));
+    // TODO: Migrate messages to Supabase (need messages table in schema)
+    // For now, we'll disable the real-time messages count
+    // This will be re-implemented with Supabase Realtime once messages table is created
+    const messagesSubscription = async () => {
+      if (!user?.role) return null;
+      
+      // Placeholder: Messages feature needs Supabase messages table
+      // This is part of the gradual migration - Firebase messages are not migrated yet
+      return null;
+    };
 
-    const unsubscribe = onSnapshot(messagesQuery, (snapshot) => {
-      if (user.role === 'stringer') {
-        // Filter out messages sent by the stringer themselves
-        const unread = snapshot.docs.filter(doc => doc.data().sender_role !== 'stringer').length;
-        setMessageUnreadCount(unread);
-      } else {
-        setMessageUnreadCount(snapshot.size);
-      }
-    });
-
-    return () => unsubscribe();
+    messagesSubscription();
   }, [user]);
 
   if (!user) return <Outlet />;
@@ -188,7 +184,9 @@ function LayoutContent({ user, onLogout }: LayoutProps) {
                 <button
                   onClick={async () => {
                     try {
-                      await requestNotificationPermission(user.uid);
+                      // TODO: Migrate push notifications to Supabase
+                      // This feature is temporarily disabled during migration
+                      // Will be replaced with Supabase Realtime + Web Push
                       setShowPushPrompt(false);
                       localStorage.setItem('lastPushPrompt', Date.now().toString());
                     } catch (err) {

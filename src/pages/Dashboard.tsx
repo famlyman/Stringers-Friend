@@ -5,9 +5,7 @@ import { Plus, Search, Filter, CheckCircle2, Clock, PlayCircle, CreditCard, X, T
 import QRCodeDisplay from "../components/QRCodeDisplay";
 import { QrScanner } from "../components/QrScanner";
 import { Link } from "react-router-dom";
-import { collection, query, where, onSnapshot, doc, setDoc, updateDoc, deleteDoc, getDocs, writeBatch, serverTimestamp, orderBy, getDoc, limit, addDoc } from "firebase/firestore";
-import { db, handleFirestoreError, OperationType, requestNotificationPermission } from "../lib/firebase";
-import { v4 as uuidv4 } from "uuid";
+import { supabase } from "../lib/supabase";
 import { safeFormatDate } from "../lib/utils";
 
 export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, initialTab?: 'jobs' | 'customers' | 'messages' | 'inventory' }) {
@@ -34,21 +32,38 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
   useEffect(() => {
     if (!user.shop_id) return;
 
-    const q = query(
-      collection(db, "inventory"),
-      where("shop_id", "==", user.shop_id),
-      orderBy("created_at", "desc")
-    );
+    // Fetch inventory using Supabase
+    const fetchInventory = async () => {
+      const { data, error } = await supabase
+        .from('inventory')
+        .select('*')
+        .eq('shop_id', user.shop_id)
+        .order('created_at', { ascending: false });
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setInventoryItems(items);
-      setInventoryStrings(items.filter((i: any) => i.type === 'string'));
-    }, (err) => {
-      handleFirestoreError(err, OperationType.LIST, "inventory");
-    });
+      if (error) {
+        console.error("Error fetching inventory:", error);
+      } else {
+        setInventoryItems(data || []);
+        setInventoryStrings((data || []).filter((i: any) => i.item_type === 'string'));
+      }
+    };
 
-    return () => unsubscribe();
+    fetchInventory();
+
+    // Subscribe to inventory changes
+    const subscription = supabase
+      .channel(`inventory:${user.shop_id}`)
+      .on('postgres_changes', 
+        { event: '*', schema: 'public', table: 'inventory', filter: `shop_id=eq.${user.shop_id}` },
+        (payload) => {
+          fetchInventory();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, [user.shop_id]);
 
   const [selectedCustomerIdForChat, setSelectedCustomerIdForChat] = useState<string | null>(null);
@@ -319,79 +334,73 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
 
   useEffect(() => {
     if (user?.uid) {
-      requestNotificationPermission(user.uid);
+      // TODO: Re-enable after full Supabase migration
+      // requestNotificationPermission(user.uid);
     }
   }, [user?.uid]);
 
   useEffect(() => {
     if (!user || !user.shop_id) return;
 
-    // Fetch Shop
-    const unsubscribeShop = onSnapshot(doc(db, "shops", user.shop_id), (docSnap) => {
-      if (docSnap.exists()) {
-        setShop(docSnap.data());
-      }
-    });
+    // Fetch all data using Supabase
+    const fetchData = async () => {
+      setLoading(true);
+      
+      // Fetch Shop
+      const { data: shopData } = await supabase
+        .from('shops')
+        .select('*')
+        .eq('id', user.shop_id)
+        .single();
+      if (shopData) setShop(shopData);
 
-    // Fetch Jobs
-    const jobsQuery = query(
-      collection(db, "jobs"),
-      where("shop_id", "==", user.shop_id),
-      orderBy("created_at", "desc")
-    );
-    const unsubscribeJobs = onSnapshot(jobsQuery, (snapshot) => {
-      const jobsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      // We need to join with racquet data for display
-      setJobs(jobsData);
-    });
+      // Fetch Jobs (from stringing_jobs table)
+      const { data: jobsData } = await supabase
+        .from('stringing_jobs')
+        .select('*')
+        .eq('shop_id', user.shop_id)
+        .order('created_at', { ascending: false });
+      if (jobsData) setJobs(jobsData);
 
-    // Fetch Customers
-    const customersQuery = query(
-      collection(db, "customers"),
-      where("shop_id", "==", user.shop_id)
-    );
-    const unsubscribeCustomers = onSnapshot(customersQuery, (snapshot) => {
-      setCustomers(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-    });
+      // Fetch Customers
+      const { data: customersData } = await supabase
+        .from('customers')
+        .select('*')
+        .eq('shop_id', user.shop_id);
+      if (customersData) setCustomers(customersData);
 
-    // Fetch Racquets
-    const racquetsQuery = query(
-      collection(db, "racquets"),
-      where("shop_id", "==", user.shop_id)
-    );
-    const unsubscribeRacquets = onSnapshot(racquetsQuery, (snapshot) => {
-      setRacquets(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-    });
+      // Fetch Racquets (need to join with customers to get shop_id)
+      const { data: racquetsData } = await supabase
+        .from('racquets')
+        .select('*, customers!inner(shop_id)')
+        .eq('customers.shop_id', user.shop_id);
+      if (racquetsData) setRacquets(racquetsData);
 
-    // Fetch Messages
-    const messagesQuery = query(
-      collection(db, "messages"),
-      where("shop_id", "==", user.shop_id),
-      orderBy("created_at", "asc")
-    );
-    const unsubscribeMessages = onSnapshot(messagesQuery, (snapshot) => {
-      setMessages(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-    });
+      setLoading(false);
+    };
 
-    // Fetch Inventory Strings
-    const inventoryQuery = query(
-      collection(db, "inventory"),
-      where("shop_id", "==", user.shop_id),
-      where("type", "==", "string")
-    );
-    const unsubscribeInventory = onSnapshot(inventoryQuery, (snapshot) => {
-      setInventoryStrings(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-    });
+    fetchData();
 
-    setLoading(false);
+    // Set up real-time subscriptions
+    const jobsSubscription = supabase
+      .channel(`jobs:${user.shop_id}`)
+      .on('postgres_changes', 
+        { event: '*', schema: 'public', table: 'stringing_jobs', filter: `shop_id=eq.${user.shop_id}` },
+        () => fetchData()
+      )
+      .subscribe();
+
+    const customersSubscription = supabase
+      .channel(`customers:${user.shop_id}`)
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'customers', filter: `shop_id=eq.${user.shop_id}` },
+        () => fetchData()
+      )
+      .subscribe();
 
     return () => {
-      unsubscribeShop();
-      unsubscribeJobs();
-      unsubscribeCustomers();
-      unsubscribeRacquets();
-      unsubscribeMessages();
-      unsubscribeInventory();
+      jobsSubscription.unsubscribe();
+      customersSubscription.unsubscribe();
     };
   }, [user.shop_id]);
 
@@ -405,7 +414,10 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
       if (unreadMessages.length > 0) {
         unreadMessages.forEach(async (msg) => {
           try {
-            await updateDoc(doc(db, "messages", msg.id), { read: true });
+            await supabase
+              .from('messages')
+              .update({ read: true })
+              .eq('id', msg.id);
           } catch (err) {
             console.error("Error marking message as read:", err);
           }
@@ -875,55 +887,14 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
 
   const updatePaymentStatus = async (jobId: string, payment_status: string) => {
     try {
-      await updateDoc(doc(db, "jobs", jobId), { 
-        payment_status,
-        updated_at: serverTimestamp()
-      });
+      const { error } = await supabase
+        .from('stringing_jobs')
+        .update({ payment_status })
+        .eq('id', jobId);
 
-      if (payment_status === 'paid') {
-        const job = jobs.find(j => j.id === jobId);
-        const racquet = racquets.find(r => r.id === job?.racquet_id);
-        const customer = customers.find(c => c.id === racquet?.customer_id);
-
-        if (customer?.email) {
-          const notificationId = uuidv4();
-          await setDoc(doc(db, "notifications", notificationId), {
-            id: notificationId,
-            customer_email: customer.email,
-            shop_id: user.shop_id,
-            job_id: jobId,
-            type: "other",
-            title: "Payment Received",
-            message: `Payment for your ${racquet?.brand || 'racquet'} ${racquet?.model || ''} has been received. Thank you!`,
-            read: false,
-            created_at: serverTimestamp()
-          });
-
-          // Send Push Notification
-          try {
-            const customerSnap = await getDocs(query(collection(db, "users"), where("email", "==", customer.email), limit(1)));
-            if (!customerSnap.empty) {
-              const customerData = customerSnap.docs[0].data();
-              if (customerData.fcmToken) {
-                await fetch("/api/send-notification", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({
-                    token: customerData.fcmToken,
-                    title: "Payment Received",
-                    body: `Payment for your ${racquet?.brand || 'racquet'} ${racquet?.model || ''} has been received.`,
-                    data: { type: "job", job_id: jobId }
-                  })
-                });
-              }
-            }
-          } catch (pushErr) {
-            console.error("Error sending push notification:", pushErr);
-          }
-        }
-      }
+      if (error) throw error;
     } catch (err) {
-      handleFirestoreError(err, OperationType.UPDATE, `jobs/${jobId}/payment`);
+      console.error("Error updating payment status:", err);
     }
   };
 
@@ -961,10 +932,15 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
 
   const handleDeleteJob = async (jobId: string) => {
     try {
-      await deleteDoc(doc(db, "jobs", jobId));
+      const { error } = await supabase
+        .from('stringing_jobs')
+        .delete()
+        .eq('id', jobId);
+
+      if (error) throw error;
       setDeleteConfirm(null);
     } catch (err) {
-      handleFirestoreError(err, OperationType.DELETE, `jobs/${jobId}`);
+      console.error("Error deleting job:", err);
     }
   };
 
@@ -973,22 +949,26 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
     if (!editingRacquet) return;
     setSubmitting(true);
     try {
-      await updateDoc(doc(db, "racquets", editingRacquet.id), {
-        brand: editingRacquet.brand,
-        model: editingRacquet.model,
-        serial_number: editingRacquet.serial_number,
-        head_size: editingRacquet.head_size,
-        string_pattern_mains: editingRacquet.string_pattern_mains,
-        string_pattern_crosses: editingRacquet.string_pattern_crosses,
-        current_string_main: editingRacquet.current_string_main,
-        current_string_cross: editingRacquet.current_string_cross,
-        current_tension_main: editingRacquet.current_tension_main,
-        current_tension_cross: editingRacquet.current_tension_cross,
-        updated_at: serverTimestamp()
-      });
+      const { error } = await supabase
+        .from('racquets')
+        .update({
+          brand: editingRacquet.brand,
+          model: editingRacquet.model,
+          serial_number: editingRacquet.serial_number,
+          head_size: editingRacquet.head_size,
+          string_pattern_mains: editingRacquet.string_pattern_mains,
+          string_pattern_crosses: editingRacquet.string_pattern_crosses,
+          current_string_main: editingRacquet.current_string_main,
+          current_string_cross: editingRacquet.current_string_cross,
+          current_tension_main: editingRacquet.current_tension_main,
+          current_tension_cross: editingRacquet.current_tension_cross,
+        })
+        .eq('id', editingRacquet.id);
+
+      if (error) throw error;
       setEditingRacquet(null);
     } catch (err) {
-      handleFirestoreError(err, OperationType.UPDATE, `racquets/${editingRacquet.id}`);
+      console.error("Error updating racquet:", err);
     } finally {
       setSubmitting(false);
     }
@@ -999,18 +979,22 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
     if (!editingJob) return;
     setSubmitting(true);
     try {
-      await updateDoc(doc(db, "jobs", editingJob.id), {
-        string_main: editingJob.string_main,
-        string_cross: editingJob.string_cross,
-        tension_main: editingJob.tension_main,
-        tension_cross: editingJob.tension_cross,
-        price: editingJob.price,
-        notes: editingJob.notes,
-        updated_at: serverTimestamp()
-      });
+      const { error } = await supabase
+        .from('stringing_jobs')
+        .update({
+          string_main: editingJob.string_main,
+          string_cross: editingJob.string_cross,
+          tension_main: editingJob.tension_main,
+          tension_cross: editingJob.tension_cross,
+          price: editingJob.price,
+          notes: editingJob.notes,
+        })
+        .eq('id', editingJob.id);
+
+      if (error) throw error;
       setEditingJob(null);
     } catch (err) {
-      handleFirestoreError(err, OperationType.UPDATE, `jobs/${editingJob.id}`);
+      console.error("Error updating job:", err);
     } finally {
       setSubmitting(false);
     }

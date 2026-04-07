@@ -2,21 +2,8 @@ import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { QrCode, User, Info, History, AlertCircle, CheckCircle2 } from "lucide-react";
 import { safeFormatDate } from "../lib/utils";
-import { 
-  collection, 
-  query, 
-  where, 
-  getDocs, 
-  orderBy,
-  limit,
-  doc,
-  getDoc,
-  setDoc,
-  serverTimestamp
-} from "firebase/firestore";
-import { v4 as uuidv4 } from "uuid";
-import { db, handleFirestoreError, OperationType } from "../lib/firebase";
-import { useAuth } from "../context/AuthContext";
+import { supabase } from "../lib/supabase";
+import { useAuth } from "../context/SupabaseAuthContext";
 
 export default function ScanResult() {
   const { qrCode } = useParams();
@@ -33,25 +20,30 @@ export default function ScanResult() {
     
     setJoining(true);
     try {
-      const qShop = query(
-        collection(db, "customers"), 
-        where("email", "==", user.email),
-        where("shop_id", "==", result.data.id)
-      );
-      const shopSnap = await getDocs(qShop);
+      // Check if customer already exists for this shop
+      const { data: existingCustomers, error: searchError } = await supabase
+        .from('customers')
+        .select('id')
+        .eq('email', user.email)
+        .eq('shop_id', result.data.id);
+
+      if (searchError) throw searchError;
       
-      if (shopSnap.empty) {
-        const customerId = uuidv4();
-        await setDoc(doc(db, "customers", customerId), {
-          id: customerId,
-          name: profile?.name || user.displayName || user.email?.split('@')[0] || "Customer",
-          email: user.email,
-          phone: profile?.phone || "",
-          shop_id: result.data.id,
-          uid: user.uid,
-          created_at: serverTimestamp()
-        });
+      if (!existingCustomers || existingCustomers.length === 0) {
+        // Create new customer
+        const { error: insertError } = await supabase
+          .from('customers')
+          .insert({
+            name: profile?.name || user.email?.split('@')[0] || "Customer",
+            email: user.email,
+            phone: profile?.phone || "",
+            shop_id: result.data.id,
+            user_id: user.id,
+          });
+
+        if (insertError) throw insertError;
       }
+      
       setJoined(true);
       setTimeout(() => navigate("/"), 1500);
     } catch (err) {

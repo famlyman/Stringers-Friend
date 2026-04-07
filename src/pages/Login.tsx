@@ -1,42 +1,50 @@
 import React, { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
-import { auth, db } from "../lib/firebase";
-import { doc, getDoc, setDoc, query, collection, where, getDocs, serverTimestamp } from "firebase/firestore";
-import { v4 as uuidv4 } from "uuid";
+import { useAuth } from "../context/SupabaseAuthContext";
+import { supabase } from "../lib/supabase";
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const shopId = searchParams.get("shopId");
+  const { signIn } = useAuth();
 
-  const ensureCustomerRecord = async (user: any) => {
+  const ensureCustomerRecord = async (userId: string, userEmail: string, userName: string) => {
     if (!shopId) return;
     
     try {
-      const qShop = query(
-        collection(db, "customers"), 
-        where("email", "==", user.email),
-        where("shop_id", "==", shopId)
-      );
-      const shopSnap = await getDocs(qShop);
-      
-      if (shopSnap.empty) {
+      // Check if customer record exists for this shop
+      const { data: existingCustomers, error: searchError } = await supabase
+        .from('customers')
+        .select('id')
+        .eq('email', userEmail)
+        .eq('shop_id', shopId);
+
+      if (searchError) {
+        console.error("Error searching for customer:", searchError);
+        return;
+      }
+
+      if (!existingCustomers || existingCustomers.length === 0) {
         // Create a new customer record for this shop
-        const customerId = uuidv4();
-        await setDoc(doc(db, "customers", customerId), {
-          id: customerId,
-          name: user.displayName || user.email.split('@')[0],
-          email: user.email,
-          phone: user.phoneNumber || "",
-          shop_id: shopId,
-          uid: user.uid,
-          created_at: serverTimestamp()
-        });
+        const { error: insertError } = await supabase
+          .from('customers')
+          .insert({
+            shop_id: shopId,
+            user_id: userId,
+            name: userName || userEmail.split('@')[0],
+            email: userEmail,
+            phone: ""
+          });
+
+        if (insertError) {
+          console.error("Error creating customer record:", insertError);
+        }
       }
     } catch (err) {
       console.error("Error ensuring customer record:", err);
@@ -47,9 +55,21 @@ export default function Login() {
     e.preventDefault();
     setLoading(true);
     setError("");
+    
     try {
-      const result = await signInWithEmailAndPassword(auth, email, password);
-      await ensureCustomerRecord(result.user);
+      const { error: signInError } = await signIn(email, password);
+      
+      if (signInError) {
+        throw signInError;
+      }
+
+      // Get the current user
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (user) {
+        await ensureCustomerRecord(user.id, user.email || email, user.user_metadata?.name || '');
+      }
+      
       navigate("/");
     } catch (err: any) {
       setError(err.message || "Failed to sign in");
@@ -61,32 +81,50 @@ export default function Login() {
   const handleGoogleSignIn = async () => {
     setLoading(true);
     setError("");
+    
     try {
-      const provider = new GoogleAuthProvider();
-      const result = await signInWithPopup(auth, provider);
-      const user = result.user;
+      const { error: oauthError } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/`,
+          queryParams: shopId ? { shopId } : undefined
+        }
+      });
 
-      const userDocRef = doc(db, "users", user.uid);
-      const userDoc = await getDoc(userDocRef);
-      
-      if (!userDoc.exists()) {
-        // Create default profile for Google users
-        await setDoc(userDocRef, {
-          uid: user.uid,
-          email: user.email,
-          role: 'customer'
-        });
+      if (oauthError) {
+        throw oauthError;
       }
 
-      await ensureCustomerRecord(user);
-      navigate("/");
+      // Note: After OAuth redirect, the customer record creation will be handled
+      // in the AuthContext or a callback page
     } catch (err: any) {
       console.error("Google Sign-In Error:", err);
-      if (err.code === 'auth/unauthorized-domain') {
-        setError("This domain is not authorized for Google Sign-In. Please check your Firebase Console settings.");
-      } else {
-        setError(err.message || "Failed to sign in with Google");
+      setError(err.message || "Failed to sign in with Google");
+      setLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    if (!email) {
+      setError("Please enter your email address");
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+
+    try {
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/`,
+      });
+
+      if (resetError) {
+        throw resetError;
       }
+
+      setResetSent(true);
+    } catch (err: any) {
+      setError(err.message || "Failed to send reset email");
     } finally {
       setLoading(false);
     }
@@ -106,6 +144,12 @@ export default function Login() {
         {error && (
           <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-900/30 text-red-600 dark:text-red-400 text-sm rounded-xl">
             {error}
+          </div>
+        )}
+
+        {resetSent && (
+          <div className="mb-6 p-4 bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-900/30 text-green-600 dark:text-green-400 text-sm rounded-xl">
+            Password reset email sent! Check your inbox.
           </div>
         )}
 
@@ -133,6 +177,16 @@ export default function Login() {
               placeholder="••••••••"
               disabled={loading}
             />
+            <div className="mt-2 text-right">
+              <button
+                type="button"
+                onClick={handleForgotPassword}
+                disabled={loading}
+                className="text-sm text-primary hover:underline disabled:opacity-50"
+              >
+                Forgot password?
+              </button>
+            </div>
           </div>
 
           <button

@@ -2,25 +2,9 @@ import React, { useState, useEffect, useMemo, useRef } from "react";
 import { Clock, CheckCircle2, CreditCard, Package, X, Users, Bell, BellDot, Plus, MessageSquare, Send, Search } from "lucide-react";
 import { safeFormatDate } from "../lib/utils";
 import { useSearchParams } from "react-router-dom";
-import { 
-  collection, 
-  query, 
-  where, 
-  onSnapshot, 
-  orderBy,
-  updateDoc,
-  doc,
-  getDocs,
-  limit,
-  setDoc,
-  writeBatch,
-  serverTimestamp,
-  getDoc
-} from "firebase/firestore";
-import { db, handleFirestoreError, OperationType, requestNotificationPermission } from "../lib/firebase";
+import { supabase } from "../lib/supabase";
 import { Save, Edit2, ChevronDown } from "lucide-react";
 import QRCodeDisplay from "../components/QRCodeDisplay";
-import { v4 as uuidv4 } from "uuid";
 import { RACQUET_BRANDS, RACQUET_MODELS, STRINGS, GAUGES } from "../constants";
 import { racquetSpecsService } from "../services/racquetSpecsService";
 
@@ -43,7 +27,8 @@ export default function CustomerDashboard({ user, initialTab = 'jobs' }: { user:
 
   useEffect(() => {
     if (user?.uid) {
-      requestNotificationPermission(user.uid);
+      // TODO: Re-enable after full Supabase migration
+      // requestNotificationPermission(user.uid);
     }
   }, [user?.uid]);
 

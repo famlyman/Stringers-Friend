@@ -1,6 +1,5 @@
 import { GoogleGenAI, Type } from "@google/genai";
-import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
-import { db } from "../lib/firebase";
+import { supabase } from "../lib/supabase";
 import { PREDEFINED_RACQUETS } from "../data/racquetDatabase";
 
 export interface RacquetSpec {
@@ -38,11 +37,19 @@ export const racquetSpecsService = {
     // 2. Check Cache
     const cacheId = `${brand.toLowerCase().replace(/\s+/g, '_')}_${model.toLowerCase().replace(/\s+/g, '_')}`;
     try {
-      const cacheRef = doc(db, "racquet_specs_cache", cacheId);
-      const cacheSnap = await getDoc(cacheRef);
-      if (cacheSnap.exists()) {
+      const { data: cachedData, error: cacheError } = await supabase
+        .from('racquet_specs_cache')
+        .select('specs')
+        .eq('id', cacheId)
+        .single();
+
+      if (cacheError && cacheError.code !== 'PGRST116') { // PGRST116 = not found
+        console.warn("Error checking racquet specs cache:", cacheError);
+      }
+
+      if (cachedData) {
         console.log("Returning cached racquet specs for:", brand, model);
-        return cacheSnap.data().specs as RacquetSpec;
+        return cachedData.specs as RacquetSpec;
       }
     } catch (cacheError) {
       console.warn("Error checking racquet specs cache:", cacheError);
@@ -118,13 +125,19 @@ export const racquetSpecsService = {
 
           // 3. Save to Cache
           try {
-            await setDoc(doc(db, "racquet_specs_cache", cacheId), {
-              id: cacheId,
-              brand: specs.brand || brand,
-              model: specs.model || model,
-              specs: specs,
-              created_at: serverTimestamp()
-            });
+            const { error: saveError } = await supabase
+              .from('racquet_specs_cache')
+              .upsert({
+                id: cacheId,
+                brand: specs.brand || brand,
+                model: specs.model || model,
+                specs: specs,
+                created_at: new Date().toISOString()
+              });
+
+            if (saveError) {
+              console.warn("Error saving racquet specs to cache:", saveError);
+            }
           } catch (cacheSaveError) {
             console.warn("Error saving racquet specs to cache:", cacheSaveError);
           }
@@ -146,11 +159,19 @@ export const racquetSpecsService = {
     // 1. Check Cache First
     const cacheId = `search_${brand.toLowerCase().replace(/\s+/g, '_')}_${query.toLowerCase().replace(/\s+/g, '_')}`;
     try {
-      const cacheRef = doc(db, "racquet_specs_cache", cacheId);
-      const cacheSnap = await getDoc(cacheRef);
-      if (cacheSnap.exists()) {
+      const { data: cachedData, error: cacheError } = await supabase
+        .from('racquet_specs_cache')
+        .select('results')
+        .eq('id', cacheId)
+        .single();
+
+      if (cacheError && cacheError.code !== 'PGRST116') {
+        console.warn("Error checking model search cache:", cacheError);
+      }
+
+      if (cachedData?.results) {
         console.log("Returning cached model search results for:", brand, query);
-        return cacheSnap.data().results as string[];
+        return cachedData.results as string[];
       }
     } catch (cacheError) {
       console.warn("Error checking model search cache:", cacheError);
@@ -190,13 +211,19 @@ export const racquetSpecsService = {
 
           // 2. Save to Cache
           try {
-            await setDoc(doc(db, "racquet_specs_cache", cacheId), {
-              id: cacheId,
-              brand: brand,
-              query: query,
-              results: results,
-              created_at: serverTimestamp()
-            });
+            const { error: saveError } = await supabase
+              .from('racquet_specs_cache')
+              .upsert({
+                id: cacheId,
+                brand: brand,
+                query: query,
+                results: results,
+                created_at: new Date().toISOString()
+              });
+
+            if (saveError) {
+              console.warn("Error saving model search to cache:", saveError);
+            }
           } catch (cacheSaveError) {
             console.warn("Error saving model search to cache:", cacheSaveError);
           }

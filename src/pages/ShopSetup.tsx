@@ -1,8 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { doc, setDoc, updateDoc, serverTimestamp } from "firebase/firestore";
-import { db } from "../lib/firebase";
-import { v4 as uuidv4 } from "uuid";
+import { supabase } from "../lib/supabase";
 
 export default function ShopSetup({ user }: { user: any }) {
   const [name, setName] = useState("");
@@ -28,39 +26,49 @@ export default function ShopSetup({ user }: { user: any }) {
 
     try {
       // Check if slug is unique
-      const { collection, query, where, getDocs } = await import("firebase/firestore");
-      const slugQuery = query(collection(db, "shops"), where("slug", "==", slug.toLowerCase()));
-      const slugSnapshot = await getDocs(slugQuery);
+      const { data: existingShops, error: slugError } = await supabase
+        .from('shops')
+        .select('id')
+        .eq('slug', slug.toLowerCase());
 
-      if (!slugSnapshot.empty) {
+      if (slugError) throw slugError;
+
+      if (existingShops && existingShops.length > 0) {
         setError("This URL handle is already taken. Please choose another one.");
         setLoading(false);
         return;
       }
 
-      const shopId = uuidv4();
       const qrCode = slug.toLowerCase();
 
-      // Create shop in Firestore
-      await setDoc(doc(db, "shops", shopId), {
-        id: shopId,
-        name,
-        slug: slug.toLowerCase(),
-        address,
-        phone,
-        owner_id: user.uid,
-        qr_code: qrCode,
-        created_at: serverTimestamp()
-      });
+      // Create shop in Supabase
+      const { data: newShop, error: shopError } = await supabase
+        .from('shops')
+        .insert({
+          name,
+          slug: slug.toLowerCase(),
+          address,
+          phone,
+          owner_id: user.uid,
+          qr_code: qrCode,
+        })
+        .select()
+        .single();
+
+      if (shopError) throw shopError;
 
       // Update user profile with shop_id
-      await updateDoc(doc(db, "users", user.uid), {
-        shop_id: shopId
-      });
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({ shop_id: newShop.id })
+        .eq('id', user.uid);
+
+      if (profileError) throw profileError;
 
       navigate("/");
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      setError(err.message || "Failed to create shop");
     } finally {
       setLoading(false);
     }

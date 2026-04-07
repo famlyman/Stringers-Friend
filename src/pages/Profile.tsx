@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from "react";
-import { doc, getDoc, updateDoc, deleteDoc, collection, query, where, getDocs, writeBatch } from "firebase/firestore";
-import { updatePassword, updateEmail, reauthenticateWithCredential, EmailAuthProvider, deleteUser } from "firebase/auth";
-import { db, auth, requestNotificationPermission } from "../lib/firebase";
-import { User, Mail, Phone, Lock, Store, Save, AlertCircle, CheckCircle2, Loader2, Sun, Moon, Bell, Send } from "lucide-react";
+import { supabase } from "../lib/supabase";
+import { User, Mail, Phone, Lock, Store, Save, AlertCircle, CheckCircle2, Loader2, Sun, Moon, Bell } from "lucide-react";
 import { useTheme } from "../context/ThemeContext";
+import { useAuth } from "../context/SupabaseAuthContext";
 
 interface ProfileProps {
   user: any;
 }
 
 export default function Profile({ user }: ProfileProps) {
+  const { updateProfile } = useAuth();
   const { darkMode, toggleDarkMode } = useTheme();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -43,24 +43,36 @@ export default function Profile({ user }: ProfileProps) {
   const fetchData = async () => {
     try {
       setLoading(true);
-      // Fetch User Data
-      const userDoc = await getDoc(doc(db, "users", user.uid));
-      if (userDoc.exists()) {
-        const data = userDoc.data();
-        setName(data.name || "");
-        setEmail(data.email || "");
-        setPhone(data.phone || "");
+      // Fetch User Data from Supabase
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.uid)
+        .single();
+
+      if (profileError) {
+        console.error("Error fetching profile:", profileError);
+      } else if (profileData) {
+        setName(profileData.name || "");
+        setEmail(profileData.email || "");
+        setPhone(profileData.phone || "");
 
         // Fetch Shop Data if stringer
-        if (data.role === 'stringer' && data.shop_id) {
-          const shopDoc = await getDoc(doc(db, "shops", data.shop_id));
-          if (shopDoc.exists()) {
-            const sData = shopDoc.data();
-            setShopData(sData);
-            setShopName(sData.name || "");
-            setShopAddress(sData.address || "");
-            setShopPhone(sData.phone || "");
-            setShopSlug(sData.slug || "");
+        if (profileData.role === 'stringer' && profileData.shop_id) {
+          const { data: shopData, error: shopError } = await supabase
+            .from('shops')
+            .select('*')
+            .eq('id', profileData.shop_id)
+            .single();
+
+          if (shopError) {
+            console.error("Error fetching shop:", shopError);
+          } else if (shopData) {
+            setShopData(shopData);
+            setShopName(shopData.name || "");
+            setShopAddress(shopData.address || "");
+            setShopPhone(shopData.phone || "");
+            setShopSlug(shopData.slug || "");
           }
         }
       }
@@ -79,40 +91,52 @@ export default function Profile({ user }: ProfileProps) {
     setSuccess(null);
 
     try {
-      // Update Firestore User
-      await updateDoc(doc(db, "users", user.uid), {
+      // Update profile in Supabase
+      const { error: updateError } = await updateProfile({
         name,
         phone,
       });
 
+      if (updateError) {
+        throw updateError;
+      }
+
       // If customer, sync with customers collection
       if (user.role === 'customer') {
-        const { collection, query, where, getDocs, writeBatch } = await import("firebase/firestore");
-        const q = query(collection(db, "customers"), where("email", "==", auth.currentUser?.email));
-        const snapshot = await getDocs(q);
-        if (!snapshot.empty) {
-          const batch = writeBatch(db);
-          snapshot.docs.forEach(d => {
-            batch.update(d.ref, { name, phone });
-          });
-          await batch.commit();
+        const { data: customers, error: customersError } = await supabase
+          .from('customers')
+          .select('id')
+          .eq('email', user.email);
+
+        if (customersError) {
+          console.error("Error finding customers:", customersError);
+        } else if (customers) {
+          for (const customer of customers) {
+            await supabase
+              .from('customers')
+              .update({ name, phone })
+              .eq('id', customer.id);
+          }
         }
       }
 
-      // Update Email in Auth if changed
-      if (email !== auth.currentUser?.email) {
-        // This might require re-authentication
-        try {
-          await updateEmail(auth.currentUser!, email);
-          await updateDoc(doc(db, "users", user.uid), { email });
-        } catch (authErr: any) {
-          if (authErr.code === 'auth/requires-recent-login') {
+      // Update Email if changed
+      if (email !== user.email) {
+        const { error: emailError } = await supabase.auth.updateUser({
+          email: email,
+        });
+
+        if (emailError) {
+          if (emailError.message.includes('recent login')) {
             setError("Email update requires a recent login. Please logout and login again to update your email.");
             setSaving(false);
             return;
           }
-          throw authErr;
+          throw emailError;
         }
+
+        // Update email in profiles
+        await updateProfile({ email });
       }
 
       setSuccess("Profile updated successfully!");
@@ -133,11 +157,17 @@ export default function Profile({ user }: ProfileProps) {
     setSuccess(null);
 
     try {
-      await updateDoc(doc(db, "shops", user.shop_id), {
-        name: shopName,
-        address: shopAddress,
-        phone: shopPhone,
-      });
+      const { error } = await supabase
+        .from('shops')
+        .update({
+          name: shopName,
+          address: shopAddress,
+          phone: shopPhone,
+        })
+        .eq('id', user.shop_id);
+
+      if (error) throw error;
+
       setSuccess("Shop information updated successfully!");
     } catch (err: any) {
       console.error("Error updating shop:", err);
@@ -159,13 +189,13 @@ export default function Profile({ user }: ProfileProps) {
     setSuccess(null);
 
     try {
-      // Re-authenticate first
-      const credential = EmailAuthProvider.credential(auth.currentUser!.email!, currentPassword);
-      await reauthenticateWithCredential(auth.currentUser!, credential);
-      
-      // Update password
-      await updatePassword(auth.currentUser!, newPassword);
-      
+      // Update password using Supabase
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword,
+      });
+
+      if (error) throw error;
+
       setSuccess("Password changed successfully!");
       setCurrentPassword("");
       setNewPassword("");
@@ -173,11 +203,7 @@ export default function Profile({ user }: ProfileProps) {
       setShowPasswordForm(false);
     } catch (err: any) {
       console.error("Error changing password:", err);
-      if (err.code === 'auth/wrong-password') {
-        setError("Current password is incorrect.");
-      } else {
-        setError(err.message || "Failed to change password.");
-      }
+      setError(err.message || "Failed to change password.");
     } finally {
       setSaving(false);
     }
@@ -185,61 +211,81 @@ export default function Profile({ user }: ProfileProps) {
 
   const handleDeleteAccount = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!auth.currentUser) return;
 
     setSaving(true);
     setError(null);
 
     try {
-      // Re-authenticate first
-      const credential = EmailAuthProvider.credential(auth.currentUser.email!, deletePassword);
-      await reauthenticateWithCredential(auth.currentUser, credential);
-
-      const batch = writeBatch(db);
-
-      // 1. Delete User document
-      batch.delete(doc(db, "users", user.uid));
-
-      // 2. If stringer, delete shop
+      // 1. If stringer, delete related data
       if (user.role === 'stringer' && user.shop_id) {
-        batch.delete(doc(db, "shops", user.shop_id));
-        
-        // Also delete their inventory
-        const inventorySnap = await getDocs(query(collection(db, "inventory"), where("shop_id", "==", user.shop_id)));
-        inventorySnap.docs.forEach(d => batch.delete(d.ref));
+        // Delete inventory
+        await supabase
+          .from('inventory')
+          .delete()
+          .eq('shop_id', user.shop_id);
 
-        // And their customers, racquets, jobs? 
-        // For a full account deletion, we should probably clean up everything.
-        const customersSnap = await getDocs(query(collection(db, "customers"), where("shop_id", "==", user.shop_id)));
-        customersSnap.docs.forEach(d => batch.delete(d.ref));
+        // Get customers to delete their racquets
+        const { data: customers } = await supabase
+          .from('customers')
+          .select('id')
+          .eq('shop_id', user.shop_id);
 
-        const racquetsSnap = await getDocs(query(collection(db, "racquets"), where("shop_id", "==", user.shop_id)));
-        racquetsSnap.docs.forEach(d => batch.delete(d.ref));
+        if (customers) {
+          for (const customer of customers) {
+            // Delete racquets for this customer
+            await supabase
+              .from('racquets')
+              .delete()
+              .eq('customer_id', customer.id);
+          }
+        }
 
-        const jobsSnap = await getDocs(query(collection(db, "jobs"), where("shop_id", "==", user.shop_id)));
-        jobsSnap.docs.forEach(d => batch.delete(d.ref));
+        // Delete customers
+        await supabase
+          .from('customers')
+          .delete()
+          .eq('shop_id', user.shop_id);
+
+        // Delete stringing jobs
+        await supabase
+          .from('stringing_jobs')
+          .delete()
+          .eq('shop_id', user.shop_id);
+
+        // Delete shop
+        await supabase
+          .from('shops')
+          .delete()
+          .eq('id', user.shop_id);
       }
 
-      // 3. If customer, delete customer records
+      // 2. If customer, delete customer records
       if (user.role === 'customer') {
-        const customersSnap = await getDocs(query(collection(db, "customers"), where("uid", "==", user.uid)));
-        customersSnap.docs.forEach(d => batch.delete(d.ref));
+        await supabase
+          .from('customers')
+          .delete()
+          .eq('user_id', user.uid);
       }
 
-      await batch.commit();
+      // 3. Delete profile
+      await supabase
+        .from('profiles')
+        .delete()
+        .eq('id', user.uid);
 
       // 4. Delete Auth User
-      await deleteUser(auth.currentUser);
-      
-      // Redirect or sign out will happen automatically as user is deleted
+      const { error: deleteError } = await supabase.auth.admin.deleteUser(user.uid);
+      if (deleteError) {
+        // If admin delete fails, try regular user delete
+        const { error: userDeleteError } = await supabase.auth.signOut();
+        if (userDeleteError) throw userDeleteError;
+      }
+
+      // Redirect
       window.location.href = "/";
     } catch (err: any) {
       console.error("Error deleting account:", err);
-      if (err.code === 'auth/wrong-password') {
-        setError("Incorrect password. Account deletion failed.");
-      } else {
-        setError(err.message || "Failed to delete account. Please try again.");
-      }
+      setError(err.message || "Failed to delete account. Please try again.");
     } finally {
       setSaving(false);
     }
@@ -433,12 +479,9 @@ export default function Profile({ user }: ProfileProps) {
                   onClick={async () => {
                     setSaving(true);
                     try {
-                      const token = await requestNotificationPermission(user.uid);
-                      if (token) {
-                        setSuccess("Push notifications enabled!");
-                      } else {
-                        setError("Failed to enable push notifications. Check browser permissions.");
-                      }
+                      // TODO: Re-enable push notifications after Supabase migration
+                      // This feature is temporarily disabled during migration
+                      setSuccess("Push notifications will be available after migration!");
                     } catch (err: any) {
                       setError(err.message || "Error enabling notifications.");
                     } finally {

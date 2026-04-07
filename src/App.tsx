@@ -12,13 +12,11 @@ import Profile from "./pages/Profile";
 import Landing from "./pages/Landing";
 import Layout from "./components/Layout";
 import ErrorBoundary from "./components/ErrorBoundary";
-import { AuthProvider, useAuth } from "./context/AuthContext";
+import { AuthProvider, useAuth } from "./context/SupabaseAuthContext";
 import { ThemeProvider } from "./context/ThemeContext";
-import { signOut } from "firebase/auth";
-import { auth } from "./lib/firebase";
 
 function AppRoutes() {
-  const { user, profile, loading } = useAuth();
+  const { user, profile, loading, signOut } = useAuth();
 
   if (loading) {
     return (
@@ -33,7 +31,7 @@ function AppRoutes() {
 
   const handleLogout = async () => {
     try {
-      await signOut(auth);
+      await signOut();
     } catch (error) {
       console.error("Logout failed:", error);
     }

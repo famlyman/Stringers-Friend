@@ -1,11 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { createUserWithEmailAndPassword } from "firebase/auth";
-import { collection, query, where, getDocs, doc, getDoc, setDoc, addDoc, serverTimestamp, updateDoc } from "firebase/firestore";
-import { db, auth, handleFirestoreError, OperationType } from "../lib/firebase";
-import { useAuth } from "../context/AuthContext";
+import { supabase } from "../lib/supabase";
+import { useAuth } from "../context/SupabaseAuthContext";
 import { MapPin, Phone, Mail, ChevronRight, Award, ShieldCheck, Clock, X, CheckCircle2, LayoutDashboard, UserPlus, Star, Users, Wrench, Zap, TrendingUp, MessageSquare, AlertTriangle } from "lucide-react";
-import { v4 as uuidv4 } from "uuid";
 
 interface Shop {
   id: string;

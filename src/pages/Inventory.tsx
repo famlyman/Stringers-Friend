@@ -1,19 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Plus, Search, Trash2, Edit2, AlertCircle, QrCode, X } from "lucide-react";
-import { 
-  collection, 
-  query, 
-  where, 
-  onSnapshot, 
-  updateDoc, 
-  deleteDoc, 
-  doc, 
-  serverTimestamp,
-  setDoc
-} from "firebase/firestore";
-import { db, handleFirestoreError, OperationType } from "../lib/firebase";
+import { supabase } from "../lib/supabase";
 import QRCodeDisplay from "../components/QRCodeDisplay";
-import { v4 as uuidv4 } from "uuid";
 import { GAUGES } from "../constants";
 
 export default function Inventory({ user }: { user: any }) {
@@ -41,38 +29,55 @@ export default function Inventory({ user }: { user: any }) {
   useEffect(() => {
     if (!user || !user.shop_id) return;
 
-    const q = query(
-      collection(db, "inventory"), 
-      where("shop_id", "==", user.shop_id)
-    );
+    // Fetch inventory using Supabase
+    const fetchInventory = async () => {
+      const { data, error } = await supabase
+        .from('inventory')
+        .select('*')
+        .eq('shop_id', user.shop_id);
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const inventoryItems = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      setItems(inventoryItems);
-      setLoading(false);
-    }, (error) => {
-      handleFirestoreError(error, OperationType.LIST, "inventory");
-      setLoading(false);
-    });
+      if (error) {
+        console.error("Error fetching inventory:", error);
+        setLoading(false);
+      } else {
+        setItems(data || []);
+        setLoading(false);
+      }
+    };
 
-    return () => unsubscribe();
+    fetchInventory();
+
+    // Subscribe to inventory changes
+    const subscription = supabase
+      .channel(`inventory:${user.shop_id}`)
+      .on('postgres_changes', 
+        { event: '*', schema: 'public', table: 'inventory', filter: `shop_id=eq.${user.shop_id}` },
+        (payload) => {
+          fetchInventory();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, [user.shop_id]);
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const itemId = uuidv4();
-      await setDoc(doc(db, "inventory", itemId), {
-        ...newItem,
-        id: itemId,
-        shop_id: user.shop_id,
-        qr_code: `inventory_${itemId}`,
-        created_at: serverTimestamp(),
-        updated_at: serverTimestamp()
-      });
+      const { data, error } = await supabase
+        .from('inventory')
+        .insert({
+          ...newItem,
+          shop_id: user.shop_id,
+          qr_code: `inventory_${crypto.randomUUID()}`,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
       setShowAdd(false);
       setNewItem({ 
         name: "", 
@@ -87,7 +92,7 @@ export default function Inventory({ user }: { user: any }) {
         price: 0 
       });
     } catch (err) {
-      handleFirestoreError(err, OperationType.CREATE, "inventory");
+      console.error("Error adding inventory:", err);
     }
   };
 
@@ -96,10 +101,6 @@ export default function Inventory({ user }: { user: any }) {
     if (!editingItem) return;
 
     try {
-      console.log("Updating inventory item:", editingItem.id);
-      console.log("User shop_id:", user.shop_id);
-      console.log("Item shop_id:", editingItem.shop_id);
-      
       const { 
         id: itemId, 
         name, 
@@ -116,35 +117,42 @@ export default function Inventory({ user }: { user: any }) {
         qr_code
       } = editingItem;
 
-      const updateData = {
-        name: String(name || ""),
-        brand: String(brand || ""),
-        type: String(type || "string"),
-        packaging: String(packaging || "set"),
-        gauge: String(gauge || ""),
-        total_length: Number(total_length) || 0,
-        remaining_length: Number(remaining_length) || 0,
-        grip_type: String(grip_type || ""),
-        quantity: Number(quantity) || 0,
-        low_stock_threshold: Number(low_stock_threshold) || 0,
-        price: Number(price) || 0,
-        qr_code: String(qr_code || `inventory_${itemId}`),
-        updated_at: serverTimestamp()
-      };
+      const { error } = await supabase
+        .from('inventory')
+        .update({
+          name: String(name || ""),
+          brand: String(brand || ""),
+          item_type: String(type || "string"),
+          packaging: String(packaging || "set"),
+          gauge: String(gauge || ""),
+          total_length: Number(total_length) || 0,
+          remaining_length: Number(remaining_length) || 0,
+          grip_type: String(grip_type || ""),
+          quantity: Number(quantity) || 0,
+          min_stock_level: Number(low_stock_threshold) || 0,
+          retail_price: Number(price) || 0,
+          qr_code: String(qr_code || `inventory_${itemId}`),
+        })
+        .eq('id', itemId);
 
-      await updateDoc(doc(db, "inventory", itemId), updateData);
+      if (error) throw error;
       setEditingItem(null);
     } catch (err) {
-      handleFirestoreError(err, OperationType.UPDATE, `inventory/${editingItem.id}`);
+      console.error("Error updating inventory:", err);
     }
   };
 
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this item?")) return;
     try {
-      await deleteDoc(doc(db, "inventory", id));
+      const { error } = await supabase
+        .from('inventory')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
     } catch (err) {
-      handleFirestoreError(err, OperationType.DELETE, `inventory/${id}`);
+      console.error("Error deleting inventory:", err);
     }
   };
 

@@ -3,22 +3,7 @@ import { RACQUET_BRANDS, RACQUET_MODELS, STRINGS, GAUGES } from "../constants";
 import { racquetSpecsService } from "../services/racquetSpecsService";
 import { Plus, Search, UserPlus, Mail, Phone, ChevronRight, Edit2, Trash2, X, Printer, Info } from "lucide-react";
 import QRCodeDisplay from "../components/QRCodeDisplay";
-import { 
-  collection, 
-  query, 
-  where, 
-  onSnapshot, 
-  addDoc, 
-  setDoc,
-  updateDoc, 
-  deleteDoc, 
-  doc, 
-  serverTimestamp,
-  writeBatch,
-  getDocs
-} from "firebase/firestore";
-import { db, handleFirestoreError, OperationType } from "../lib/firebase";
-import { v4 as uuidv4 } from 'uuid';
+import { supabase } from "../lib/supabase";
 
 export default function CustomerList({ user }: { user: any }) {
   const [customers, setCustomers] = useState<any[]>([]);
@@ -160,54 +145,68 @@ export default function CustomerList({ user }: { user: any }) {
   useEffect(() => {
     if (!user || !user.shop_id) return;
 
-    // Fetch Shop
-    const unsubscribeShop = onSnapshot(doc(db, "shops", user.shop_id), (docSnap) => {
-      if (docSnap.exists()) {
-        setShop(docSnap.data());
+    const fetchData = async () => {
+      setLoading(true);
+      
+      // Fetch Shop
+      const { data: shopData } = await supabase
+        .from('shops')
+        .select('*')
+        .eq('id', user.shop_id)
+        .single();
+      if (shopData) setShop(shopData);
+
+      // Fetch Customers
+      const { data: customersData, error: customersError } = await supabase
+        .from('customers')
+        .select('*')
+        .eq('shop_id', user.shop_id);
+      
+      if (customersError) {
+        console.error("Error fetching customers:", customersError);
+      } else {
+        setCustomers(customersData || []);
       }
-    });
 
-    const q = query(
-      collection(db, "customers"), 
-      where("shop_id", "==", user.shop_id)
-    );
+      // Fetch All Racquets for the shop
+      const { data: racquetsData } = await supabase
+        .from('racquets')
+        .select('*, customers!inner(shop_id)')
+        .eq('customers.shop_id', user.shop_id);
+      if (racquetsData) setAllRacquets(racquetsData);
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const customerList = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      setCustomers(customerList);
+      // Fetch Inventory Strings
+      const { data: inventoryData } = await supabase
+        .from('inventory')
+        .select('*')
+        .eq('shop_id', user.shop_id)
+        .eq('item_type', 'string');
+      if (inventoryData) setInventoryStrings(inventoryData);
+
       setLoading(false);
-    }, (error) => {
-      handleFirestoreError(error, OperationType.LIST, "customers");
-      setLoading(false);
-    });
+    };
 
-    // Fetch All Racquets for the shop to get custom models
-    const racquetsQuery = query(
-      collection(db, "racquets"),
-      where("shop_id", "==", user.shop_id)
-    );
-    const unsubscribeAllRacquets = onSnapshot(racquetsQuery, (snapshot) => {
-      setAllRacquets(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-    });
+    fetchData();
 
-    // Fetch Inventory Strings
-    const inventoryQuery = query(
-      collection(db, "inventory"),
-      where("shop_id", "==", user.shop_id),
-      where("type", "==", "string")
-    );
-    const unsubscribeInventory = onSnapshot(inventoryQuery, (snapshot) => {
-      setInventoryStrings(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-    });
+    const customersSubscription = supabase
+      .channel(`customers:${user.shop_id}`)
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'customers', filter: `shop_id=eq.${user.shop_id}` },
+        () => fetchData()
+      )
+      .subscribe();
+
+    const racquetsSubscription = supabase
+      .channel(`racquets:${user.shop_id}`)
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'racquets' },
+        () => fetchData()
+      )
+      .subscribe();
 
     return () => {
-      unsubscribeShop();
-      unsubscribe();
-      unsubscribeAllRacquets();
-      unsubscribeInventory();
+      customersSubscription.unsubscribe();
+      racquetsSubscription.unsubscribe();
     };
   }, [user.shop_id]);
 
@@ -217,56 +216,71 @@ export default function CustomerList({ user }: { user: any }) {
       return;
     }
 
-    const q = query(
-      collection(db, "racquets"), 
-      where("customer_id", "==", selectedCustomer.id),
-      where("shop_id", "==", user.shop_id)
-    );
+    // Fetch racquets for selected customer using Supabase
+    const fetchRacquets = async () => {
+      const { data, error } = await supabase
+        .from('racquets')
+        .select('*')
+        .eq('customer_id', selectedCustomer.id);
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const racquetList = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      setRacquets(racquetList);
-    }, (error) => {
-      handleFirestoreError(error, OperationType.LIST, `racquets?customer_id=${selectedCustomer.id}`);
-    });
+      if (error) {
+        console.error("Error fetching racquets:", error);
+      } else {
+        setRacquets(data || []);
+      }
+    };
 
-    return () => unsubscribe();
+    fetchRacquets();
+
+    // Subscribe to racquet changes for this customer
+    const subscription = supabase
+      .channel(`racquets:customer:${selectedCustomer.id}`)
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'racquets', filter: `customer_id=eq.${selectedCustomer.id}` },
+        () => fetchRacquets()
+      )
+      .subscribe();
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, [selectedCustomer?.id]);
 
   const handleAddCustomer = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       // Check if a user with this email already exists as a customer
-      const usersRef = collection(db, "users");
-      const q = query(usersRef, where("email", "==", newCustomer.email), where("role", "==", "customer"));
-      const userSnap = await getDocs(q);
+      const { data: existingUsers, error: userError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('email', newCustomer.email)
+        .eq('role', 'customer');
+
       let linkedUid = null;
-      if (!userSnap.empty) {
-        linkedUid = userSnap.docs[0].id;
+      if (existingUsers && existingUsers.length > 0) {
+        linkedUid = existingUsers[0].id;
       }
 
-      const customerId = uuidv4();
-      await setDoc(doc(db, "customers", customerId), {
-        id: customerId,
-        ...newCustomer,
-        shop_id: user.shop_id,
-        uid: linkedUid,
-        created_at: serverTimestamp()
-      });
+      const { error: insertError } = await supabase
+        .from('customers')
+        .insert({
+          ...newCustomer,
+          shop_id: user.shop_id,
+          user_id: linkedUid,
+        });
+
+      if (insertError) throw insertError;
+
       setShowAdd(false);
       setNewCustomer({ name: "", email: "", phone: "" });
     } catch (err) {
-      handleFirestoreError(err, OperationType.CREATE, "customers");
+      console.error("Error adding customer:", err);
     }
   };
 
   const handleAddRacquet = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const racquetId = uuidv4();
       const brand = newRacquet.brand === "Other" ? newRacquet.brand_custom : newRacquet.brand;
       const model = newRacquet.model === "Other" ? newRacquet.model_custom : newRacquet.model;
 
@@ -278,32 +292,32 @@ export default function CustomerList({ user }: { user: any }) {
         ? `${newRacquet.string_cross_brand_custom} ${newRacquet.string_cross_model_custom} ${newRacquet.string_cross_gauge}`.trim()
         : (newRacquet.string_cross_brand === "Same as Mains" ? stringMain : `${newRacquet.string_cross_brand} ${newRacquet.string_cross_model} ${newRacquet.string_cross_gauge}`.trim());
 
-      const racquetRef = doc(db, "racquets", racquetId);
-      await setDoc(racquetRef, {
-        id: racquetId,
-        customer_id: selectedCustomer.id,
-        customer_email: selectedCustomer.email,
-        shop_id: user.shop_id,
-        brand,
-        model,
-        serial_number: newRacquet.serial_number,
-        head_size: parseInt(newRacquet.head_size) || 0,
-        string_pattern_mains: parseInt(newRacquet.string_pattern_mains) || 0,
-        string_pattern_crosses: parseInt(newRacquet.string_pattern_crosses) || 0,
-        mains_skip: newRacquet.mains_skip,
-        mains_tie_off: newRacquet.mains_tie_off,
-        crosses_start: newRacquet.crosses_start,
-        crosses_tie_off: newRacquet.crosses_tie_off,
-        one_piece_length: parseFloat(newRacquet.one_piece_length) || 0,
-        two_piece_length: parseFloat(newRacquet.two_piece_length) || 0,
-        stringing_instructions: newRacquet.stringing_instructions,
-        current_string_main: stringMain,
-        current_string_cross: stringCross,
-        current_tension_main: parseFloat(newRacquet.current_tension_main) || 0,
-        current_tension_cross: parseFloat(newRacquet.current_tension_cross) || 0,
-        qr_code: `racquet_${racquetId}`,
-        created_at: serverTimestamp()
-      });
+      const { error: insertError } = await supabase
+        .from('racquets')
+        .insert({
+          customer_id: selectedCustomer.id,
+          brand,
+          model,
+          serial_number: newRacquet.serial_number,
+          head_size: parseInt(newRacquet.head_size) || 0,
+          string_pattern_mains: parseInt(newRacquet.string_pattern_mains) || 0,
+          string_pattern_crosses: parseInt(newRacquet.string_pattern_crosses) || 0,
+          mains_skip: newRacquet.mains_skip,
+          mains_tie_off: newRacquet.mains_tie_off,
+          crosses_start: newRacquet.crosses_start,
+          crosses_tie_off: newRacquet.crosses_tie_off,
+          one_piece_length: String(parseFloat(newRacquet.one_piece_length) || 0),
+          two_piece_length: String(parseFloat(newRacquet.two_piece_length) || 0),
+          stringing_instructions: newRacquet.stringing_instructions,
+          current_string_main: stringMain,
+          current_string_cross: stringCross,
+          current_tension_main: parseFloat(newRacquet.current_tension_main) || 0,
+          current_tension_cross: parseFloat(newRacquet.current_tension_cross) || 0,
+          qr_code: `racquet_${crypto.randomUUID()}`,
+        });
+
+      if (insertError) throw insertError;
+
       setShowAddRacquet(false);
       setNewRacquet({ 
         brand: "", brand_custom: "", model: "", model_custom: "", serial_number: "", head_size: "", 
@@ -315,7 +329,7 @@ export default function CustomerList({ user }: { user: any }) {
         current_tension_main: "", current_tension_cross: ""
       });
     } catch (err) {
-      handleFirestoreError(err, OperationType.CREATE, "racquets");
+      console.error("Error adding racquet:", err);
     }
   };
 
@@ -324,22 +338,26 @@ export default function CustomerList({ user }: { user: any }) {
     if (!editingRacquet) return;
     setSubmitting(true);
     try {
-      await updateDoc(doc(db, "racquets", editingRacquet.id), {
-        brand: editingRacquet.brand,
-        model: editingRacquet.model,
-        serial_number: editingRacquet.serial_number,
-        head_size: editingRacquet.head_size,
-        string_pattern_mains: editingRacquet.string_pattern_mains,
-        string_pattern_crosses: editingRacquet.string_pattern_crosses,
-        current_string_main: editingRacquet.current_string_main,
-        current_string_cross: editingRacquet.current_string_cross,
-        current_tension_main: editingRacquet.current_tension_main,
-        current_tension_cross: editingRacquet.current_tension_cross,
-        updated_at: serverTimestamp()
-      });
+      const { error } = await supabase
+        .from('racquets')
+        .update({
+          brand: editingRacquet.brand,
+          model: editingRacquet.model,
+          serial_number: editingRacquet.serial_number,
+          head_size: editingRacquet.head_size,
+          string_pattern_mains: editingRacquet.string_pattern_mains,
+          string_pattern_crosses: editingRacquet.string_pattern_crosses,
+          current_string_main: editingRacquet.current_string_main,
+          current_string_cross: editingRacquet.current_string_cross,
+          current_tension_main: editingRacquet.current_tension_main,
+          current_tension_cross: editingRacquet.current_tension_cross,
+        })
+        .eq('id', editingRacquet.id);
+
+      if (error) throw error;
       setEditingRacquet(null);
     } catch (err) {
-      handleFirestoreError(err, OperationType.UPDATE, `racquets/${editingRacquet.id}`);
+      console.error("Error updating racquet:", err);
     } finally {
       setSubmitting(false);
     }
@@ -347,58 +365,79 @@ export default function CustomerList({ user }: { user: any }) {
 
   const handleDeleteRacquet = async (racquetId: string) => {
     try {
-      const batch = writeBatch(db);
-      batch.delete(doc(db, "racquets", racquetId));
-      
-      // Delete associated jobs
-      const jobsSnap = await getDocs(query(
-        collection(db, "jobs"), 
-        where("racquet_id", "==", racquetId),
-        where("shop_id", "==", user.shop_id)
-      ));
-      jobsSnap.forEach(jDoc => {
-        batch.delete(doc(db, "jobs", jDoc.id));
-      });
-      
-      await batch.commit();
+      // Delete associated jobs first
+      const { data: jobsToDelete } = await supabase
+        .from('stringing_jobs')
+        .select('id')
+        .eq('shop_id', user.shop_id);
+
+      if (jobsToDelete) {
+        for (const job of jobsToDelete) {
+          await supabase
+            .from('stringing_jobs')
+            .delete()
+            .eq('id', job.id);
+        }
+      }
+
+      // Delete racquet
+      const { error } = await supabase
+        .from('racquets')
+        .delete()
+        .eq('id', racquetId);
+
+      if (error) throw error;
       setDeleteConfirm(null);
     } catch (err) {
-      handleFirestoreError(err, OperationType.WRITE, `delete_racquet/${racquetId}`);
+      console.error("Error deleting racquet:", err);
     }
   };
 
   const handleDeleteCustomer = async (customerId: string) => {
     try {
-      const batch = writeBatch(db);
-      
-      // Delete customer
-      batch.delete(doc(db, "customers", customerId));
-      
+      // Get customer's racquets
+      const { data: racquetsToDelete } = await supabase
+        .from('racquets')
+        .select('id')
+        .eq('customer_id', customerId);
+
       // Delete customer's racquets
-      const racquetsSnap = await getDocs(query(
-        collection(db, "racquets"), 
-        where("customer_id", "==", customerId),
-        where("shop_id", "==", user.shop_id)
-      ));
-      racquetsSnap.forEach(rDoc => {
-        batch.delete(doc(db, "racquets", rDoc.id));
-      });
-      
+      if (racquetsToDelete) {
+        for (const racquet of racquetsToDelete) {
+          await supabase
+            .from('racquets')
+            .delete()
+            .eq('id', racquet.id);
+        }
+      }
+
       // Delete customer's jobs
-      const jobsSnap = await getDocs(query(
-        collection(db, "jobs"), 
-        where("customer_id", "==", customerId),
-        where("shop_id", "==", user.shop_id)
-      ));
-      jobsSnap.forEach(jDoc => {
-        batch.delete(doc(db, "jobs", jDoc.id));
-      });
+      const { data: jobsToDelete } = await supabase
+        .from('stringing_jobs')
+        .select('id')
+        .eq('shop_id', user.shop_id);
+
+      if (jobsToDelete) {
+        for (const job of jobsToDelete) {
+          await supabase
+            .from('stringing_jobs')
+            .delete()
+            .eq('id', job.id);
+        }
+      }
+
+      // Delete customer
+      const { error } = await supabase
+        .from('customers')
+        .delete()
+        .eq('id', customerId);
+
+      if (error) throw error;
       
-      await batch.commit();
       setDeleteConfirm(null);
       setSelectedCustomer(null);
     } catch (err) {
-      handleFirestoreError(err, OperationType.WRITE, `delete_customer/${customerId}`);
+      console.error("Error deleting customer:", err);
     }
   };
 
