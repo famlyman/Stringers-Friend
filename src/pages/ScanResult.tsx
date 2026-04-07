@@ -77,117 +77,151 @@ export default function ScanResult() {
 
         if (cleanCode.startsWith("shop_")) {
           const shopId = cleanCode.replace("shop_", "");
-          const shopDoc = await getDoc(doc(db, "shops", shopId));
           
-          if (shopDoc.exists()) {
+          // Try to find shop by ID
+          const { data: shop, error: shopError } = await supabase
+            .from('shops')
+            .select('*')
+            .eq('id', shopId)
+            .single();
+          
+          if (shop) {
             setResult({
               type: "shop",
-              data: { id: shopDoc.id, ...shopDoc.data() }
+              data: shop
             });
           } else {
-            const q = query(collection(db, "shops"), where("qr_code", "==", cleanCode));
-            const snap = await getDocs(q);
-            if (snap.empty) {
+            // Try finding by QR code
+            const { data: shops, error: shopsError } = await supabase
+              .from('shops')
+              .select('*')
+              .eq('qr_code', cleanCode);
+            
+            if (!shops || shops.length === 0) {
               setError("Shop not found");
             } else {
-              const shopDoc = snap.docs[0];
               setResult({
                 type: "shop",
-                data: { id: shopDoc.id, ...shopDoc.data() }
+                data: shops[0]
               });
             }
           }
         } else if (cleanCode.startsWith("racquet_")) {
           const racquetId = cleanCode.replace("racquet_", "");
-          const racquetDoc = await getDoc(doc(db, "racquets", racquetId));
           
-          let racquetData: any = null;
-          if (racquetDoc.exists()) {
-            racquetData = { id: racquetDoc.id, ...racquetDoc.data() };
-          } else {
-            const q = query(collection(db, "racquets"), where("qr_code", "==", cleanCode));
-            const snap = await getDocs(q);
-            if (!snap.empty) {
-              const doc = snap.docs[0];
-              racquetData = { id: doc.id, ...doc.data() };
+          // Try to find racquet by ID
+          let { data: racquetData, error: racquetError } = await supabase
+            .from('racquets')
+            .select('*, customers(*)')
+            .eq('id', racquetId)
+            .single();
+          
+          if (!racquetData) {
+            // Try finding by QR code
+            const { data: racquets } = await supabase
+              .from('racquets')
+              .select('*, customers(*)')
+              .eq('qr_code', cleanCode);
+            
+            if (racquets && racquets.length > 0) {
+              racquetData = racquets[0];
             }
           }
 
           if (racquetData) {
-            const customerDoc = await getDoc(doc(db, "customers", racquetData.customer_id));
-            const customerData = customerDoc.exists() ? customerDoc.data() : { name: "Unknown", email: "Unknown" };
-
-            const jobsQ = query(
-              collection(db, "jobs"), 
-              where("racquet_id", "==", racquetData.id),
-              orderBy("created_at", "desc"),
-              limit(10)
-            );
-            const jobsSnap = await getDocs(jobsQ);
-            const jobs = jobsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            // Get jobs for this racquet
+            const { data: jobs } = await supabase
+              .from('stringing_jobs')
+              .select('*')
+              .eq('racquet_id', racquetData.id)
+              .order('created_at', { ascending: false })
+              .limit(10);
 
             setResult({
               type: "racquet",
               data: { 
                 ...racquetData, 
-                customer_name: customerData.name,
-                customer_email: customerData.email
+                customer_name: racquetData.customers?.name || 'Unknown',
+                customer_email: racquetData.customers?.email || 'Unknown'
               },
-              jobs
+              jobs: jobs || []
             });
           } else {
             setError("Racquet not found");
           }
         } else if (cleanCode.startsWith("inventory_")) {
           const itemId = cleanCode.replace("inventory_", "");
-          const itemDoc = await getDoc(doc(db, "inventory", itemId));
           
-          let itemData: any = null;
-          if (itemDoc.exists()) {
-            itemData = { id: itemDoc.id, ...itemDoc.data() };
-          } else {
-            const q = query(collection(db, "inventory"), where("qr_code", "==", cleanCode));
-            const snap = await getDocs(q);
-            if (!snap.empty) {
-              const doc = snap.docs[0];
-              itemData = { id: doc.id, ...doc.data() };
-            }
-          }
-
+          // Try to find inventory by ID
+          const { data: itemData, error: itemError } = await supabase
+            .from('inventory')
+            .select('*')
+            .eq('id', itemId)
+            .single();
+          
           if (itemData) {
             setResult({
               type: "inventory",
               data: itemData
             });
           } else {
-            setError("Inventory item not found");
+            // Try finding by QR code
+            const { data: items } = await supabase
+              .from('inventory')
+              .select('*')
+              .eq('qr_code', cleanCode);
+            
+            if (items && items.length > 0) {
+              setResult({
+                type: "inventory",
+                data: items[0]
+              });
+            } else {
+              setError("Inventory item not found");
+            }
           }
         } else {
           // Last resort: try to find by ID in all collections if no prefix
-          const shopDoc = await getDoc(doc(db, "shops", cleanCode));
-          if (shopDoc.exists()) {
-            setResult({ type: "shop", data: { id: shopDoc.id, ...shopDoc.data() } });
+          // Try shops first
+          const { data: shopData } = await supabase
+            .from('shops')
+            .select('*')
+            .eq('id', cleanCode)
+            .single();
+          
+          if (shopData) {
+            setResult({ type: "shop", data: shopData });
             return;
           }
 
-          const racquetDoc = await getDoc(doc(db, "racquets", cleanCode));
-          if (racquetDoc.exists()) {
-            const racquetData = { id: racquetDoc.id, ...racquetDoc.data() } as any;
-            const customerDoc = await getDoc(doc(db, "customers", racquetData.customer_id));
-            const customerData = customerDoc.exists() ? customerDoc.data() : { name: "Unknown", email: "Unknown" };
-            const jobsQ = query(collection(db, "jobs"), where("racquet_id", "==", racquetData.id), orderBy("created_at", "desc"), limit(10));
-            const jobsSnap = await getDocs(jobsQ);
-            const jobs = jobsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            setResult({ type: "racquet", data: { ...racquetData, customer_name: customerData.name, customer_email: customerData.email }, jobs });
+          // Try racquets
+          const { data: racquetData } = await supabase
+            .from('racquets')
+            .select('*, customers(*)')
+            .eq('id', cleanCode)
+            .single();
+          
+          if (racquetData) {
+            const { data: jobs } = await supabase
+              .from('stringing_jobs')
+              .select('*')
+              .eq('racquet_id', racquetData.id)
+              .order('created_at', { ascending: false })
+              .limit(10);
+            
+            setResult({ 
+              type: "racquet", 
+              data: { 
+                ...racquetData, 
+                customer_name: racquetData.customers?.name || 'Unknown',
+                customer_email: racquetData.customers?.email || 'Unknown'
+              }, 
+              jobs: jobs || [] 
+            });
             return;
           }
 
-          const itemDoc = await getDoc(doc(db, "inventory", cleanCode));
-          if (itemDoc.exists()) {
-            setResult({ type: "inventory", data: { id: itemDoc.id, ...itemDoc.data() } });
-            return;
-          }
-
+          setError("Unknown QR code");
           setError("Invalid QR code format or item not found");
         }
       } catch (err) {
