@@ -88,9 +88,16 @@ export default function Register() {
 
         // Link racquets and jobs would need to be handled here if those tables exist
         // For now, we assume customers table is the main linkage point
+        
+        // Redirect customers to home
+        navigate("/");
+      } else if (role === "stringer") {
+        // Stringers need to set up their shop first
+        console.log("Stringer registered, redirecting to shop setup");
+        navigate("/shop-setup");
+      } else {
+        navigate("/");
       }
-
-      navigate("/");
     } catch (err: any) {
       setError(err.message || "Failed to create account");
     } finally {
