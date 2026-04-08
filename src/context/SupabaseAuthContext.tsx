@@ -37,9 +37,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<SupabaseUser | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  
+  // Temporary storage for role during signup to prevent race condition
+  const [pendingRole, setPendingRole] = useState<'stringer' | 'customer' | null>(null);
 
   // Fetch profile from Supabase, create if missing
-  const fetchProfile = async (userId: string, userEmail?: string) => {
+  const fetchProfile = async (userId: string, userEmail?: string, role?: 'stringer' | 'customer') => {
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
@@ -48,13 +51,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     if (error && error.code === 'PGRST116') {
       // Profile not found - create one
-      console.log('Profile not found, creating new profile for user:', userId);
+      const profileRole = role || pendingRole || 'customer';
+      console.log('Profile not found, creating new profile for user:', userId, 'with role:', profileRole);
       const { data: newProfile, error: createError } = await supabase
         .from('profiles')
         .insert({
           id: userId,
           email: userEmail || '',
-          role: 'customer',
+          role: profileRole,
         })
         .select()
         .single();
@@ -177,6 +181,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signUp = async (email: string, password: string, profileData?: Partial<UserProfile>) => {
+    // Set pending role before auth signup to prevent race condition
+    if (profileData?.role) {
+      setPendingRole(profileData.role);
+    }
+    
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -201,6 +210,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (upsertError) {
         console.error('Error setting profile after signup:', upsertError);
       }
+      
+      // Clear pending role after successful signup
+      setPendingRole(null);
     }
 
     return { data, error };
