@@ -4,51 +4,51 @@ export const clearAllAuthTokens = async () => {
   try {
     console.log('Clearing all Supabase auth tokens...');
     
-    // Clear any local storage items first
+    // Clear ALL storage items aggressively
     if (typeof window !== 'undefined') {
-      // Clear Supabase auth items
+      console.log('Clearing localStorage...');
+      // Clear ALL localStorage items
       Object.keys(localStorage).forEach(key => {
-        if (key.startsWith('supabase.auth.')) {
-          console.log('Removing localStorage item:', key);
-          localStorage.removeItem(key);
-        }
+        console.log('Removing localStorage item:', key);
+        localStorage.removeItem(key);
       });
       
-      // Clear session storage
+      console.log('Clearing sessionStorage...');
+      // Clear ALL sessionStorage items
       Object.keys(sessionStorage).forEach(key => {
-        if (key.startsWith('supabase.auth.')) {
-          console.log('Removing sessionStorage item:', key);
-          sessionStorage.removeItem(key);
+        console.log('Removing sessionStorage item:', key);
+        sessionStorage.removeItem(key);
+      });
+      
+      // Clear cookies that might contain auth info
+      console.log('Clearing cookies...');
+      document.cookie.split(';').forEach(cookie => {
+        const eqPos = cookie.indexOf('=');
+        const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim();
+        if (name.includes('supabase') || name.includes('auth')) {
+          console.log('Removing cookie:', name);
+          document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=${window.location.hostname}`;
+          document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
         }
       });
     }
     
-    // Sign out the current user with timeout
-    const signOutPromise = supabase.auth.signOut();
-    const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('Sign out timeout')), 2000);
+    // Try to sign out but don't wait
+    console.log('Attempting sign out...');
+    supabase.auth.signOut().catch(err => {
+      console.warn('Sign out error (expected):', err);
     });
     
-    try {
-      const result = await Promise.race([signOutPromise, timeoutPromise]) as any;
-      
-      if (result?.error) {
-        console.error('Error signing out:', result.error);
-      } else {
-        console.log('Successfully signed out');
-      }
-    } catch (err) {
-      console.warn('Sign out timed out or failed:', err);
-    }
-    
-    // Force reload to clear any in-memory state
-    console.log('Forcing page reload...');
-    window.location.reload();
+    // Wait a moment then force reload
+    setTimeout(() => {
+      console.log('Forcing page reload...');
+      window.location.href = window.location.origin; // Hard redirect to clear all state
+    }, 500);
     
   } catch (error) {
     console.error('Error clearing auth tokens:', error);
-    // Force reload anyway
-    window.location.reload();
+    // Force redirect anyway
+    window.location.href = window.location.origin;
   }
 };
 
@@ -57,8 +57,31 @@ if (typeof window !== 'undefined' && window.location.search.includes('clearAuth=
   clearAllAuthTokens();
 }
 
-// Make function available globally for console access
+// Nuclear option - completely bypass Supabase
+export const nuclearAuthClear = () => {
+  console.log('NUCLEAR AUTH CLEAR - bypassing Supabase entirely');
+  
+  // Clear everything
+  if (typeof window !== 'undefined') {
+    localStorage.clear();
+    sessionStorage.clear();
+    
+    // Clear all cookies
+    document.cookie.split(';').forEach(cookie => {
+      const eqPos = cookie.indexOf('=');
+      const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim();
+      document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=${window.location.hostname}`;
+      document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
+    });
+  }
+  
+  // Force redirect to clean state
+  window.location.href = window.location.origin;
+};
+
+// Make functions available globally for console access
 if (typeof window !== 'undefined') {
   (window as any).clearAuthTokens = clearAllAuthTokens;
-  console.log('clearAuthTokens() function available in console');
+  (window as any).nuclearAuthClear = nuclearAuthClear;
+  console.log('clearAuthTokens() and nuclearAuthClear() functions available in console');
 }
