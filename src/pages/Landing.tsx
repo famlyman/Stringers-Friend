@@ -1,8 +1,10 @@
 import { Link } from "react-router-dom";
 import { useTheme } from "../context/ThemeContext";
+import { useAuth } from "../context/SupabaseAuthContext";
 
 export default function Landing() {
   const { darkMode } = useTheme();
+  const { signOut } = useAuth();
 
   return (
     <div className="min-h-screen bg-bg-main transition-colors duration-300">
@@ -30,6 +32,15 @@ export default function Landing() {
               >
                 Sign In
               </Link>
+            </div>
+            
+            <div className="mt-6">
+              <button
+                onClick={() => signOut()}
+                className="text-sm text-text-muted hover:text-text-main transition-colors"
+              >
+                Reset Authentication
+              </button>
             </div>
           </div>
         </div>

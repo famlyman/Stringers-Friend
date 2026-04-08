@@ -97,13 +97,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
-    // Safety timeout - force loading to false after 3 seconds
+    // Safety timeout - force loading to false after 1 second
     const timeoutId = setTimeout(() => {
       if (loading) {
-        console.warn('Auth initialization timed out, forcing loading to false');
+        console.warn('Auth initialization timed out - forcing loading to false');
         setLoading(false);
+        // Also clear any stuck auth state
+        setUser(null);
+        setProfile(null);
       }
-    }, 3000);
+    }, 1000);
 
     // Get initial session
     supabase.auth.getSession()
