@@ -32,14 +32,14 @@ USING (
   -- Normal case: User owns the shop
   EXISTS (
     SELECT 1 FROM public.profiles 
-    WHERE profiles.id = auth.uid() 
-    AND profiles.shop_id = customers.shop_id
+    WHERE profiles.id = auth.uid()::text 
+    AND profiles.shop_id::text = customers.shop_id
   )
   OR
   -- Bootstrap case: User is creating their first customer (no shop yet)
   NOT EXISTS (
     SELECT 1 FROM public.profiles 
-    WHERE profiles.id = auth.uid() 
+    WHERE profiles.id = auth.uid()::text 
     AND profiles.shop_id IS NOT NULL
   )
 )
@@ -47,9 +47,9 @@ WITH CHECK (
   -- For INSERT: Allow creating customers if user owns the shop OR has no shop yet
   EXISTS (
     SELECT 1 FROM public.profiles 
-    WHERE profiles.id = auth.uid() 
+    WHERE profiles.id = auth.uid()::text 
     AND (
-      (profiles.shop_id = customers.shop_id) 
+      (profiles.shop_id::text = customers.shop_id) 
       OR profiles.shop_id IS NULL
     )
   )
@@ -57,9 +57,9 @@ WITH CHECK (
   -- For UPDATE: Same logic as USING
   EXISTS (
     SELECT 1 FROM public.profiles 
-    WHERE profiles.id = auth.uid() 
+    WHERE profiles.id = auth.uid()::text 
     AND (
-      (profiles.shop_id = customers.shop_id) 
+      (profiles.shop_id::text = customers.shop_id) 
       OR profiles.shop_id IS NULL
     )
   )
@@ -72,14 +72,14 @@ USING (
   -- Normal case: User owns the shop
   EXISTS (
     SELECT 1 FROM public.profiles 
-    WHERE profiles.id = auth.uid() 
-    AND profiles.shop_id = stringing_jobs.shop_id
+    WHERE profiles.id = auth.uid()::text 
+    AND profiles.shop_id::text = stringing_jobs.shop_id
   )
   OR
   -- Bootstrap case: User is creating their first job (no shop yet)
   NOT EXISTS (
     SELECT 1 FROM public.profiles 
-    WHERE profiles.id = auth.uid() 
+    WHERE profiles.id = auth.uid()::text 
     AND profiles.shop_id IS NOT NULL
   )
 )
@@ -87,9 +87,9 @@ WITH CHECK (
   -- For INSERT/UPDATE: Allow if user owns shop OR has no shop yet
   EXISTS (
     SELECT 1 FROM public.profiles 
-    WHERE profiles.id = auth.uid() 
+    WHERE profiles.id = auth.uid()::text 
     AND (
-      (profiles.shop_id = stringing_jobs.shop_id) 
+      (profiles.shop_id::text = stringing_jobs.shop_id) 
       OR profiles.shop_id IS NULL
     )
   )
@@ -102,15 +102,15 @@ USING (
   -- Normal case: User owns the shop through customer
   EXISTS (
     SELECT 1 FROM public.customers c
-    JOIN public.profiles p ON c.shop_id = p.id
+    JOIN public.profiles p ON c.shop_id::text = p.id
     WHERE c.id = racquets.customer_id 
-    AND p.id = auth.uid()
+    AND p.id = auth.uid()::text
   )
   OR
   -- Bootstrap case: User is creating their first racquet (no shop yet)
   NOT EXISTS (
     SELECT 1 FROM public.profiles 
-    WHERE profiles.id = auth.uid() 
+    WHERE profiles.id = auth.uid()::text 
     AND profiles.shop_id IS NOT NULL
   )
 )
@@ -118,14 +118,14 @@ WITH CHECK (
   -- For INSERT/UPDATE: Allow if user owns shop through customer OR has no shop yet
   EXISTS (
     SELECT 1 FROM public.customers c
-    JOIN public.profiles p ON c.shop_id = p.id
+    JOIN public.profiles p ON c.shop_id::text = p.id
     WHERE c.id = racquets.customer_id 
-    AND p.id = auth.uid()
+    AND p.id = auth.uid()::text
   )
   OR
   NOT EXISTS (
     SELECT 1 FROM public.profiles 
-    WHERE profiles.id = auth.uid() 
+    WHERE profiles.id = auth.uid()::text 
     AND profiles.shop_id IS NOT NULL
   )
 );
@@ -133,14 +133,14 @@ WITH CHECK (
 -- Shops Table Policies (only for users with shops)
 CREATE POLICY "Shop owners can manage their shops" 
 ON public.shops FOR ALL 
-USING (owner_id = auth.uid())
-WITH CHECK (owner_id = auth.uid());
+USING (owner_id = auth.uid()::text)
+WITH CHECK (owner_id = auth.uid()::text);
 
 -- Profiles Table Policies
 CREATE POLICY "Users can manage their own profiles" 
 ON public.profiles FOR ALL 
-USING (id = auth.uid())
-WITH CHECK (id = auth.uid());
+USING (id = auth.uid()::text)
+WITH CHECK (id = auth.uid()::text);
 
 -- Inventory Table Policies
 CREATE POLICY "Users can manage their inventory" 
@@ -148,15 +148,15 @@ ON public.inventory FOR ALL
 USING (
   EXISTS (
     SELECT 1 FROM public.profiles 
-    WHERE profiles.id = auth.uid() 
-    AND profiles.shop_id = inventory.shop_id
+    WHERE profiles.id = auth.uid()::text 
+    AND profiles.shop_id::text = inventory.shop_id
   )
 )
 WITH CHECK (
   EXISTS (
     SELECT 1 FROM public.profiles 
-    WHERE profiles.id = auth.uid() 
-    AND profiles.shop_id = inventory.shop_id
+    WHERE profiles.id = auth.uid()::text 
+    AND profiles.shop_id::text = inventory.shop_id
   )
 );
 
