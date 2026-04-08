@@ -80,10 +80,14 @@ export default function ShopSetup({ user }: { user: any }) {
 
       console.log('ShopSetup - profile update successful, navigating to dashboard...');
       
-      // Use React Router navigate to avoid page reload and auth context issues
+      // Use React Router navigate with delay to ensure it works after async operations
       console.log('ShopSetup - redirecting to dashboard...');
-      navigate("/", { replace: true });
-      console.log('ShopSetup - redirect executed');
+      setTimeout(() => {
+        console.log('ShopSetup - executing delayed navigate...');
+        navigate("/", { replace: true });
+        console.log('ShopSetup - redirect executed');
+      }, 100);
+      console.log('ShopSetup - redirect scheduled');
     } catch (err: any) {
       console.error(err);
       setError(err.message || "Failed to create shop");
