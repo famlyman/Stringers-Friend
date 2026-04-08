@@ -63,14 +63,22 @@ export default function ShopSetup({ user }: { user: any }) {
       console.log('ShopSetup - user.uid:', user.uid);
       console.log('ShopSetup - user.id:', user.id);
       
+      console.log('ShopSetup - attempting profile update...');
       const { error: profileError } = await supabase
         .from('profiles')
         .update({ shop_id: newShop.id })
         .eq('id', user.id);
 
-      if (profileError) throw profileError;
+      console.log('ShopSetup - profile update result:', { error: profileError });
+      
+      if (profileError) {
+        console.error('ShopSetup - profile update failed:', profileError);
+        throw profileError;
+      }
 
+      console.log('ShopSetup - profile update successful, navigating to dashboard...');
       navigate("/");
+      console.log('ShopSetup - navigate() called');
     } catch (err: any) {
       console.error(err);
       setError(err.message || "Failed to create shop");
