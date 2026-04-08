@@ -50,9 +50,14 @@ function AppRoutes() {
       <Route element={user ? <Layout user={profile || user} onLogout={handleLogout} /> : <Navigate to="/" replace />}>
         <Route path="/dashboard" element={
           profile ? (
-            profile.role === 'stringer' ? (
-              profile.shop_id ? <Dashboard user={profile} /> : <Navigate to="/setup" replace />
-            ) : <CustomerDashboard user={profile} />
+            (() => {
+              console.log('Dashboard route - profile:', profile);
+              console.log('Dashboard route - role:', profile.role);
+              console.log('Dashboard route - shop_id:', profile.shop_id);
+              return profile.role === 'stringer' ? (
+                profile.shop_id ? <Dashboard user={profile} /> : <Navigate to="/setup" replace />
+              ) : <CustomerDashboard user={profile} />;
+            })()
           ) : (
             <div className="min-h-screen flex flex-col items-center justify-center bg-bg-main p-6">
               <div className="text-center max-w-sm w-full bg-bg-card rounded-[2.5rem] p-10 shadow-2xl border border-border-main">
