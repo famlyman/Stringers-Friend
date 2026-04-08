@@ -80,12 +80,11 @@ export default function ShopSetup({ user }: { user: any }) {
 
       console.log('ShopSetup - profile update successful, navigating to dashboard...');
       
-      // Use React Router navigate with delay to ensure it works after async operations
+      // Use window.location.replace for hard redirect that actually works
       console.log('ShopSetup - redirecting to dashboard...');
       setTimeout(() => {
-        console.log('ShopSetup - executing delayed navigate...');
-        navigate("/", { replace: true });
-        console.log('ShopSetup - redirect executed');
+        console.log('ShopSetup - executing window.location.replace...');
+        window.location.replace("/");
       }, 100);
       console.log('ShopSetup - redirect scheduled');
     } catch (err: any) {
