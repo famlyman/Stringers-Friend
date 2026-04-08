@@ -1,8 +1,10 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
+import { useAuth } from "../context/SupabaseAuthContext"; // Import useAuth hook
 
 export default function ShopSetup({ user }: { user: any }) {
+  const { fetchProfile } = useAuth(); // Get fetchProfile from useAuth hook
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
   const [address, setAddress] = useState("");
@@ -77,6 +79,11 @@ export default function ShopSetup({ user }: { user: any }) {
       }
 
       console.log('ShopSetup - profile update successful, navigating to dashboard...');
+      
+      // Refresh the profile in auth context to update shop_id
+      await fetchProfile(user.id, user.email);
+      console.log('ShopSetup - profile refreshed');
+      
       navigate("/");
       console.log('ShopSetup - navigate() called');
     } catch (err: any) {

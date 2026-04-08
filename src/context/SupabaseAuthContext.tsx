@@ -19,6 +19,7 @@ interface AuthContextType {
   signUp: (email: string, password: string, profileData?: Partial<UserProfile>) => Promise<{ error: Error | null; data: any }>;
   signOut: () => Promise<void>;
   updateProfile: (updates: Partial<UserProfile>) => Promise<{ error: Error | null }>;
+  fetchProfile: (userId: string, userEmail?: string, role?: 'stringer' | 'customer') => Promise<UserProfile | null>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -29,6 +30,7 @@ const AuthContext = createContext<AuthContextType>({
   signUp: async () => ({ error: new Error('AuthContext not initialized'), data: null }),
   signOut: async () => {},
   updateProfile: async () => ({ error: new Error('AuthContext not initialized') }),
+  fetchProfile: async () => null,
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -288,6 +290,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     signUp,
     signOut,
     updateProfile,
+    fetchProfile,
   };
 
   return (
