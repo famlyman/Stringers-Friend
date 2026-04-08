@@ -66,7 +66,7 @@ export default function ShopSetup({ user }: { user: any }) {
       const { error: profileError } = await supabase
         .from('profiles')
         .update({ shop_id: newShop.id })
-        .eq('id', user.uid);
+        .eq('id', user.id);
 
       if (profileError) throw profileError;
 
