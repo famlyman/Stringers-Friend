@@ -80,9 +80,9 @@ export default function ShopSetup({ user }: { user: any }) {
 
       console.log('ShopSetup - profile update successful, navigating to dashboard...');
       
-      // Simple redirect without profile refresh to avoid infinite loop
+      // Use React Router navigate to avoid page reload and auth context issues
       console.log('ShopSetup - redirecting to dashboard...');
-      window.location.href = "/";
+      navigate("/", { replace: true });
       console.log('ShopSetup - redirect executed');
     } catch (err: any) {
       console.error(err);
