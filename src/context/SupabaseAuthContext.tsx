@@ -196,9 +196,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // If signup successful, create/update profile with role data using upsert
     if (data?.user && profileData) {
+      // Debug logging to see what we're working with
+      console.log('Signup data.user:', data.user);
+      console.log('data.user.id:', data.user.id);
+      console.log('profileData:', profileData);
+      
       // First, update existing profile immediately to fix wrong role
-      if (profileData.role) {
-        console.log('Updating existing profile role to:', profileData.role);
+      if (profileData.role && data.user.id) {
+        console.log('Updating existing profile role to:', profileData.role, 'for user:', data.user.id);
         const { error: updateError } = await supabase
           .from('profiles')
           .update({ role: profileData.role })
@@ -218,6 +223,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setProfile(updatedProfile);
           }
         }
+      } else {
+        console.warn('Skipping profile update - missing role or user.id:', {
+          hasRole: !!profileData.role,
+          hasUserId: !!data.user.id,
+          userId: data.user.id
+        });
       }
       
       const { error: upsertError } = await supabase
