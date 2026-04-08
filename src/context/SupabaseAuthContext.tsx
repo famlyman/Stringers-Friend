@@ -76,6 +76,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
+    // Safety timeout - force loading to false after 3 seconds
+    const timeoutId = setTimeout(() => {
+      if (loading) {
+        console.warn('Auth initialization timed out, forcing loading to false');
+        setLoading(false);
+      }
+    }, 3000);
+
     // Get initial session
     supabase.auth.getSession()
       .then(({ data: { session } }) => {
@@ -83,6 +91,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (session?.user) {
           fetchProfile(session.user.id).then((profileData) => {
             setProfile(profileData);
+            setLoading(false);
+          }).catch((err) => {
+            console.error('Error fetching profile:', err);
             setLoading(false);
           });
         } else {
@@ -92,6 +103,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       .catch((err) => {
         console.error('Error getting session:', err);
         setLoading(false);
+      })
+      .finally(() => {
+        clearTimeout(timeoutId);
       });
 
     // Listen for auth changes
