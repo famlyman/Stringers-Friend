@@ -47,7 +47,7 @@ export default function Profile({ user }: ProfileProps) {
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('*')
-        .eq('id', user.uid)
+        .eq('id', user.id)
         .single();
 
       if (profileError) {
