@@ -17,11 +17,24 @@ const firebaseConfig = {
   firestoreDatabaseId: import.meta.env.VITE_FIREBASE_FIRESTORE_DATABASE_ID || firebaseConfigData.firestoreDatabaseId || "(default)"
 };
 
-// Initialize Firebase SDK
-const app = initializeApp(firebaseConfig);
-export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
-export const auth = getAuth(app);
-export const messaging = typeof window !== 'undefined' ? getMessaging(app) : null;
+// DISABLED: Firebase has been migrated to Supabase
+// Keeping exports as null to prevent import errors in unmigrated code
+let app: any = null;
+let db: any = null;
+let auth: any = null;
+let messaging: any = null;
+
+// Only initialize if explicitly enabled (for rollback purposes)
+if (import.meta.env.VITE_ENABLE_FIREBASE === 'true') {
+  app = initializeApp(firebaseConfig);
+  db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+  auth = getAuth(app);
+  messaging = typeof window !== 'undefined' ? getMessaging(app) : null;
+} else {
+  console.log('Firebase is disabled - using Supabase');
+}
+
+export { db, auth, messaging };
 
 export const requestNotificationPermission = async (userId: string) => {
   if (typeof window === 'undefined' || !messaging) return;
