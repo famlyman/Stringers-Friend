@@ -38,13 +38,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Fetch profile from Supabase
-  const fetchProfile = async (userId: string) => {
+  // Fetch profile from Supabase, create if missing
+  const fetchProfile = async (userId: string, userEmail?: string) => {
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
       .eq('id', userId)
       .single();
+
+    if (error && error.code === 'PGRST116') {
+      // Profile not found - create one
+      console.log('Profile not found, creating new profile for user:', userId);
+      const { data: newProfile, error: createError } = await supabase
+        .from('profiles')
+        .insert({
+          id: userId,
+          email: userEmail || '',
+          role: 'customer',
+        })
+        .select()
+        .single();
+
+      if (createError) {
+        console.error('Error creating profile:', createError);
+        return null;
+      }
+
+      return newProfile as UserProfile;
+    }
 
     if (error) {
       console.error('Error fetching profile:', error);
@@ -89,7 +110,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       .then(({ data: { session } }) => {
         setUser(session?.user ?? null);
         if (session?.user) {
-          fetchProfile(session.user.id).then((profileData) => {
+          fetchProfile(session.user.id, session.user.email).then((profileData) => {
             setProfile(profileData);
             setLoading(false);
           }).catch((err) => {
@@ -114,7 +135,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          const profileData = await fetchProfile(session.user.id);
+          const profileData = await fetchProfile(session.user.id, session.user.email);
           setProfile(profileData);
         } else {
           setProfile(null);
