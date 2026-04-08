@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../context/SupabaseAuthContext"; // Import useAuth hook
@@ -11,7 +11,17 @@ export default function ShopSetup({ user }: { user: any }) {
   const [phone, setPhone] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [redirectToDashboard, setRedirectToDashboard] = useState(false);
   const navigate = useNavigate();
+
+  // Handle redirect in useEffect outside of form submission context
+  useEffect(() => {
+    if (redirectToDashboard) {
+      console.log('ShopSetup - useEffect triggering navigate to dashboard...');
+      navigate("/", { replace: true });
+      console.log('ShopSetup - navigate called from useEffect');
+    }
+  }, [redirectToDashboard, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -80,10 +90,10 @@ export default function ShopSetup({ user }: { user: any }) {
 
       console.log('ShopSetup - profile update successful, navigating to dashboard...');
       
-      // Force redirect using window.location.href
-      console.log('ShopSetup - forcing redirect to dashboard...');
-      window.location.href = "/";
-      console.log('ShopSetup - window.location.href set to /');
+      // Trigger redirect via state change
+      console.log('ShopSetup - setting redirect state...');
+      setRedirectToDashboard(true);
+      console.log('ShopSetup - redirect state set');
     } catch (err: any) {
       console.error(err);
       setError(err.message || "Failed to create shop");
