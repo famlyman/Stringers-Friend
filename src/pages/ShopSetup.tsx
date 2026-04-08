@@ -58,6 +58,11 @@ export default function ShopSetup({ user }: { user: any }) {
       if (shopError) throw shopError;
 
       // Update user profile with shop_id
+      console.log('ShopSetup - updating profile with shop_id:', newShop.id);
+      console.log('ShopSetup - user object:', user);
+      console.log('ShopSetup - user.uid:', user.uid);
+      console.log('ShopSetup - user.id:', user.id);
+      
       const { error: profileError } = await supabase
         .from('profiles')
         .update({ shop_id: newShop.id })
