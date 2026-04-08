@@ -94,7 +94,7 @@ export default function Register() {
       } else if (role === "stringer") {
         // Stringers need to set up their shop first
         console.log("Stringer registered, redirecting to shop setup");
-        navigate("/shop-setup");
+        navigate("/setup");
       } else {
         navigate("/");
       }
