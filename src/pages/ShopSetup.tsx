@@ -49,7 +49,7 @@ export default function ShopSetup({ user }: { user: any }) {
           slug: slug.toLowerCase(),
           address,
           phone,
-          owner_id: user.uid,
+          owner_id: user.id,
           qr_code: qrCode,
         })
         .select()

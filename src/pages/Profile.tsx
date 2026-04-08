@@ -264,17 +264,17 @@ export default function Profile({ user }: ProfileProps) {
         await supabase
           .from('customers')
           .delete()
-          .eq('user_id', user.uid);
+          .eq('user_id', user.id);
       }
 
       // 3. Delete profile
       await supabase
         .from('profiles')
         .delete()
-        .eq('id', user.uid);
+        .eq('id', user.id);
 
       // 4. Delete Auth User
-      const { error: deleteError } = await supabase.auth.admin.deleteUser(user.uid);
+      const { error: deleteError } = await supabase.auth.admin.deleteUser(user.id);
       if (deleteError) {
         // If admin delete fails, try regular user delete
         const { error: userDeleteError } = await supabase.auth.signOut();
