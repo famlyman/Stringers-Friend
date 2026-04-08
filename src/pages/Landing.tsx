@@ -33,15 +33,6 @@ export default function Landing() {
                 Sign In
               </Link>
             </div>
-            
-            <div className="mt-6">
-              <button
-                onClick={() => signOut()}
-                className="text-sm text-text-muted hover:text-text-main transition-colors"
-              >
-                Reset Authentication
-              </button>
-            </div>
           </div>
         </div>
       </div>

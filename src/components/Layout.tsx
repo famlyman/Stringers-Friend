@@ -2,7 +2,6 @@ import { ReactNode, useState, useEffect } from "react";
 import { Link, Outlet, useNavigate } from "react-router-dom";
 import { LayoutDashboard, Users, Package, LogOut, User, Sun, Moon, MessageSquare, Clock, Bell, X } from "lucide-react";
 import { useTheme } from "../context/ThemeContext";
-import { NotificationProvider, NotificationDropdown, useNotifications } from "../context/NotificationContext";
 import { supabase } from "../lib/supabase";
 
 interface LayoutProps {
@@ -13,7 +12,7 @@ interface LayoutProps {
 function LayoutContent({ user, onLogout }: LayoutProps) {
   const navigate = useNavigate();
   const { darkMode, toggleDarkMode } = useTheme();
-  const { unreadCount } = useNotifications();
+  const [unreadCount, setUnreadCount] = useState(0);
   const [messageUnreadCount, setMessageUnreadCount] = useState(0);
   const [showPushPrompt, setShowPushPrompt] = useState(false);
 
@@ -42,8 +41,7 @@ function LayoutContent({ user, onLogout }: LayoutProps) {
     const messagesSubscription = async () => {
       if (!user?.role) return null;
       
-      // Placeholder: Messages feature needs Supabase messages table
-      // This is part of the gradual migration - Firebase messages are not migrated yet
+      // Messages feature will be implemented with Supabase Realtime
       return null;
     };
 
@@ -123,7 +121,7 @@ function LayoutContent({ user, onLogout }: LayoutProps) {
               <h1 className="text-xl font-bold text-white tracking-tight">Stringers Friend</h1>
               <p className="text-[10px] text-secondary font-bold uppercase tracking-widest mt-1">Shop Management</p>
             </div>
-            <NotificationDropdown />
+            <Bell className="w-6 h-6 text-white" />
           </div>
         </div>
 
@@ -155,7 +153,7 @@ function LayoutContent({ user, onLogout }: LayoutProps) {
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-bg-card border-t border-border-main px-2 py-2 flex overflow-x-auto no-scrollbar items-center z-50 scroll-smooth">
         <div className="flex flex-nowrap items-center space-x-1 min-w-max px-2">
           <NavLinks />
-          <NotificationDropdown />
+          <Bell className="w-5 h-5 text-neutral-600 dark:text-neutral-300" />
           <button
             onClick={onLogout}
             className="flex flex-col items-center px-4 py-2 text-xs font-medium text-red-600 shrink-0"
@@ -219,9 +217,5 @@ function LayoutContent({ user, onLogout }: LayoutProps) {
 }
 
 export default function Layout({ user, onLogout }: LayoutProps) {
-  return (
-    <NotificationProvider>
-      <LayoutContent user={user} onLogout={onLogout} />
-    </NotificationProvider>
-  );
+  return <LayoutContent user={user} onLogout={onLogout} />;
 }
