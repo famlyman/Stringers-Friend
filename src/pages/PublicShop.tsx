@@ -49,29 +49,32 @@ export default function PublicShop() {
     if (!user || !shop || joining) return;
     setJoining(true);
     try {
-      const q = query(
-        collection(db, "customers"),
-        where("email", "==", user.email),
-        where("shop_id", "==", shop.id)
-      );
-      const snap = await getDocs(q);
+      const { data: existingCustomers } = await supabase
+        .from('customers')
+        .select('id, user_id')
+        .eq('email', user.email || '')
+        .eq('shop_id', shop.id);
       
-      if (snap.empty) {
-        const customerId = uuidv4();
-        await setDoc(doc(db, "customers", customerId), {
-          id: customerId,
-          name: profile?.name || user.email?.split('@')[0] || "New Customer",
-          email: user.email,
-          phone: profile?.phone || "",
-          shop_id: shop.id,
-          uid: user.uid,
-          created_at: serverTimestamp()
-        });
+      if (!existingCustomers || existingCustomers.length === 0) {
+        const customerId = `cust_${Date.now()}`;
+        await supabase
+          .from('customers')
+          .insert({
+            id: customerId,
+            name: profile?.name || user.email?.split('@')[0] || "New Customer",
+            email: user.email || '',
+            phone: profile?.phone || "",
+            shop_id: shop.id,
+            user_id: user.id,
+            created_at: new Date().toISOString()
+          });
       } else {
-        // Just update the UID if it's missing
-        const docId = snap.docs[0].id;
-        if (!snap.docs[0].data().uid) {
-          await setDoc(doc(db, "customers", docId), { uid: user.uid }, { merge: true });
+        // Just update the user_id if it's missing
+        if (!existingCustomers[0].user_id) {
+          await supabase
+            .from('customers')
+            .update({ user_id: user.id })
+            .eq('id', existingCustomers[0].id);
         }
       }
       setIsCustomerOfShop(true);
@@ -86,13 +89,12 @@ export default function PublicShop() {
   useEffect(() => {
     const checkCustomerStatus = async () => {
       if (user && shop) {
-        const q = query(
-          collection(db, "customers"),
-          where("email", "==", user.email),
-          where("shop_id", "==", shop.id)
-        );
-        const snap = await getDocs(q);
-        setIsCustomerOfShop(!snap.empty);
+        const { data: customers } = await supabase
+          .from('customers')
+          .select('id')
+          .eq('email', user.email || '')
+          .eq('shop_id', shop.id);
+        setIsCustomerOfShop(!!customers && customers.length > 0);
       }
     };
     checkCustomerStatus();
@@ -131,21 +133,27 @@ export default function PublicShop() {
     setSubmitting(true);
     setSubmitError(null);
     try {
-      let currentUid = user?.uid;
+      let currentUserId = user?.id;
 
       // 1. Handle Account Creation if requested
-      if (contactForm.register && !currentUid && contactForm.password) {
+      if (contactForm.register && !currentUserId && contactForm.password) {
         try {
-          const userCredential = await createUserWithEmailAndPassword(auth, contactForm.email, contactForm.password);
-          currentUid = userCredential.user.uid;
-
-          // Create user profile
-          await setDoc(doc(db, "users", currentUid), {
-            uid: currentUid,
+          const { data, error } = await supabase.auth.signUp({
             email: contactForm.email,
-            role: "customer",
-            created_at: serverTimestamp()
+            password: contactForm.password
           });
+          if (data.user) {
+            currentUserId = data.user.id;
+            // Create user profile
+            await supabase
+              .from('profiles')
+              .insert({
+                id: currentUserId,
+                email: contactForm.email,
+                role: 'customer',
+                created_at: new Date().toISOString()
+              });
+          }
         } catch (authErr: any) {
           console.error("Error creating account during service request:", authErr);
         }
@@ -153,36 +161,40 @@ export default function PublicShop() {
 
       // 2. Find or Create Customer Record
       let customerId = "";
-      const q = query(
-        collection(db, "customers"),
-        where("email", "==", contactForm.email),
-        where("shop_id", "==", shop.id)
-      );
-      const snap = await getDocs(q);
+      const { data: existingCustomers } = await supabase
+        .from('customers')
+        .select('id, user_id')
+        .eq('email', contactForm.email)
+        .eq('shop_id', shop.id);
       
-      if (snap.empty) {
-        customerId = uuidv4();
-        await setDoc(doc(db, "customers", customerId), {
-          id: customerId,
-          name: contactForm.name,
-          email: contactForm.email,
-          phone: contactForm.phone,
-          shop_id: shop.id,
-          uid: currentUid || null,
-          created_at: serverTimestamp(),
-          is_lead: !contactForm.register // Mark as lead if they didn't register
-        });
+      if (!existingCustomers || existingCustomers.length === 0) {
+        customerId = `cust_${Date.now()}`;
+        await supabase
+          .from('customers')
+          .insert({
+            id: customerId,
+            name: contactForm.name,
+            email: contactForm.email,
+            phone: contactForm.phone,
+            shop_id: shop.id,
+            user_id: currentUserId || null,
+            created_at: new Date().toISOString(),
+            is_lead: !contactForm.register // Mark as lead if they didn't register
+          });
         setIsCustomerOfShop(true);
       } else {
-        customerId = snap.docs[0].id;
-        // Update UID if it's now available
-        if (currentUid && !snap.docs[0].data().uid) {
-          await updateDoc(doc(db, "customers", customerId), { uid: currentUid });
+        customerId = existingCustomers[0].id;
+        // Update user_id if it's now available
+        if (currentUserId && !existingCustomers[0].user_id) {
+          await supabase
+            .from('customers')
+            .update({ user_id: currentUserId })
+            .eq('id', customerId);
         }
       }
 
       // 3. Create Message linked to Customer
-      const messageId = uuidv4();
+      const messageId = `msg_${Date.now()}`;
       const messageData = {
         id: messageId,
         shop_id: shop.id,
@@ -191,21 +203,22 @@ export default function PublicShop() {
         sender_role: 'customer', // Use 'customer' role so it shows up in dashboard filters
         content: contactForm.content,
         service_requested: selectedService,
-        created_at: serverTimestamp(),
+        created_at: new Date().toISOString(),
         read: false,
         customer_email: contactForm.email,
         phone: contactForm.phone,
         title: selectedService ? `New ${selectedService} Inquiry from ${contactForm.name}` : `New Inquiry from ${contactForm.name}`
       };
       
-      await setDoc(doc(db, "messages", messageId), messageData);
+      await supabase
+        .from('messages')
+        .insert(messageData);
       
       setSubmitted(true);
       setContactForm({ name: "", email: "", phone: "", content: "", register: false, password: "" });
       setSelectedService(null);
     } catch (err: any) {
       console.error("Error sending message:", err);
-      handleFirestoreError(err, OperationType.CREATE, "messages");
       setSubmitError(err.message || "Failed to send message. Please try again.");
     } finally {
       setSubmitting(false);
@@ -218,77 +231,67 @@ export default function PublicShop() {
       setLoading(true);
       try {
         console.log("Fetching shop with slug:", slug.toLowerCase());
-        const shopsRef = collection(db, "shops");
-        const q = query(shopsRef, where("slug", "==", slug.toLowerCase()));
-        const querySnapshot = await getDocs(q);
+        const { data: shops } = await supabase
+          .from('shops')
+          .select('*')
+          .eq('slug', slug.toLowerCase())
+          .single();
 
-        console.log("Query snapshot size:", querySnapshot.size);
-        console.log("Query snapshot docs:", querySnapshot.docs);
+        console.log("Shop data:", shops);
 
-        if (querySnapshot.empty) {
-          console.log("Shop not found for slug:", slug);
+        if (shops) {
+          const shopData = shops as Shop;
+          console.log("Shop found by slug:", shopData);
+          setShop(shopData);
           
+          // Fetch inventory for this shop
+          const { data: inventory } = await supabase
+            .from('inventory')
+            .select('*')
+            .eq('shop_id', shopData.id)
+            .eq('type', 'string');
+            
+          const services = inventory?.map(item => ({
+            id: item.id,
+            name: item.name,
+            price: item.price,
+            description: item.description
+          })) || [];
+          setServices(services);
+        } else {
           // Fallback: try to find shop by ID (for backward compatibility)
-          const idQuery = query(shopsRef, where("id", "==", slug));
-          const idSnapshot = await getDocs(idQuery);
+          const { data: shopById } = await supabase
+            .from('shops')
+            .select('*')
+            .eq('id', slug)
+            .single();
           
-          if (!idSnapshot.empty) {
-            const shopDoc = idSnapshot.docs[0];
-            const shopData = { id: shopDoc.id, ...shopDoc.data() } as Shop;
+          if (shopById) {
+            const shopData = shopById as Shop;
             console.log("Shop found by ID fallback:", shopData);
             setShop(shopData);
             
             // Fetch inventory for this shop
-            const inventoryRef = collection(db, "inventory");
-            const inventoryQuery = query(
-              inventoryRef, 
-              where("shop_id", "==", shopDoc.id),
-              where("type", "==", "string")
-            );
-            const inventorySnapshot = await getDocs(inventoryQuery);
+            const { data: inventory } = await supabase
+              .from('inventory')
+              .select('*')
+              .eq('shop_id', shopData.id)
+              .eq('type', 'string');
             
-            const stringServices = inventorySnapshot.docs.map(doc => ({
-              id: doc.id,
-              name: doc.data().name,
-              price: doc.data().price,
-              description: `${doc.data().brand || ''} ${doc.data().packaging || doc.data().sub_type || ''}`.trim()
-            }));
-            
-            setServices(stringServices);
-            setLoading(false);
-            return;
+            const services = inventory?.map(item => ({
+              id: item.id,
+              name: item.name,
+              price: item.price,
+              description: item.description
+            })) || [];
+            setServices(services);
+          } else {
+            setError("Shop not found");
           }
-          
-          setError("Shop not found");
-          setLoading(false);
-          return;
         }
-
-        const shopDoc = querySnapshot.docs[0];
-        const shopData = { id: shopDoc.id, ...shopDoc.data() } as Shop;
-        console.log("Shop data found:", shopData);
-        setShop(shopData);
-
-        // Fetch inventory items of type 'string' to show as services/pricing
-        const inventoryRef = collection(db, "inventory");
-        const inventoryQuery = query(
-          inventoryRef, 
-          where("shop_id", "==", shopDoc.id),
-          where("type", "==", "string")
-        );
-        const inventorySnapshot = await getDocs(inventoryQuery);
-        
-        const stringServices = inventorySnapshot.docs.map(doc => ({
-          id: doc.id,
-          name: doc.data().name,
-          price: doc.data().price,
-          description: `${doc.data().brand || ''} ${doc.data().packaging || doc.data().sub_type || ''}`.trim()
-        }));
-        
-        setServices(stringServices);
-      } catch (err) {
+      } catch (err: any) {
         console.error("Error fetching shop:", err);
-        setError("Failed to load shop information");
+        setError("Failed to load shop. Please try again later.");
       } finally {
         setLoading(false);
       }
