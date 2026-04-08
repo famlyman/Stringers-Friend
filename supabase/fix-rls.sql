@@ -12,7 +12,7 @@ USING (true); -- Allow all authenticated users to read customers during registra
 
 CREATE POLICY "Users can insert customers during registration" 
 ON public.customers FOR INSERT 
-USING (true); -- Allow all authenticated users to insert customers during registration
+WITH CHECK (true); -- Allow all authenticated users to insert customers during registration
 
 CREATE POLICY "Users can update customers during registration" 
 ON public.customers FOR UPDATE 
@@ -25,9 +25,17 @@ ALTER TABLE public.customers ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Shop owners can manage stringing jobs" ON public.stringing_jobs;
 DROP POLICY IF EXISTS "Users can view own stringing jobs" ON public.stringing_jobs;
 
-CREATE POLICY "Users can manage stringing jobs during setup" 
-ON public.stringing_jobs FOR ALL 
+CREATE POLICY "Users can view stringing jobs during setup" 
+ON public.stringing_jobs FOR SELECT 
 USING (true); -- Allow all authenticated users during initial setup
+
+CREATE POLICY "Users can insert stringing jobs during setup" 
+ON public.stringing_jobs FOR INSERT 
+WITH CHECK (true); -- Allow all authenticated users to insert during initial setup
+
+CREATE POLICY "Users can update stringing jobs during setup" 
+ON public.stringing_jobs FOR UPDATE 
+USING (true); -- Allow all authenticated users to update during initial setup
 
 ALTER TABLE public.stringing_jobs ENABLE ROW LEVEL SECURITY;
 
@@ -35,8 +43,16 @@ ALTER TABLE public.stringing_jobs ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Shop owners can manage racquets for their customers" ON public.racquets;
 DROP POLICY IF EXISTS "Customers can view own racquets" ON public.racquets;
 
-CREATE POLICY "Users can manage racquets during setup" 
-ON public.racquets FOR ALL 
+CREATE POLICY "Users can view racquets during setup" 
+ON public.racquets FOR SELECT 
 USING (true); -- Allow all authenticated users during initial setup
+
+CREATE POLICY "Users can insert racquets during setup" 
+ON public.racquets FOR INSERT 
+WITH CHECK (true); -- Allow all authenticated users to insert during initial setup
+
+CREATE POLICY "Users can update racquets during setup" 
+ON public.racquets FOR UPDATE 
+USING (true); -- Allow all authenticated users to update during initial setup
 
 ALTER TABLE public.racquets ENABLE ROW LEVEL SECURITY;
