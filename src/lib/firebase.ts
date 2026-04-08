@@ -17,21 +17,23 @@ const firebaseConfig = {
   firestoreDatabaseId: import.meta.env.VITE_FIREBASE_FIRESTORE_DATABASE_ID || firebaseConfigData.firestoreDatabaseId || "(default)"
 };
 
-// DISABLED: Firebase has been migrated to Supabase
-// Keeping exports as null to prevent import errors in unmigrated code
+// TEMPORARILY ENABLED: Firebase is being migrated to Supabase
+// Keeping Firebase enabled while migration continues
 let app: any = null;
 let db: any = null;
 let auth: any = null;
 let messaging: any = null;
 
-// Only initialize if explicitly enabled (for rollback purposes)
-if (import.meta.env.VITE_ENABLE_FIREBASE === 'true') {
+// Initialize Firebase (temporarily enabled for migration compatibility)
+try {
   app = initializeApp(firebaseConfig);
   db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
   auth = getAuth(app);
   messaging = typeof window !== 'undefined' ? getMessaging(app) : null;
-} else {
-  console.log('Firebase is disabled - using Supabase');
+  console.log('Firebase initialized (temporary for migration)');
+} catch (err) {
+  console.error('Firebase initialization failed:', err);
+  console.log('Continuing with Supabase only');
 }
 
 export { db, auth, messaging };
