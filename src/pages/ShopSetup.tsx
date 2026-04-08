@@ -80,13 +80,10 @@ export default function ShopSetup({ user }: { user: any }) {
 
       console.log('ShopSetup - profile update successful, navigating to dashboard...');
       
-      // Use window.location.replace for hard redirect that actually works
-      console.log('ShopSetup - redirecting to dashboard...');
-      setTimeout(() => {
-        console.log('ShopSetup - executing window.location.replace...');
-        window.location.replace("/");
-      }, 100);
-      console.log('ShopSetup - redirect scheduled');
+      // Force redirect using window.location.href
+      console.log('ShopSetup - forcing redirect to dashboard...');
+      window.location.href = "/";
+      console.log('ShopSetup - window.location.href set to /');
     } catch (err: any) {
       console.error(err);
       setError(err.message || "Failed to create shop");
