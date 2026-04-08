@@ -4,16 +4,7 @@ export const clearAllAuthTokens = async () => {
   try {
     console.log('Clearing all Supabase auth tokens...');
     
-    // Sign out the current user
-    const { error } = await supabase.auth.signOut();
-    
-    if (error) {
-      console.error('Error signing out:', error);
-    } else {
-      console.log('Successfully signed out');
-    }
-    
-    // Clear any local storage items
+    // Clear any local storage items first
     if (typeof window !== 'undefined') {
       // Clear Supabase auth items
       Object.keys(localStorage).forEach(key => {
@@ -32,11 +23,32 @@ export const clearAllAuthTokens = async () => {
       });
     }
     
+    // Sign out the current user with timeout
+    const signOutPromise = supabase.auth.signOut();
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('Sign out timeout')), 2000);
+    });
+    
+    try {
+      const result = await Promise.race([signOutPromise, timeoutPromise]) as any;
+      
+      if (result?.error) {
+        console.error('Error signing out:', result.error);
+      } else {
+        console.log('Successfully signed out');
+      }
+    } catch (err) {
+      console.warn('Sign out timed out or failed:', err);
+    }
+    
     // Force reload to clear any in-memory state
+    console.log('Forcing page reload...');
     window.location.reload();
     
   } catch (error) {
     console.error('Error clearing auth tokens:', error);
+    // Force reload anyway
+    window.location.reload();
   }
 };
 
