@@ -7,6 +7,25 @@ import { Save, Edit2, ChevronDown } from "lucide-react";
 import QRCodeDisplay from "../components/QRCodeDisplay";
 import { RACQUET_BRANDS, RACQUET_MODELS, STRINGS, GAUGES } from "../constants";
 import { racquetSpecsService } from "../services/racquetSpecsService";
+// Firebase imports for migration compatibility
+import { collection, doc, getDoc, getDocs, query, where, orderBy, limit, writeBatch, onSnapshot, setDoc, updateDoc, serverTimestamp } from "firebase/firestore";
+import { db } from "../lib/firebase";
+import { v4 as uuidv4 } from "uuid";
+
+// Stub functions for migration compatibility
+enum OperationType {
+  CREATE,
+  READ,
+  UPDATE,
+  DELETE,
+  WRITE,
+  LIST,
+  GET
+}
+
+const handleFirestoreError = (err: any, type: OperationType, collection: string) => {
+  console.error(`Firestore ${type} error on ${collection}:`, err);
+};
 
 export default function CustomerDashboard({ user, initialTab = 'jobs' }: { user: any, initialTab?: 'jobs' | 'racquets' | 'messages' }) {
   const [searchParams, setSearchParams] = useSearchParams();

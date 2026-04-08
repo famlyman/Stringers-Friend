@@ -7,6 +7,23 @@ import { QrScanner } from "../components/QrScanner";
 import { Link } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { safeFormatDate } from "../lib/utils";
+// Firebase imports for migration compatibility
+import { collection, doc, getDoc, getDocs, query, where, orderBy, limit, writeBatch, setDoc, updateDoc, serverTimestamp } from "firebase/firestore";
+import { db } from "../lib/firebase";
+import { v4 as uuidv4 } from "uuid";
+
+// Stub functions for migration compatibility
+enum OperationType {
+  CREATE,
+  READ,
+  UPDATE,
+  DELETE,
+  WRITE
+}
+
+const handleFirestoreError = (err: any, type: OperationType, collection: string) => {
+  console.error(`Firestore ${type} error on ${collection}:`, err);
+};
 
 export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, initialTab?: 'jobs' | 'customers' | 'messages' | 'inventory' }) {
   const [jobs, setJobs] = useState<any[]>([]);
@@ -443,25 +460,29 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
           throw new Error("Customer name and email are required.");
         }
         // Check if a user with this email already exists as a customer
-        const usersRef = collection(db, "users");
-        const q = query(usersRef, where("email", "==", newJob.customer_email), where("role", "==", "customer"));
-        const userSnap = await getDocs(q);
-        let linkedUid = null;
-        if (!userSnap.empty) {
-          linkedUid = userSnap.docs[0].id;
+        const { data: existingUsers } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('email', newJob.customer_email)
+          .eq('role', 'customer')
+          .limit(1);
+        let linkedUserId = null;
+        if (existingUsers && existingUsers.length > 0) {
+          linkedUserId = existingUsers[0].id;
         }
 
-        finalCustomerId = uuidv4();
-        const customerRef = doc(db, "customers", finalCustomerId);
-        batch.set(customerRef, {
-          id: finalCustomerId,
-          shop_id: user.shop_id,
-          name: newJob.customer_name,
-          email: newJob.customer_email,
-          phone: newJob.customer_phone,
-          uid: linkedUid,
-          created_at: serverTimestamp()
-        });
+        finalCustomerId = `cust_${Date.now()}`;
+        await supabase
+          .from('customers')
+          .insert({
+            id: finalCustomerId,
+            shop_id: user.shop_id,
+            name: newJob.customer_name,
+            email: newJob.customer_email,
+            phone: newJob.customer_phone,
+            user_id: linkedUserId,
+            created_at: new Date().toISOString()
+          });
       } else if (selectedCustomerId) {
         const customer = customers.find(c => c.id === selectedCustomerId);
         if (customer) {
