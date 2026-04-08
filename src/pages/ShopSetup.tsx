@@ -80,12 +80,8 @@ export default function ShopSetup({ user }: { user: any }) {
 
       console.log('ShopSetup - profile update successful, navigating to dashboard...');
       
-      // Refresh the profile in auth context to update shop_id
-      await fetchProfile(user.id, user.email);
-      console.log('ShopSetup - profile refreshed');
-      
-      // Use window.location.href for forceful redirect
-      console.log('ShopSetup - using window.location.href for redirect...');
+      // Simple redirect without profile refresh to avoid infinite loop
+      console.log('ShopSetup - redirecting to dashboard...');
       window.location.href = "/";
       console.log('ShopSetup - redirect executed');
     } catch (err: any) {
