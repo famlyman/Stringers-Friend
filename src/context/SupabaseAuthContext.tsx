@@ -258,7 +258,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const updateProfile = async (updates: Partial<UserProfile>) => {
+    console.log('updateProfile called with:', updates);
+    console.log('updateProfile - user:', user);
+    console.log('updateProfile - user.id:', user?.id);
+    console.log('updateProfile call stack:', new Error().stack);
+    
     if (!user?.id) {
+      console.error('updateProfile - No user.id available, returning error');
       return { error: new Error('No user logged in') };
     }
 
