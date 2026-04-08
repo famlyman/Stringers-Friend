@@ -185,27 +185,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       },
     });
 
-    // If signup successful, create/update profile with role data
+    // If signup successful, create/update profile with role data using upsert
     if (data?.user && profileData) {
-      // Try to insert first (for new users), fall back to update
-      const { error: insertError } = await supabase
+      const { error: upsertError } = await supabase
         .from('profiles')
-        .insert({
+        .upsert({
           id: data.user.id,
           email: data.user.email || '',
           ...profileData,
+        }, {
+          onConflict: 'id',
+          ignoreDuplicates: false
         });
 
-      if (insertError) {
-        // Profile might already exist, try update
-        const { error: updateError } = await supabase
-          .from('profiles')
-          .update(profileData)
-          .eq('id', data.user.id);
-
-        if (updateError) {
-          console.error('Error setting profile after signup:', updateError);
-        }
+      if (upsertError) {
+        console.error('Error setting profile after signup:', upsertError);
       }
     }
 
