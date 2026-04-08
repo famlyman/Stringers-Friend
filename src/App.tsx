@@ -14,6 +14,7 @@ import Layout from "./components/Layout";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { AuthProvider, useAuth } from "./context/SupabaseAuthContext";
 import { ThemeProvider } from "./context/ThemeContext";
+import "./utils/clearAuth"; // Load auth clearing utility
 
 function AppRoutes() {
   const { user, profile, loading, signOut } = useAuth();
