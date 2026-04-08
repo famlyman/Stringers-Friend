@@ -84,8 +84,10 @@ export default function ShopSetup({ user }: { user: any }) {
       await fetchProfile(user.id, user.email);
       console.log('ShopSetup - profile refreshed');
       
-      navigate("/");
-      console.log('ShopSetup - navigate() called');
+      // Use window.location.href for forceful redirect
+      console.log('ShopSetup - using window.location.href for redirect...');
+      window.location.href = "/";
+      console.log('ShopSetup - redirect executed');
     } catch (err: any) {
       console.error(err);
       setError(err.message || "Failed to create shop");
