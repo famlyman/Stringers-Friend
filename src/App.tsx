@@ -35,6 +35,10 @@ function AppRoutes() {
       await signOut();
     } catch (error) {
       console.error("Logout failed:", error);
+      // Force clear auth if signOut fails
+      localStorage.clear();
+      sessionStorage.clear();
+      window.location.href = "/";
     }
   };
 
