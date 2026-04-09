@@ -181,8 +181,8 @@ export default function ScanResult() {
             }
           }
         } else {
-          // Last resort: try to find by ID in all collections if no prefix
-          // Try shops first
+          // Last resort: try to find by ID or slug in all collections if no prefix
+          // Try shops by ID first
           const { data: shopData } = await supabase
             .from('shops')
             .select('*')
@@ -191,6 +191,30 @@ export default function ScanResult() {
           
           if (shopData) {
             setResult({ type: "shop", data: shopData });
+            return;
+          }
+
+          // Try shops by slug/qr_code (for shop QR codes)
+          const { data: shopsBySlug } = await supabase
+            .from('shops')
+            .select('*')
+            .eq('slug', cleanCode)
+            .limit(1);
+          
+          if (shopsBySlug && shopsBySlug.length > 0) {
+            setResult({ type: "shop", data: shopsBySlug[0] });
+            return;
+          }
+
+          // Try shops by qr_code field
+          const { data: shopsByQr } = await supabase
+            .from('shops')
+            .select('*')
+            .eq('qr_code', cleanCode)
+            .limit(1);
+          
+          if (shopsByQr && shopsByQr.length > 0) {
+            setResult({ type: "shop", data: shopsByQr[0] });
             return;
           }
 
@@ -216,13 +240,12 @@ export default function ScanResult() {
                 customer_name: racquetData.customers?.name || 'Unknown',
                 customer_email: racquetData.customers?.email || 'Unknown'
               }, 
-              jobs: jobs || [] 
+              jobs: jobs || []
             });
             return;
           }
 
           setError("Unknown QR code");
-          setError("Invalid QR code format or item not found");
         }
       } catch (err) {
         console.error(err);
