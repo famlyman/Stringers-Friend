@@ -14,6 +14,19 @@ export default function ShopSetup({ user }: { user: any }) {
   const [redirectToDashboard, setRedirectToDashboard] = useState(false);
   const navigate = useNavigate();
 
+  // Auto-generate slug from shop name
+  useEffect(() => {
+    if (name) {
+      const autoSlug = name
+        .toLowerCase()
+        .replace(/[^a-z0-9\s-]/g, '') // Remove special characters
+        .replace(/\s+/g, '-') // Replace spaces with hyphens
+        .replace(/-+/g, '-') // Replace multiple hyphens with single
+        .trim();
+      setSlug(autoSlug);
+    }
+  }, [name]);
+
   // Handle redirect in useEffect outside of form submission context
   useEffect(() => {
     if (redirectToDashboard) {
@@ -31,8 +44,8 @@ export default function ShopSetup({ user }: { user: any }) {
 
     // Basic slug validation
     const slugRegex = /^[a-z0-9-]+$/;
-    if (!slugRegex.test(slug)) {
-      setError("Slug can only contain lowercase letters, numbers, and hyphens.");
+    if (!slug || !slugRegex.test(slug)) {
+      setError("Shop name must contain valid characters to generate a URL.");
       setLoading(false);
       return;
     }
