@@ -108,17 +108,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Get initial session first
     const initializeAuth = async () => {
       try {
+        console.log('AuthContext - initializing...');
         const { data: { session } } = await supabase.auth.getSession();
         
         if (!mounted) return;
         
         if (session?.user) {
+          console.log('AuthContext - user found, fetching profile:', session.user.id);
           setUser(session.user);
           const profileData = await fetchProfile(session.user.id, session.user.email);
+          console.log('AuthContext - profile fetched:', profileData);
           if (mounted) {
             setProfile(profileData);
           }
         } else {
+          console.log('AuthContext - no session found');
           setUser(null);
           setProfile(null);
         }
@@ -129,11 +133,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setProfile(null);
         }
       } finally {
+        console.log('AuthContext - initialization complete, setting loading false');
         if (mounted) {
           setLoading(false);
         }
       }
     };
+    
+    // Set a timeout to ensure loading is always set to false
+    const timeoutId = setTimeout(() => {
+      if (mounted) {
+        console.log('AuthContext - timeout reached, forcing loading false');
+        setLoading(false);
+      }
+    }, 5000);
 
     initializeAuth();
 
@@ -159,6 +172,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     return () => {
       mounted = false;
+      clearTimeout(timeoutId);
       subscription.unsubscribe();
     };
   }, []);

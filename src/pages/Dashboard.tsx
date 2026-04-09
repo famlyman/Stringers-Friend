@@ -354,9 +354,23 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
 
   return (
     <div className="p-6">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-text-main mb-2">Dashboard</h1>
-        <p className="text-text-muted">Manage your stringing business</p>
+      <div className="mb-6 flex justify-between items-start">
+        <div>
+          <h1 className="text-3xl font-bold text-text-main mb-2">Dashboard</h1>
+          <p className="text-text-muted">Manage your stringing business</p>
+        </div>
+        {shop && (
+          <div className="flex flex-col items-center">
+            <QRCodeDisplay 
+              value={shop.qr_code || shop.slug} 
+              label="Shop QR" 
+              shopName={shop.name}
+              shopPhone={shop.phone}
+              minimal={true}
+            />
+            <p className="text-xs text-text-muted mt-2">Scan to join shop</p>
+          </div>
+        )}
       </div>
 
       {/* Tabs */}
