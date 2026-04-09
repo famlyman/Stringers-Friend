@@ -45,6 +45,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Fetch profile from Supabase, create if missing
   const fetchProfile = async (userId: string, userEmail?: string, role?: 'stringer' | 'customer') => {
+    console.log('fetchProfile called for userId:', userId);
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
@@ -78,6 +79,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return null;
     }
 
+    console.log('fetchProfile success:', data);
     return data as UserProfile;
   };
 
@@ -94,10 +96,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           filter: `id=eq.${userId}`,
         },
         (payload) => {
-          setProfile(payload.new as UserProfile);
+          console.log('Profile change received:', payload);
+          if (payload.new) {
+            setProfile(payload.new as UserProfile);
+          }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('Profile subscription status:', status);
+      });
 
     return channel;
   };
@@ -159,13 +166,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         if (session?.user) {
           setUser(session.user);
-          const profileData = await fetchProfile(session.user.id, session.user.email);
-          if (mounted) {
-            setProfile(profileData);
+          try {
+            const profileData = await fetchProfile(session.user.id, session.user.email);
+            if (mounted) {
+              setProfile(profileData);
+            }
+          } catch (err) {
+            console.error('Error fetching profile on auth change:', err);
+          } finally {
+            if (mounted) {
+              setLoading(false);
+            }
           }
         } else {
           setUser(null);
           setProfile(null);
+          if (mounted) {
+            setLoading(false);
+          }
         }
       }
     );
