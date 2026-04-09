@@ -46,72 +46,59 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Fetch profile from Supabase, create if missing
   const fetchProfile = async (userId: string, userEmail?: string, role?: 'stringer' | 'customer') => {
     console.log('fetchProfile called for userId:', userId);
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .single();
+    
+    try {
+      // Add timeout to prevent hanging
+      const timeoutPromise = new Promise<null>((_, reject) => {
+        setTimeout(() => reject(new Error('Profile fetch timeout')), 3000);
+      });
 
-    if (error && error.code === 'PGRST116') {
-      // Profile not found - create one
-      const profileRole = role || pendingRole || 'customer';
-      console.log('Profile not found, creating new profile for user:', userId, 'with role:', profileRole);
-      const { data: newProfile, error: createError } = await supabase
+      const profilePromise = supabase
         .from('profiles')
-        .insert({
-          id: userId,
-          email: userEmail || '',
-          role: profileRole,
-        })
-        .select()
+        .select('*')
+        .eq('id', userId)
         .single();
 
-      if (createError) {
-        console.error('Error creating profile:', createError);
+      const { data, error } = await Promise.race([profilePromise, timeoutPromise]) as any;
+
+    if (error && error.code === 'PGRST116') {
+        // Profile not found - create one
+        const profileRole = role || pendingRole || 'customer';
+        console.log('Profile not found, creating new profile for user:', userId, 'with role:', profileRole);
+        const { data: newProfile, error: createError } = await supabase
+          .from('profiles')
+          .insert({
+            id: userId,
+            email: userEmail || '',
+            role: profileRole,
+          })
+          .select()
+          .single();
+
+        if (createError) {
+          console.error('Error creating profile:', createError);
+          return null;
+        }
+
+        return newProfile as UserProfile;
+      }
+
+      if (error) {
+        console.error('Error fetching profile:', error);
         return null;
       }
 
-      return newProfile as UserProfile;
-    }
-
-    if (error) {
-      console.error('Error fetching profile:', error);
+      console.log('fetchProfile success:', data);
+      return data as UserProfile;
+    } catch (err) {
+      console.error('fetchProfile error:', err);
       return null;
     }
-
-    console.log('fetchProfile success:', data);
-    return data as UserProfile;
   };
 
-  // Subscribe to profile changes
-  const subscribeToProfile = (userId: string) => {
-    const channel = supabase
-      .channel(`profile:${userId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'profiles',
-          filter: `id=eq.${userId}`,
-        },
-        (payload) => {
-          console.log('Profile change received:', payload);
-          if (payload.new) {
-            setProfile(payload.new as UserProfile);
-          }
-        }
-      )
-      .subscribe((status) => {
-        console.log('Profile subscription status:', status);
-      });
-
-    return channel;
-  };
-
+  
   useEffect(() => {
     let mounted = true;
-    let lastUserId: string | null = null;
     
     // Get initial session first
     const initializeAuth = async () => {
@@ -163,29 +150,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       async (event, session) => {
         if (!mounted) return;
         
-        // Skip if this is the same user (prevent loops)
-        const currentUserId = session?.user?.id || null;
-        if (currentUserId === lastUserId && event !== 'SIGNED_OUT') {
-          console.log('Auth state change skipped - same user');
-          return;
-        }
-        lastUserId = currentUserId;
-        
         console.log('Auth state changed:', event, session?.user?.email);
         
         if (session?.user) {
           setUser(session.user);
-          try {
-            const profileData = await fetchProfile(session.user.id, session.user.email);
-            if (mounted) {
-              setProfile(profileData);
-            }
-          } catch (err) {
-            console.error('Error fetching profile on auth change:', err);
-          } finally {
-            if (mounted) {
-              setLoading(false);
-            }
+          const profileData = await fetchProfile(session.user.id, session.user.email);
+          if (mounted) {
+            setProfile(profileData);
+            setLoading(false);
           }
         } else {
           setUser(null);
@@ -204,17 +176,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, []);
 
-  // Subscribe to profile changes when user is available
-  useEffect(() => {
-    if (!user?.id) return;
-
-    const channel = subscribeToProfile(user.id);
-
-    return () => {
-      channel.unsubscribe();
-    };
-  }, [user?.id]);
-
+  
   const signIn = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({
       email,

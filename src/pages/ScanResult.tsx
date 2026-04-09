@@ -60,6 +60,13 @@ export default function ScanResult() {
       setLoading(true);
       setError("");
 
+      // Add timeout to prevent hanging
+      const timeoutId = setTimeout(() => {
+        console.log('ScanResult - timeout reached, forcing loading false');
+        setLoading(false);
+        setError("Scan timed out. Please try again.");
+      }, 5000);
+
       try {
         let cleanCode = qrCode.trim();
         
@@ -251,6 +258,7 @@ export default function ScanResult() {
         console.error(err);
         setError("Failed to fetch data from Firestore");
       } finally {
+        clearTimeout(timeoutId);
         setLoading(false);
       }
     };
