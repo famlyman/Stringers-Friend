@@ -111,6 +111,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     let mounted = true;
+    let lastUserId: string | null = null;
     
     // Get initial session first
     const initializeAuth = async () => {
@@ -161,6 +162,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (!mounted) return;
+        
+        // Skip if this is the same user (prevent loops)
+        const currentUserId = session?.user?.id || null;
+        if (currentUserId === lastUserId && event !== 'SIGNED_OUT') {
+          console.log('Auth state change skipped - same user');
+          return;
+        }
+        lastUserId = currentUserId;
         
         console.log('Auth state changed:', event, session?.user?.email);
         
