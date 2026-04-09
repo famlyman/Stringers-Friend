@@ -50,7 +50,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       // Add timeout to prevent hanging
       const timeoutPromise = new Promise<null>((_, reject) => {
-        setTimeout(() => reject(new Error('Profile fetch timeout')), 3000);
+        setTimeout(() => reject(new Error('Profile fetch timeout')), 8000);
       });
 
       const profilePromise = supabase
@@ -137,11 +137,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     // Set a timeout to ensure loading is always set to false
     const timeoutId = setTimeout(() => {
-      if (mounted) {
+      if (mounted && loading) {
         console.log('AuthContext - timeout reached, forcing loading false');
         setLoading(false);
       }
-    }, 5000);
+    }, 10000);
 
     initializeAuth();
 
