@@ -278,42 +278,49 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
 
   // Fetch all data
   useEffect(() => {
-    if (!user || !user.shop_id) return;
+    if (!user || !user.shop_id) {
+      setLoading(false);
+      return;
+    }
 
     const fetchData = async () => {
       setLoading(true);
       
-      // Fetch Shop
-      const { data: shopData } = await supabase
-        .from('shops')
-        .select('*')
-        .eq('id', user.shop_id)
-        .single();
-      if (shopData) setShop(shopData);
+      try {
+        // Fetch Shop
+        const { data: shopData } = await supabase
+          .from('shops')
+          .select('*')
+          .eq('id', user.shop_id)
+          .single();
+        if (shopData) setShop(shopData);
 
-      // Fetch Jobs
-      const { data: jobsData } = await supabase
-        .from('stringing_jobs')
-        .select('*')
-        .eq('shop_id', user.shop_id)
-        .order('created_at', { ascending: false });
-      if (jobsData) setJobs(jobsData);
+        // Fetch Jobs
+        const { data: jobsData } = await supabase
+          .from('stringing_jobs')
+          .select('*')
+          .eq('shop_id', user.shop_id)
+          .order('created_at', { ascending: false });
+        if (jobsData) setJobs(jobsData);
 
-      // Fetch Customers
-      const { data: customersData } = await supabase
-        .from('customers')
-        .select('*')
-        .eq('shop_id', user.shop_id);
-      if (customersData) setCustomers(customersData);
+        // Fetch Customers
+        const { data: customersData } = await supabase
+          .from('customers')
+          .select('*')
+          .eq('shop_id', user.shop_id);
+        if (customersData) setCustomers(customersData);
 
-      // Fetch Racquets
-      const { data: racquetsData } = await supabase
-        .from('racquets')
-        .select('*, customers!inner(shop_id)')
-        .eq('customers.shop_id', user.shop_id);
-      if (racquetsData) setRacquets(racquetsData);
-
-      setLoading(false);
+        // Fetch Racquets
+        const { data: racquetsData } = await supabase
+          .from('racquets')
+          .select('*, customers!inner(shop_id)')
+          .eq('customers.shop_id', user.shop_id);
+        if (racquetsData) setRacquets(racquetsData);
+      } catch (err) {
+        console.error('Error fetching dashboard data:', err);
+      } finally {
+        setLoading(false);
+      }
     };
 
     fetchData();
