@@ -68,6 +68,21 @@ function AppRoutes() {
                 </p>
               </div>
             </div>
+          ) : user ? (
+            <div className="min-h-screen flex flex-col items-center justify-center bg-bg-main p-6">
+              <div className="text-center max-w-sm w-full bg-bg-card rounded-[2.5rem] p-10 shadow-2xl border border-border-main">
+                <h2 className="text-xl font-black text-text-main mb-2 tracking-tight">Profile Error</h2>
+                <p className="text-text-muted mb-8 text-sm">
+                  Your profile could not be loaded. Please sign out and try again.
+                </p>
+                <button
+                  onClick={handleLogout}
+                  className="w-full py-4 bg-primary text-white rounded-2xl font-bold hover:bg-primary/90 transition-all active:scale-[0.98]"
+                >
+                  Sign Out
+                </button>
+              </div>
+            </div>
           ) : (
             <Navigate to="/login" replace />
           )
