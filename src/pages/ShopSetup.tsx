@@ -17,11 +17,12 @@ export default function ShopSetup({ user }: { user: any }) {
   // Handle redirect in useEffect outside of form submission context
   useEffect(() => {
     if (redirectToDashboard) {
-      console.log('ShopSetup - useEffect triggering navigate to dashboard...');
-      navigate("/", { replace: true });
-      console.log('ShopSetup - navigate called from useEffect');
+      console.log('ShopSetup - useEffect triggering redirect...');
+      // Force redirect using window.location
+      window.location.replace("/");
+      console.log('ShopSetup - window.location.replace called');
     }
-  }, [redirectToDashboard, navigate]);
+  }, [redirectToDashboard]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
