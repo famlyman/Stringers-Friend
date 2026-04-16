@@ -22,9 +22,10 @@ function AppRoutes() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-bg-main transition-colors duration-300">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-text-muted font-medium">Initializing...</p>
+        <div className="text-center animate-fade-in">
+          <img src="/logo.png" alt="Stringer's Friend" className="h-20 w-20 object-contain mx-auto mb-6 animate-bounce-subtle" />
+          <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-text-muted font-semibold">Loading...</p>
         </div>
       </div>
     );
@@ -64,8 +65,9 @@ function AppRoutes() {
             })()
           ) : loading ? (
             <div className="min-h-screen flex flex-col items-center justify-center bg-bg-main p-6">
-              <div className="text-center max-w-sm w-full bg-bg-card rounded-[2.5rem] p-10 shadow-2xl border border-border-main">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-6"></div>
+              <div className="text-center max-w-sm w-full bg-bg-card rounded-3xl p-10 shadow-2xl border border-border-main animate-scale-in">
+                <img src="/logo.png" alt="Loading" className="h-16 w-16 object-contain mx-auto mb-6" />
+                <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin mx-auto mb-6"></div>
                 <h2 className="text-xl font-black text-text-main mb-2 tracking-tight">Loading Profile</h2>
                 <p className="text-text-muted mb-8 text-sm">
                   We're retrieving your account information...

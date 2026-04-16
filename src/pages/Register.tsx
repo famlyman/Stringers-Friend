@@ -2,10 +2,12 @@ import React, { useState, useEffect } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../context/SupabaseAuthContext";
 import { supabase } from "../lib/supabase";
+import { Mail, Lock, Eye, EyeOff, ArrowLeft, Loader2, AlertCircle, User, Briefcase, Users } from "lucide-react";
 
 export default function Register() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [role, setRole] = useState<"stringer" | "customer">("stringer");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -38,9 +40,7 @@ export default function Register() {
         throw new Error("Failed to create user account");
       }
 
-      // If role is customer, link to existing customer records across all shops
       if (role === "customer") {
-        // If we have a shopId from QR code, ensure a customer record exists for THIS shop
         if (shopId) {
           const { data: existingCustomers, error: searchError } = await supabase
             .from('customers')
@@ -51,7 +51,6 @@ export default function Register() {
           if (searchError) {
             console.error("Error searching for customer:", searchError);
           } else if (!existingCustomers || existingCustomers.length === 0) {
-            // Create a new customer record for this shop
             const { error: insertError } = await supabase
               .from('customers')
               .insert({
@@ -68,7 +67,6 @@ export default function Register() {
           }
         }
 
-        // Link all existing customers with this email to the new user_id
         const { data: customersToLink, error: linkError } = await supabase
           .from('customers')
           .select('id')
@@ -85,14 +83,9 @@ export default function Register() {
               .eq('id', customer.id);
           }
         }
-
-        // Link racquets and jobs would need to be handled here if those tables exist
-        // For now, we assume customers table is the main linkage point
         
-        // Redirect customers to home
         navigate("/");
       } else if (role === "stringer") {
-        // Stringers need to set up their shop first
         console.log("Stringer registered, redirecting to shop setup");
         navigate("/setup");
       } else {
@@ -106,95 +99,168 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-screen bg-neutral-50 dark:bg-neutral-900 flex items-center justify-center p-4 transition-colors duration-300">
-      <div className="max-w-md w-full bg-white dark:bg-neutral-800 rounded-2xl shadow-xl border border-neutral-200 dark:border-neutral-700 p-8">
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-primary rounded-2xl mb-4 shadow-lg shadow-primary/20 -rotate-3">
-            <span className="text-2xl font-bold text-secondary">SF</span>
-          </div>
-          <h1 className="text-3xl font-bold text-primary tracking-tight">Create Account</h1>
-          <p className="text-neutral-500 dark:text-neutral-400 mt-2">Join Stringers Friend today</p>
-        </div>
+    <div className="min-h-screen bg-bg-main flex items-center justify-center p-4 transition-colors duration-300">
+      {/* Background decoration */}
+      <div className="fixed inset-0 -z-10 overflow-hidden">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary/10 rounded-full blur-3xl"></div>
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-secondary/10 rounded-full blur-3xl"></div>
+      </div>
 
-        {error && (
-          <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-900/30 text-red-600 dark:text-red-400 text-sm rounded-xl">
-            {error}
-          </div>
-        )}
+      <div className="w-full max-w-md">
+        {/* Back to home */}
+        <Link 
+          to="/" 
+          className="inline-flex items-center gap-2 text-sm font-medium text-text-muted hover:text-text-main transition-colors mb-8"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Back to home
+        </Link>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {!shopId && (
-            <div>
-              <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">Account Type</label>
-              <div className="grid grid-cols-2 gap-4">
-                <button
-                  type="button"
-                  onClick={() => setRole("stringer")}
-                  disabled={loading}
-                  className={`py-3 rounded-xl border text-sm font-bold transition-all ${
-                    role === "stringer"
-                      ? "bg-primary text-white border-primary shadow-md shadow-primary/20"
-                      : "bg-white dark:bg-neutral-700 text-neutral-600 dark:text-neutral-300 border-neutral-200 dark:border-neutral-600 hover:border-primary/50"
-                  }`}
-                >
-                  Racquet Stringer
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setRole("customer")}
-                  disabled={loading}
-                  className={`py-3 rounded-xl border text-sm font-bold transition-all ${
-                    role === "customer"
-                      ? "bg-primary text-white border-primary shadow-md shadow-primary/20"
-                      : "bg-white dark:bg-neutral-700 text-neutral-600 dark:text-neutral-300 border-neutral-200 dark:border-neutral-600 hover:border-primary/50"
-                  }`}
-                >
-                  Customer
-                </button>
-              </div>
+        <div className="bg-bg-card rounded-3xl shadow-2xl border border-border-main overflow-hidden animate-scale-in">
+          {/* Header */}
+          <div className="p-8 pb-0">
+            <div className="flex items-center justify-center mb-6">
+              <img src="/logo.png" alt="Stringer's Friend" className="h-14 w-14 object-contain" />
             </div>
-          )}
-
-          <div>
-            <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">Email Address</label>
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl border border-neutral-200 dark:border-neutral-600 bg-white dark:bg-neutral-700 text-neutral-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent transition-all outline-none"
-              placeholder="you@example.com"
-              disabled={loading}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">Password</label>
-            <input
-              type="password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl border border-neutral-200 dark:border-neutral-600 bg-white dark:bg-neutral-700 text-neutral-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent transition-all outline-none"
-              placeholder="••••••••"
-              disabled={loading}
-            />
+            <h1 className="text-2xl font-black text-text-main text-center tracking-tight">Create Account</h1>
+            <p className="text-text-muted text-center mt-1">Join Stringer's Friend today</p>
           </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-primary text-white py-3 rounded-xl font-bold hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all active:scale-[0.98] disabled:opacity-50"
-          >
-            {loading ? "Creating Account..." : "Create Account"}
-          </button>
-        </form>
+          <div className="p-8">
+            {/* Error Alert */}
+            {error && (
+              <div className="mb-6 p-4 bg-error/10 border border-error/20 rounded-2xl flex items-center gap-3 animate-slide-up">
+                <AlertCircle className="w-5 h-5 text-error flex-shrink-0" />
+                <p className="text-sm text-error font-medium">{error}</p>
+              </div>
+            )}
 
-        <p className="mt-8 text-center text-sm text-neutral-500 dark:text-neutral-400">
-          Already have an account?{" "}
-          <Link to={shopId ? `/login?shopId=${shopId}` : "/login"} className="text-primary font-bold hover:underline">
-            Sign in
-          </Link>
-        </p>
+            <form onSubmit={handleSubmit} className="space-y-5">
+              {/* Account Type Selector */}
+              {!shopId && (
+                <div className="space-y-3">
+                  <label className="text-sm font-semibold text-text-main ml-1">I am a...</label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setRole("stringer")}
+                      disabled={loading}
+                      className={`relative p-4 rounded-2xl border-2 transition-all ${
+                        role === "stringer"
+                          ? "bg-primary/5 border-primary text-primary"
+                          : "bg-bg-elevated border-border-main text-text-muted hover:border-primary/30"
+                      }`}
+                    >
+                      <Briefcase className="w-6 h-6 mx-auto mb-2" />
+                      <span className="block text-sm font-bold">Stringer</span>
+                      <span className="block text-xs mt-1 opacity-70">Run a stringing business</span>
+                      {role === "stringer" && (
+                        <div className="absolute -top-2 -right-2 w-6 h-6 bg-primary rounded-full flex items-center justify-center">
+                          <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                          </svg>
+                        </div>
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setRole("customer")}
+                      disabled={loading}
+                      className={`relative p-4 rounded-2xl border-2 transition-all ${
+                        role === "customer"
+                          ? "bg-secondary/5 border-secondary text-secondary"
+                          : "bg-bg-elevated border-border-main text-text-muted hover:border-secondary/30"
+                      }`}
+                    >
+                      <Users className="w-6 h-6 mx-auto mb-2" />
+                      <span className="block text-sm font-bold">Customer</span>
+                      <span className="block text-xs mt-1 opacity-70">Get my racquets strung</span>
+                      {role === "customer" && (
+                        <div className="absolute -top-2 -right-2 w-6 h-6 bg-secondary rounded-full flex items-center justify-center">
+                          <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                          </svg>
+                        </div>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <label className="text-sm font-semibold text-text-main ml-1">Email Address</label>
+                <div className="relative">
+                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-text-muted" />
+                  <input
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full pl-12 pr-4 py-3.5 bg-bg-elevated border border-border-main rounded-2xl text-text-main placeholder:text-text-muted/50 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none"
+                    placeholder="you@example.com"
+                    disabled={loading}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-semibold text-text-main ml-1">Password</label>
+                <div className="relative">
+                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-text-muted" />
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="w-full pl-12 pr-12 py-3.5 bg-bg-elevated border border-border-main rounded-2xl text-text-main placeholder:text-text-muted/50 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none"
+                    placeholder="Create a strong password"
+                    disabled={loading}
+                    minLength={6}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-main transition-colors"
+                  >
+                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
+                </div>
+                <p className="text-xs text-text-muted ml-1">Must be at least 6 characters</p>
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-gradient-primary text-white py-3.5 rounded-2xl font-bold hover:shadow-lg hover:shadow-primary/25 transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    Creating Account...
+                  </>
+                ) : (
+                  <>Create Account</>
+                )}
+              </button>
+            </form>
+
+            {/* Terms */}
+            <p className="mt-6 text-center text-xs text-text-muted">
+              By creating an account, you agree to our{" "}
+              <a href="#" className="text-primary hover:underline">Terms of Service</a>
+              {" "}and{" "}
+              <a href="#" className="text-primary hover:underline">Privacy Policy</a>
+            </p>
+
+            {/* Sign In Link */}
+            <p className="mt-6 text-center text-sm text-text-muted">
+              Already have an account?{" "}
+              <Link to={shopId ? `/login?shopId=${shopId}` : "/login"} className="text-primary font-bold hover:text-primary-dark transition-colors">
+                Sign in
+              </Link>
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   );

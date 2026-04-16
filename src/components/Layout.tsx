@@ -1,6 +1,6 @@
 import { ReactNode, useState, useEffect } from "react";
-import { Link, Outlet, useNavigate } from "react-router-dom";
-import { LayoutDashboard, Users, Package, LogOut, User, Sun, Moon, MessageSquare, Clock, Bell, X } from "lucide-react";
+import { Link, Outlet, useNavigate, useLocation } from "react-router-dom";
+import { LayoutDashboard, Users, Package, LogOut, User, Sun, Moon, MessageSquare, Bell, X, Home, FileText, Settings } from "lucide-react";
 import { useTheme } from "../context/ThemeContext";
 import { supabase } from "../lib/supabase";
 
@@ -11,6 +11,7 @@ interface LayoutProps {
 
 function LayoutContent({ user, onLogout }: LayoutProps) {
   const navigate = useNavigate();
+  const location = useLocation();
   const { darkMode, toggleDarkMode } = useTheme();
   const [unreadCount, setUnreadCount] = useState(0);
   const [messageUnreadCount, setMessageUnreadCount] = useState(0);
@@ -19,11 +20,9 @@ function LayoutContent({ user, onLogout }: LayoutProps) {
   useEffect(() => {
     if (!user) return;
 
-    // Check if push notifications are enabled
     const checkPushStatus = async () => {
       if (typeof window !== 'undefined' && 'Notification' in window) {
         if (Notification.permission === 'default') {
-          // Check if we've already asked recently (using localStorage)
           const lastPrompt = localStorage.getItem('lastPushPrompt');
           const now = Date.now();
           if (!lastPrompt || now - parseInt(lastPrompt) > 24 * 60 * 60 * 1000) {
@@ -34,162 +33,177 @@ function LayoutContent({ user, onLogout }: LayoutProps) {
     };
 
     checkPushStatus();
-
-    // TODO: Migrate messages to Supabase (need messages table in schema)
-    // For now, we'll disable the real-time messages count
-    // This will be re-implemented with Supabase Realtime once messages table is created
-    const messagesSubscription = async () => {
-      if (!user?.role) return null;
-      
-      // Messages feature will be implemented with Supabase Realtime
-      return null;
-    };
-
-    messagesSubscription();
   }, [user]);
 
   if (!user) return <Outlet />;
 
-  const NavLinks = () => (
-    <>
-      {user.role === 'stringer' && (
-        <>
-          <Link to="/" className="flex flex-col md:flex-row items-center px-4 py-2 text-xs md:text-sm font-medium text-neutral-700 dark:text-neutral-300 rounded-lg hover:bg-primary/10 hover:text-primary dark:hover:text-primary transition-colors group shrink-0">
-            <LayoutDashboard className="w-5 h-5 md:w-4 md:h-4 md:mr-3 group-hover:text-primary" />
-            <span className="mt-1 md:mt-0">Dashboard</span>
-          </Link>
-          <Link to="/customers" className="flex flex-col md:flex-row items-center px-4 py-2 text-xs md:text-sm font-medium text-neutral-700 dark:text-neutral-300 rounded-lg hover:bg-primary/10 hover:text-primary dark:hover:text-primary transition-colors group shrink-0">
-            <Users className="w-5 h-5 md:w-4 md:h-4 md:mr-3 group-hover:text-primary" />
-            <span className="mt-1 md:mt-0">Customers</span>
-          </Link>
-          <Link to="/messages" className="flex flex-col md:flex-row items-center px-4 py-2 text-xs md:text-sm font-medium text-neutral-700 dark:text-neutral-300 rounded-lg hover:bg-primary/10 hover:text-primary dark:hover:text-primary transition-colors group shrink-0 relative">
-            <MessageSquare className="w-5 h-5 md:w-4 md:h-4 md:mr-3 group-hover:text-primary" />
-            <span className="mt-1 md:mt-0">Messages</span>
-            {messageUnreadCount > 0 && (
-              <span className="absolute top-2 right-2 md:top-2 md:left-6 flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
-              </span>
-            )}
-          </Link>
-          <Link to="/inventory" className="flex flex-col md:flex-row items-center px-4 py-2 text-xs md:text-sm font-medium text-neutral-700 dark:text-neutral-300 rounded-lg hover:bg-primary/10 hover:text-primary dark:hover:text-primary transition-colors group shrink-0">
-            <Package className="w-5 h-5 md:w-4 md:h-4 md:mr-3 group-hover:text-primary" />
-            <span className="mt-1 md:mt-0">Inventory</span>
-          </Link>
-          <Link to="/profile" className="flex flex-col md:flex-row items-center px-4 py-2 text-xs md:text-sm font-medium text-neutral-700 dark:text-neutral-300 rounded-lg hover:bg-primary/10 hover:text-primary dark:hover:text-primary transition-colors group shrink-0">
-            <User className="w-5 h-5 md:w-4 md:h-4 md:mr-3 group-hover:text-primary" />
-            <span className="mt-1 md:mt-0">Profile</span>
-          </Link>
-        </>
-      )}
-      {user.role === 'customer' && (
-        <>
-          <Link to="/?tab=jobs" className="flex flex-col md:flex-row items-center px-4 py-2 text-xs md:text-sm font-medium text-neutral-700 dark:text-neutral-300 rounded-lg hover:bg-primary/10 hover:text-primary dark:hover:text-primary transition-colors group shrink-0">
-            <Clock className="w-5 h-5 md:w-4 md:h-4 md:mr-3 group-hover:text-primary" />
-            <span className="mt-1 md:mt-0">My Jobs</span>
-          </Link>
-          <Link to="/?tab=racquets" className="flex flex-col md:flex-row items-center px-4 py-2 text-xs md:text-sm font-medium text-neutral-700 dark:text-neutral-300 rounded-lg hover:bg-primary/10 hover:text-primary dark:hover:text-primary transition-colors group shrink-0">
-            <Package className="w-5 h-5 md:w-4 md:h-4 md:mr-3 group-hover:text-primary" />
-            <span className="mt-1 md:mt-0">My Bag</span>
-          </Link>
-          <Link to="/?tab=messages" className="flex flex-col md:flex-row items-center px-4 py-2 text-xs md:text-sm font-medium text-neutral-700 dark:text-neutral-300 rounded-lg hover:bg-primary/10 hover:text-primary dark:hover:text-primary transition-colors group shrink-0 relative">
-            <MessageSquare className="w-5 h-5 md:w-4 md:h-4 md:mr-3 group-hover:text-primary" />
-            <span className="mt-1 md:mt-0">Messages</span>
-            {messageUnreadCount > 0 && (
-              <span className="absolute top-2 right-2 md:top-2 md:left-6 flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
-              </span>
-            )}
-          </Link>
-          <Link to="/profile" className="flex flex-col md:flex-row items-center px-4 py-2 text-xs md:text-sm font-medium text-neutral-700 dark:text-neutral-300 rounded-lg hover:bg-primary/10 hover:text-primary dark:hover:text-primary transition-colors group shrink-0">
-            <User className="w-5 h-5 md:w-4 md:h-4 md:mr-3 group-hover:text-primary" />
-            <span className="mt-1 md:mt-0">Profile</span>
-          </Link>
-        </>
-      )}
-    </>
-  );
+  const stringerNavItems = [
+    { path: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
+    { path: "/customers", icon: Users, label: "Customers" },
+    { path: "/messages", icon: MessageSquare, label: "Messages", badge: messageUnreadCount },
+    { path: "/inventory", icon: Package, label: "Inventory" },
+    { path: "/profile", icon: User, label: "Profile" },
+  ];
+
+  const customerNavItems = [
+    { path: "/dashboard?tab=jobs", icon: FileText, label: "My Jobs" },
+    { path: "/dashboard?tab=racquets", icon: Package, label: "My Bag" },
+    { path: "/dashboard?tab=messages", icon: MessageSquare, label: "Messages", badge: messageUnreadCount },
+    { path: "/profile", icon: User, label: "Profile" },
+  ];
+
+  const navItems = user.role === 'stringer' ? stringerNavItems : customerNavItems;
+
+  const isActive = (path: string) => {
+    if (path.includes('?')) {
+      return location.pathname + location.search === path;
+    }
+    return location.pathname === path;
+  };
 
   return (
     <div className="min-h-screen flex flex-col md:flex-row font-sans transition-colors duration-200">
       {/* Sidebar for Desktop */}
-      <aside className="hidden md:flex w-64 bg-bg-card border-r border-border-main flex-col shadow-sm">
-        <div className="p-6 bg-primary">
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-xl font-bold text-white tracking-tight">Stringers Friend</h1>
-              <p className="text-[10px] text-secondary font-bold uppercase tracking-widest mt-1">Shop Management</p>
+      <aside className="hidden md:flex w-72 bg-bg-card border-r border-border-main flex-col shadow-xl fixed h-full z-30">
+        {/* Logo & Branding */}
+        <div className="p-6 border-b border-border-main">
+          <Link to="/" className="flex items-center gap-3 group">
+            <div className="relative">
+              <img src="/logo.png" alt="Stringer's Friend" className="h-12 w-12 object-contain transition-transform group-hover:scale-105" />
             </div>
-            <Bell className="w-6 h-6 text-white" />
-          </div>
+            <div>
+              <h1 className="text-lg font-black text-text-main tracking-tight">Stringer's Friend</h1>
+              <p className="text-[10px] text-primary font-bold uppercase tracking-widest">Shop Portal</p>
+            </div>
+          </Link>
         </div>
 
-        <nav className="flex-1 px-4 space-y-1 mt-4">
-          <NavLinks />
+        {/* Navigation */}
+        <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
+          {navItems.map((item) => (
+            <Link
+              key={item.path}
+              to={item.path}
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all group ${
+                isActive(item.path)
+                  ? "bg-gradient-primary text-white shadow-lg shadow-primary/20"
+                  : "text-text-muted hover:text-text-main hover:bg-bg-elevated"
+              }`}
+            >
+              <item.icon className={`w-5 h-5 ${isActive(item.path) ? '' : 'opacity-70 group-hover:opacity-100'}`} />
+              <span>{item.label}</span>
+              {item.badge && item.badge > 0 && (
+                <span className="ml-auto flex h-5 w-5 items-center justify-center rounded-full bg-error text-[10px] font-bold text-white">
+                  {item.badge}
+                </span>
+              )}
+            </Link>
+          ))}
         </nav>
 
+        {/* User Section */}
         <div className="p-4 border-t border-border-main">
-          <div className="flex items-center px-4 py-2 mb-2">
-            <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-xs font-bold text-white">
+          {/* Dark Mode Toggle */}
+          <button
+            onClick={toggleDarkMode}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-text-muted hover:text-text-main hover:bg-bg-elevated transition-all mb-2"
+          >
+            {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+            <span>{darkMode ? 'Light Mode' : 'Dark Mode'}</span>
+          </button>
+
+          {/* User Info */}
+          <div className="flex items-center gap-3 px-4 py-3 bg-bg-elevated rounded-xl mb-2">
+            <div className="w-10 h-10 rounded-full bg-gradient-primary flex items-center justify-center text-white font-bold text-sm">
               {user.email ? user.email[0].toUpperCase() : "?"}
             </div>
-            <div className="ml-3 overflow-hidden">
-              <p className="text-sm font-medium text-text-main truncate">{user.email || "No Email"}</p>
-              <p className="text-xs text-primary font-semibold capitalize">{user.role}</p>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-text-main truncate">{user.name || user.email?.split('@')[0] || "User"}</p>
+              <p className="text-xs text-primary font-medium capitalize">{user.role}</p>
             </div>
           </div>
+
           <button
             onClick={onLogout}
-            className="w-full flex items-center px-4 py-2 text-sm font-medium text-red-600 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+            className="w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold text-error/80 hover:text-error hover:bg-error/10 rounded-xl transition-all"
           >
-            <LogOut className="w-4 h-4 mr-3" />
-            Logout
+            <LogOut className="w-5 h-5" />
+            <span>Sign Out</span>
           </button>
         </div>
       </aside>
 
+      {/* Mobile Header */}
+      <header className="md:hidden fixed top-0 left-0 right-0 z-40 bg-bg-card/80 backdrop-blur-lg border-b border-border-main">
+        <div className="flex items-center justify-between px-4 h-16">
+          <Link to="/" className="flex items-center gap-2">
+            <img src="/logo.png" alt="Stringer's Friend" className="h-8 w-8 object-contain" />
+            <span className="font-bold text-text-main">SF</span>
+          </Link>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={toggleDarkMode}
+              className="p-2 rounded-lg text-text-muted hover:text-text-main hover:bg-bg-elevated transition-all"
+            >
+              {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+            </button>
+            <button
+              onClick={onLogout}
+              className="p-2 rounded-lg text-error/80 hover:text-error hover:bg-error/10 transition-all"
+            >
+              <LogOut className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+      </header>
+
       {/* Mobile Bottom Navigation */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-bg-card border-t border-border-main px-2 py-2 flex overflow-x-auto no-scrollbar items-center z-50 scroll-smooth">
-        <div className="flex flex-nowrap items-center space-x-1 min-w-max px-2">
-          <NavLinks />
-          <Bell className="w-5 h-5 text-neutral-600 dark:text-neutral-300" />
-          <button
-            onClick={onLogout}
-            className="flex flex-col items-center px-4 py-2 text-xs font-medium text-red-600 shrink-0"
-          >
-            <LogOut className="w-5 h-5" />
-            <span className="mt-1">Logout</span>
-          </button>
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-bg-card/80 backdrop-blur-lg border-t border-border-main px-2 py-2 pb-safe">
+        <div className="flex items-center justify-around">
+          {navItems.map((item) => (
+            <Link
+              key={item.path}
+              to={item.path}
+              className={`flex flex-col items-center gap-1 px-3 py-2 rounded-xl transition-all min-w-[60px] ${
+                isActive(item.path)
+                  ? "text-primary"
+                  : "text-text-muted"
+              }`}
+            >
+              <div className="relative">
+                <item.icon className="w-6 h-6" />
+                {item.badge && item.badge > 0 && (
+                  <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-error text-[8px] font-bold text-white">
+                    {item.badge}
+                  </span>
+                )}
+              </div>
+              <span className="text-[10px] font-semibold">{item.label}</span>
+            </Link>
+          ))}
         </div>
       </nav>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-auto pb-20 md:pb-0 relative">
+      <main className="flex-1 md:ml-72 pt-16 md:pt-0 pb-20 md:pb-0 relative min-h-screen">
+        {/* Push Notification Prompt */}
         {showPushPrompt && (
-          <div className="sticky top-4 left-4 right-4 z-40 mx-auto max-w-2xl">
-            <div className="bg-primary text-white p-4 rounded-2xl shadow-xl flex items-center justify-between gap-4 animate-in slide-in-from-top-4 duration-300">
+          <div className="sticky top-4 left-4 right-4 md:left-auto md:right-4 md:max-w-sm z-30 mx-auto md:mx-0">
+            <div className="bg-gradient-primary text-white p-4 rounded-2xl shadow-xl shadow-primary/20 flex items-center justify-between gap-4 animate-slide-up">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-white/20 rounded-lg">
+                <div className="p-2.5 bg-white/20 rounded-xl">
                   <Bell className="w-5 h-5" />
                 </div>
                 <div>
-                  <p className="font-bold text-sm">Enable Push Notifications</p>
-                  <p className="text-xs text-white/80">Get real-time alerts for new messages and job updates.</p>
+                  <p className="font-bold text-sm">Stay Updated</p>
+                  <p className="text-xs text-white/80">Enable notifications for alerts</p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
                 <button
                   onClick={async () => {
-                    try {
-                      // TODO: Migrate push notifications to Supabase
-                      // This feature is temporarily disabled during migration
-                      // Will be replaced with Supabase Realtime + Web Push
-                      setShowPushPrompt(false);
-                      localStorage.setItem('lastPushPrompt', Date.now().toString());
-                    } catch (err) {
-                      console.error("Error enabling notifications:", err);
-                    }
+                    setShowPushPrompt(false);
+                    localStorage.setItem('lastPushPrompt', Date.now().toString());
                   }}
                   className="px-4 py-2 bg-white text-primary rounded-xl text-xs font-bold hover:bg-white/90 transition-all whitespace-nowrap"
                 >
@@ -208,6 +222,7 @@ function LayoutContent({ user, onLogout }: LayoutProps) {
             </div>
           </div>
         )}
+
         <div className="max-w-7xl mx-auto p-4 md:p-8">
           <Outlet />
         </div>
