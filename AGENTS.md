@@ -22,6 +22,17 @@
 - Supabase client: `src/lib/supabase.ts`
 - Schema: `supabase/schema.sql`
 
+## Database Tables
+- `shops` - Shop owners and their business
+- `profiles` - User accounts linked to auth.users
+- `customers` - Shop customers (first_name, last_name, email, phone)
+- `racquets` - Customer racquets with specs
+- `jobs` - Stringing jobs with status and payment tracking
+- `job_details` - Per-job stringing details (main_string, cross_string, service)
+- `inventory` - Strings, grips, dampeners, accessories
+- `messages` - Shop/customer messaging
+- `notifications` - User notifications
+
 ## Quirks
 - PWA plugin includes `icon.svg` - update manifest in `vite.config.ts` if needed
 - tsconfig excludes `supabase/functions` (Deno code, not TS)
