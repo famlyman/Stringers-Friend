@@ -10,7 +10,7 @@ export default function CustomerList({ user }: { user: any }) {
   const [shop, setShop] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
-  const [newCustomer, setNewCustomer] = useState({ name: "", email: "", phone: "" });
+  const [newCustomer, setNewCustomer] = useState({ first_name: "", last_name: "", email: "", phone: "" });
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
   const [racquets, setRacquets] = useState<any[]>([]);
   const [showAddRacquet, setShowAddRacquet] = useState(false);
@@ -249,30 +249,32 @@ export default function CustomerList({ user }: { user: any }) {
   const handleAddCustomer = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      // Check if a user with this email already exists as a customer
-      const { data: existingUsers, error: userError } = await supabase
+      const { data: existingProfiles } = await supabase
         .from('profiles')
         .select('id')
         .eq('email', newCustomer.email)
-        .eq('role', 'customer');
+        .eq('user_role', 'customer');
 
-      let linkedUid = null;
-      if (existingUsers && existingUsers.length > 0) {
-        linkedUid = existingUsers[0].id;
+      let linkedProfileId = null;
+      if (existingProfiles && existingProfiles.length > 0) {
+        linkedProfileId = existingProfiles[0].id;
       }
 
       const { error: insertError } = await supabase
         .from('customers')
         .insert({
-          ...newCustomer,
           shop_id: user.shop_id,
-          user_id: linkedUid,
+          profile_id: linkedProfileId,
+          first_name: newCustomer.first_name,
+          last_name: newCustomer.last_name,
+          email: newCustomer.email,
+          phone: newCustomer.phone,
         });
 
       if (insertError) throw insertError;
 
       setShowAdd(false);
-      setNewCustomer({ name: "", email: "", phone: "" });
+      setNewCustomer({ first_name: "", last_name: "", email: "", phone: "" });
     } catch (err) {
       console.error("Error adding customer:", err);
     }
@@ -442,7 +444,7 @@ export default function CustomerList({ user }: { user: any }) {
   };
 
   const filteredCustomers = customers.filter(c => 
-    (c.name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+    ((c.first_name || "") + " " + (c.last_name || "")).toLowerCase().includes(searchTerm.toLowerCase()) ||
     (c.email && c.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
     (c.phone && c.phone.includes(searchTerm))
   );
@@ -782,10 +784,18 @@ export default function CustomerList({ user }: { user: any }) {
             <form onSubmit={handleAddCustomer} className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-4 space-y-4 shadow-sm">
               <input 
                 type="text" 
-                placeholder="Name" 
+                placeholder="First Name" 
                 required
-                value={newCustomer.name}
-                onChange={e => setNewCustomer({...newCustomer, name: e.target.value})}
+                value={newCustomer.first_name}
+                onChange={e => setNewCustomer({...newCustomer, first_name: e.target.value})}
+                className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-lg outline-none focus:ring-2 focus:ring-primary"
+              />
+              <input 
+                type="text" 
+                placeholder="Last Name" 
+                required
+                value={newCustomer.last_name}
+                onChange={e => setNewCustomer({...newCustomer, last_name: e.target.value})}
                 className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-lg outline-none focus:ring-2 focus:ring-primary"
               />
               <input 
@@ -799,7 +809,6 @@ export default function CustomerList({ user }: { user: any }) {
               <input 
                 type="tel" 
                 placeholder="Phone" 
-                required
                 value={newCustomer.phone}
                 onChange={e => setNewCustomer({...newCustomer, phone: e.target.value})}
                 className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-lg outline-none focus:ring-2 focus:ring-primary"
@@ -824,7 +833,7 @@ export default function CustomerList({ user }: { user: any }) {
               >
                 <div className="flex justify-between items-center">
                   <div>
-                    <p className="font-bold">{customer.name}</p>
+                    <p className="font-bold">{customer.first_name} {customer.last_name}</p>
                     <p className={`text-xs ${selectedCustomer?.id === customer.id ? "text-white/70" : "text-neutral-500"}`}>
                       {customer.email}
                     </p>
@@ -848,7 +857,7 @@ export default function CustomerList({ user }: { user: any }) {
               <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-8 shadow-sm">
                 <div className="flex flex-col sm:flex-row justify-between items-start gap-6 mb-8">
                   <div>
-                    <h2 className="text-2xl sm:text-3xl font-bold text-neutral-900 dark:text-white">{selectedCustomer.name}</h2>
+                    <h2 className="text-2xl sm:text-3xl font-bold text-neutral-900 dark:text-white">{selectedCustomer.first_name} {selectedCustomer.last_name}</h2>
                     <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 mt-2">
                       <div className="flex items-center text-sm text-neutral-500 dark:text-neutral-400">
                         <Mail className="w-4 h-4 mr-2" />
@@ -862,7 +871,7 @@ export default function CustomerList({ user }: { user: any }) {
                   </div>
                   <div className="flex flex-wrap gap-2 w-full sm:w-auto">
                     <button 
-                      onClick={() => setDeleteConfirm({ type: 'customer', id: selectedCustomer.id, name: selectedCustomer.name })}
+                      onClick={() => setDeleteConfirm({ type: 'customer', id: selectedCustomer.id, name: selectedCustomer.first_name + ' ' + selectedCustomer.last_name })}
                       className="flex-1 sm:flex-none flex items-center justify-center px-4 py-2 bg-red-50 dark:bg-red-900/20 text-red-600 rounded-xl font-medium hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors text-sm"
                     >
                       <Trash2 className="w-4 h-4 mr-2" />

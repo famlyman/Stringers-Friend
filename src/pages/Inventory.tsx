@@ -13,17 +13,15 @@ export default function Inventory({ user }: { user: any }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [showQRCodeModal, setShowQRCodeModal] = useState<{ value: string, label: string } | null>(null);
   const [newItem, setNewItem] = useState<any>({ 
-    name: "", 
+    category: "string",
     brand: "", 
-    type: "string", 
-    packaging: "set", 
+    model: "",
+    type: "set", 
     gauge: "",
-    total_length: 12, 
-    remaining_length: 12,
     quantity: 0, 
     low_stock_threshold: 5,
-    price: 0,
-    grip_type: ""
+    unit_price: 0,
+    color: ""
   });
 
   useEffect(() => {
@@ -69,9 +67,16 @@ export default function Inventory({ user }: { user: any }) {
       const { data, error } = await supabase
         .from('inventory')
         .insert({
-          ...newItem,
           shop_id: user.shop_id,
-          qr_code: `inventory_${crypto.randomUUID()}`,
+          category: newItem.category,
+          brand: newItem.brand,
+          model: newItem.model,
+          type: newItem.type,
+          gauge: newItem.gauge,
+          quantity: Number(newItem.quantity) || 0,
+          low_stock_threshold: Number(newItem.low_stock_threshold) || 5,
+          unit_price: Number(newItem.unit_price) || 0,
+          color: newItem.color || null,
         })
         .select()
         .single();
@@ -80,16 +85,15 @@ export default function Inventory({ user }: { user: any }) {
 
       setShowAdd(false);
       setNewItem({ 
-        name: "", 
+        category: "string",
         brand: "", 
-        type: "string", 
-        packaging: "set", 
+        model: "",
+        type: "set", 
         gauge: "",
-        total_length: 12, 
-        remaining_length: 12,
         quantity: 0, 
         low_stock_threshold: 5,
-        price: 0 
+        unit_price: 0,
+        color: ""
       });
     } catch (err) {
       console.error("Error adding inventory:", err);
@@ -103,35 +107,29 @@ export default function Inventory({ user }: { user: any }) {
     try {
       const { 
         id: itemId, 
-        name, 
+        category,
         brand, 
+        model,
         type, 
-        packaging, 
         gauge, 
-        total_length, 
-        remaining_length, 
-        grip_type, 
+        color,
         quantity, 
         low_stock_threshold, 
-        price, 
-        qr_code
+        unit_price
       } = editingItem;
 
       const { error } = await supabase
         .from('inventory')
         .update({
-          name: String(name || ""),
+          category: String(category || "string"),
           brand: String(brand || ""),
-          item_type: String(type || "string"),
-          packaging: String(packaging || "set"),
+          model: String(model || ""),
+          type: String(type || "set"),
           gauge: String(gauge || ""),
-          total_length: Number(total_length) || 0,
-          remaining_length: Number(remaining_length) || 0,
-          grip_type: String(grip_type || ""),
+          color: String(color || "") || null,
           quantity: Number(quantity) || 0,
-          min_stock_level: Number(low_stock_threshold) || 0,
-          retail_price: Number(price) || 0,
-          qr_code: String(qr_code || `inventory_${itemId}`),
+          low_stock_threshold: Number(low_stock_threshold) || 5,
+          unit_price: Number(unit_price) || 0,
         })
         .eq('id', itemId);
 
@@ -158,8 +156,8 @@ export default function Inventory({ user }: { user: any }) {
 
   const filteredItems = items.filter(item => {
     const isLowStock = item.quantity <= (item.low_stock_threshold || 5);
-    const matchesType = filterType === "all" || (filterType === "low-stock" ? isLowStock : item.type === filterType);
-    const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    const matchesType = filterType === "all" || (filterType === "low-stock" ? isLowStock : item.category === filterType);
+    const matchesSearch = item.model.toLowerCase().includes(searchQuery.toLowerCase()) || 
                          item.brand.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesType && matchesSearch;
   });
@@ -391,7 +389,7 @@ export default function Inventory({ user }: { user: any }) {
             {filteredItems.map((item) => (
               <tr key={item.id} className="hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors">
                 <td className="px-6 py-4">
-                  <p className="font-medium text-neutral-900 dark:text-white">{item.name}</p>
+                  <p className="font-medium text-neutral-900 dark:text-white">{item.model}</p>
                   <p className="text-xs text-neutral-500 dark:text-neutral-400">{item.brand}</p>
                 </td>
                 <td className="px-6 py-4">
@@ -428,11 +426,11 @@ export default function Inventory({ user }: { user: any }) {
                   </div>
                 </td>
                 <td className="px-6 py-4">
-                  <span className="text-sm font-medium text-neutral-900 dark:text-white">${item.price.toFixed(2)}</span>
+                  <span className="text-sm font-medium text-neutral-900 dark:text-white">${item.unit_price.toFixed(2)}</span>
                 </td>
                 <td className="px-6 py-4 text-right">
                   <button 
-                    onClick={() => setShowQRCodeModal({ value: item.qr_code || `inventory_${item.id}`, label: `${item.brand} ${item.name}` })}
+                    onClick={() => setShowQRCodeModal({ value: item.qr_code || `inventory_${item.id}`, label: `${item.brand} ${item.model}` })}
                     className="p-2 text-neutral-400 hover:text-primary transition-colors"
                     title="Show QR Code"
                   >

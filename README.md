@@ -1,20 +1,61 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# Stringer's Friend
 
-# Run and deploy your AI Studio app
+A React PWA for tennis stringers to manage customers, racquets, stringing jobs, and inventory.
 
-This contains everything you need to run your app locally.
+## Features
 
-View your app in AI Studio: https://ai.studio/apps/eefb2a8b-1697-47eb-bb82-d7be19d701fc
+- Shop management for stringers
+- Customer & racquet tracking with QR codes
+- Stringing job status tracking
+- Inventory management
+- Push notifications via Supabase
 
-## Run Locally
+## Tech Stack
 
-**Prerequisites:**  Node.js
+- **Frontend**: React 19 + Vite + Tailwind CSS + React Router
+- **Backend**: Express + Supabase Edge Functions
+- **Auth**: Supabase Auth
+- **Database**: Supabase PostgreSQL
+- **Notifications**: Supabase Realtime
 
+## Setup
 
 1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+   ```bash
+   npm install
+   ```
+
+2. Create a Supabase project at [supabase.com](https://supabase.com)
+
+3. Copy `.env.example` to `.env.local` and fill in your credentials:
+   ```
+   VITE_SUPABASE_URL=https://your-project.supabase.co
+   VITE_SUPABASE_ANON_KEY=your-anon-key
+   VITE_GEMINI_API_KEY=your-gemini-key
+   ```
+
+4. Run the database schema:
+   - Open Supabase SQL Editor
+   - Paste the contents of `supabase/schema.sql` and run
+
+5. Run the app:
+   ```bash
+   npm run dev
+   ```
+
+## Supabase Edge Functions
+
+Notifications are handled by Edge Functions:
+- `supabase/functions/send-notification/index.ts`
+
+Deploy with:
+```bash
+supabase functions deploy send-notification
+```
+
+## Scripts
+
+- `npm run dev` - Start dev server
+- `npm run build` - Build for production
+- `npm run start` - Start production server
+- `npm run lint` - TypeScript check

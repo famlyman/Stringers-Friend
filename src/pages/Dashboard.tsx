@@ -20,6 +20,8 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
   const [racquets, setRacquets] = useState<any[]>([]);
   const [inventoryItems, setInventoryItems] = useState<any[]>([]);
   const [inventoryStrings, setInventoryStrings] = useState<any[]>([]);
+  const [messages, setMessages] = useState<any[]>([]);
+  const [newMessage, setNewMessage] = useState("");
   
   // New Job Form State
   const [newJob, setNewJob] = useState({
@@ -81,6 +83,7 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
       let finalCustomerId = selectedCustomerId;
       let finalRacquetId = selectedRacquetId;
       let finalCustomerEmail = newJob.customer_email;
+      let finalCustomerName = newJob.customer_name;
 
       // Handle customer
       if (isNewCustomer) {
@@ -88,7 +91,10 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
           throw new Error("Customer name and email are required.");
         }
         
-        // Check if customer already exists
+        const nameParts = newJob.customer_name.trim().split(' ');
+        const firstName = nameParts[0];
+        const lastName = nameParts.slice(1).join(' ') || '';
+        
         const { data: existingCustomers } = await supabase
           .from('customers')
           .select('id')
@@ -98,24 +104,28 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
         if (existingCustomers && existingCustomers.length > 0) {
           finalCustomerId = existingCustomers[0].id;
         } else {
-          // Create new customer
-          finalCustomerId = `cust_${Date.now()}`;
-          await supabase
+          const { data: newCustomerData, error: customerError } = await supabase
             .from('customers')
             .insert({
-              id: finalCustomerId,
               shop_id: user.shop_id,
-              name: newJob.customer_name,
+              first_name: firstName,
+              last_name: lastName,
               email: newJob.customer_email,
               phone: newJob.customer_phone,
-              created_at: new Date().toISOString()
-            });
+            })
+            .select()
+            .single();
+          
+          if (customerError) throw customerError;
+          finalCustomerId = newCustomerData.id;
         }
         finalCustomerEmail = newJob.customer_email;
+        finalCustomerName = newJob.customer_name;
       } else if (selectedCustomerId) {
         const customer = customers.find(c => c.id === selectedCustomerId);
         if (customer) {
           finalCustomerEmail = customer.email;
+          finalCustomerName = `${customer.first_name} ${customer.last_name}`;
         }
       } else {
         throw new Error("Please select a customer or add a new one.");
@@ -123,7 +133,7 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
 
       // Handle racquet
       if (isNewRacquet || !selectedRacquetId) {
-        finalRacquetId = `racquet_${Date.now()}`;
+        finalRacquetId = uuidv4();
         const brand = newJob.racquet_brand === "Other" ? newJob.racquet_brand_custom : newJob.racquet_brand;
         const model = newJob.racquet_model === "Other" ? newJob.racquet_model_custom : newJob.racquet_model;
         
@@ -134,26 +144,12 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
           .insert({
             id: finalRacquetId,
             customer_id: finalCustomerId,
-            customer_email: finalCustomerEmail,
             shop_id: user.shop_id,
             brand,
             model,
             serial_number: newJob.racquet_serial,
-            head_size: Number(newJob.racquet_head_size) || 0,
-            string_pattern_mains: Number(newJob.racquet_mains) || 0,
-            string_pattern_crosses: Number(newJob.racquet_crosses) || 0,
-            mains_skip: newJob.racquet_mains_skip,
-            mains_tie_off: newJob.racquet_mains_tie_off,
-            crosses_start: newJob.racquet_crosses_start,
-            crosses_tie_off: newJob.racquet_crosses_tie_off,
-            one_piece_length: newJob.racquet_one_piece_length || "",
-            two_piece_length: newJob.racquet_two_piece_length || "",
-            stringing_instructions: newJob.racquet_stringing_instructions,
-            current_string_main: newJob.keep_same_string ? newJob.string_main : "Not specified",
-            current_string_cross: newJob.keep_same_string ? newJob.string_cross : newJob.string_main || "Not specified",
-            current_tension_main: Number(newJob.tension_main) || 0,
-            current_tension_cross: Number(newJob.tension_cross) || 0,
-            qr_code: `racquet_${finalRacquetId}`,
+            qr_code_id: `racquet_${finalRacquetId}`,
+            notes: '',
             created_at: new Date().toISOString()
           });
       } else {
@@ -161,30 +157,44 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
       }
 
       // Create job
-      const jobId = `job_${Date.now()}`;
+      const jobId = uuidv4();
       await supabase
-        .from('stringing_jobs')
+        .from('jobs')
         .insert({
           id: jobId,
           customer_id: finalCustomerId,
-          customer_name: newJob.customer_name,
-          customer_email: finalCustomerEmail,
           racquet_id: finalRacquetId,
           shop_id: user.shop_id,
-          service_type: newJob.service_type,
-          custom_service_category: newJob.custom_service_category,
-          string_main: newJob.keep_same_string ? newJob.string_main : `${newJob.string_main_brand} ${newJob.string_main_model} ${newJob.string_main_gauge}`,
-          string_cross: newJob.string_cross_brand === "Same as Mains" 
-            ? (newJob.keep_same_string ? newJob.string_cross : `${newJob.string_main_brand} ${newJob.string_main_model} ${newJob.string_main_gauge}`)
-            : `${newJob.string_cross_brand} ${newJob.string_cross_model} ${newJob.string_cross_gauge}`,
-          tension_main: Number(newJob.tension_main) || 0,
-          tension_cross: Number(newJob.tension_cross) || 0,
-          price: Number(newJob.price),
-          additional_service_request: newJob.additional_service_request,
-          notes: newJob.notes,
           status: 'pending',
+          payment_status: 'unpaid',
+          total_price: Number(newJob.price),
+          notes: newJob.notes,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
+        });
+
+      // Create job_details for the stringing service
+      const { data: inventoryItem } = await supabase
+        .from('inventory')
+        .select('id')
+        .eq('shop_id', user.shop_id)
+        .eq('brand', newJob.string_main_brand)
+        .eq('model', newJob.string_main_model)
+        .eq('gauge', newJob.string_main_gauge)
+        .eq('category', 'string')
+        .single();
+
+      await supabase
+        .from('job_details')
+        .insert({
+          job_id: jobId,
+          item_type: newJob.service_type === 'string_full_bed' ? 'main_string' : 
+                    newJob.service_type === 'string_mains_only' ? 'main_string' :
+                    newJob.service_type === 'string_crosses_only' ? 'cross_string' : 'service',
+          inventory_id: inventoryItem?.id || null,
+          tension: `${newJob.tension_main}/${newJob.tension_cross}`,
+          price: Number(newJob.price),
+          created_at: new Date().toISOString()
         });
 
       // Reset form
@@ -297,8 +307,8 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
 
         // Fetch Jobs
         const { data: jobsData } = await supabase
-          .from('stringing_jobs')
-          .select('*')
+          .from('jobs')
+          .select('*, customers!inner(first_name, last_name, email)')
           .eq('shop_id', user.shop_id)
           .order('created_at', { ascending: false });
         if (jobsData) setJobs(jobsData);
@@ -316,6 +326,14 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
           .select('*, customers!inner(shop_id)')
           .eq('customers.shop_id', user.shop_id);
         if (racquetsData) setRacquets(racquetsData);
+
+        // Fetch Messages
+        const { data: messagesData } = await supabase
+          .from('messages')
+          .select('*, customers!inner(first_name, last_name)')
+          .eq('shop_id', user.shop_id)
+          .order('created_at', { ascending: false });
+        if (messagesData) setMessages(messagesData);
       } catch (err) {
         console.error('Error fetching dashboard data:', err);
       } finally {
@@ -328,7 +346,7 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
     const jobsSubscription = supabase
       .channel(`jobs:${user.shop_id}`)
       .on('postgres_changes', 
-        { event: '*', schema: 'public', table: 'stringing_jobs', filter: `shop_id=eq.${user.shop_id}` },
+        { event: '*', schema: 'public', table: 'jobs', filter: `shop_id=eq.${user.shop_id}` },
         () => fetchData()
       )
       .subscribe();
@@ -341,9 +359,18 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
       )
       .subscribe();
 
+    const messagesSubscription = supabase
+      .channel(`messages:${user.shop_id}`)
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'messages', filter: `shop_id=eq.${user.shop_id}` },
+        () => fetchData()
+      )
+      .subscribe();
+
     return () => {
       jobsSubscription.unsubscribe();
       customersSubscription.unsubscribe();
+      messagesSubscription.unsubscribe();
     };
   }, [user.shop_id]);
 
@@ -422,7 +449,7 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
                 <div key={job.id} className="bg-bg-card rounded-lg p-4 border border-border-main">
                   <div className="flex justify-between items-start">
                     <div>
-                      <h3 className="font-medium text-text-main">{job.customer_name}</h3>
+                      <h3 className="font-medium text-text-main">{job.customers?.first_name} {job.customers?.last_name}</h3>
                       <p className="text-sm text-text-muted">{job.service_type}</p>
                       <p className="text-xs text-text-muted mt-1">
                         {safeFormatDate(job.created_at)}
@@ -435,7 +462,7 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
                           const newStatus = e.target.value;
                           try {
                             await supabase
-                              .from('stringing_jobs')
+                              .from('jobs')
                               .update({ 
                                 status: newStatus,
                                 updated_at: new Date().toISOString()
@@ -506,10 +533,38 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
       {activeTab === 'messages' && (
         <div className="space-y-4">
           <h2 className="text-xl font-semibold">Messages</h2>
-          <div className="text-center py-12 text-text-muted">
-            <MessageSquare className="w-12 h-12 mx-auto mb-4 opacity-50" />
-            <p>Messages feature coming soon</p>
-          </div>
+          
+          {messages.length === 0 ? (
+            <div className="text-center py-12 text-text-muted">
+              <MessageSquare className="w-12 h-12 mx-auto mb-4 opacity-50" />
+              <p>No messages yet</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {messages.map((msg) => (
+                <div key={msg.id} className="bg-bg-card rounded-lg p-4 border border-border-main">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="font-medium text-text-main">
+                        {msg.customers?.first_name} {msg.customers?.last_name}
+                      </p>
+                      <p className="text-sm text-text-muted mt-1">{msg.content}</p>
+                      <p className="text-xs text-text-muted mt-2">
+                        {safeFormatDate(msg.created_at)}
+                      </p>
+                    </div>
+                    <span className={`text-xs px-2 py-1 rounded-full ${
+                      msg.sender_type === 'shop' 
+                        ? 'bg-primary/20 text-primary' 
+                        : 'bg-secondary/20 text-secondary'
+                    }`}>
+                      {msg.sender_type}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
@@ -529,12 +584,12 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
                 <div key={item.id} className="bg-bg-card rounded-lg p-4 border border-border-main">
                   <div className="flex justify-between items-start">
                     <div>
-                      <h3 className="font-medium text-text-main">{item.name}</h3>
+                      <h3 className="font-medium text-text-main">{item.brand} {item.model}</h3>
                       <p className="text-sm text-text-muted">{item.brand}</p>
                       <p className="text-sm text-text-muted">Quantity: {item.quantity}</p>
                     </div>
                     <span className="text-lg font-medium text-primary">
-                      ${item.price}
+                      ${item.unit_price}
                     </span>
                   </div>
                 </div>

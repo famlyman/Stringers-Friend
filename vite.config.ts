@@ -12,7 +12,7 @@ export default defineConfig(({mode}) => {
       tailwindcss(),
       VitePWA({
         registerType: 'autoUpdate',
-        includeAssets: ['icon.svg', 'firebase-messaging-sw.js'],
+        includeAssets: ['icon.svg'],
         workbox: {
           navigateFallbackDenylist: [/^\/api/],
           maximumFileSizeToCacheInBytes: 3000000, // 3 MB
