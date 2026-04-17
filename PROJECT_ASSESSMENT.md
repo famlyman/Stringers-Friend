@@ -30,7 +30,7 @@ The code and schema don't align in several places, causing potential bugs:
 | `customers` | `profile_id` | `user_id` |
 | `jobs` table | `jobs` | CustomerDashboard queries `stringing_jobs` |
 | `inventory` | `unit_price` | Code uses `price` |
-| `profiles` | `user_role` ('owner'/'customer') | Code uses `role` ('stringer'/'customer') |
+| `profiles` | `role` ('stringer'/'customer') | ✅ Fixed - now aligned |
 
 **Fix needed:** Standardize on one naming convention throughout.
 

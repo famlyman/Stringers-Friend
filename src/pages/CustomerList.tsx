@@ -253,7 +253,7 @@ export default function CustomerList({ user }: { user: any }) {
         .from('profiles')
         .select('id')
         .eq('email', newCustomer.email)
-        .eq('user_role', 'customer');
+        .eq('role', 'customer');
 
       let linkedProfileId = null;
       if (existingProfiles && existingProfiles.length > 0) {

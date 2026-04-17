@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   avatar_url TEXT,
   email TEXT,
   shop_id UUID,
-  user_role TEXT DEFAULT 'customer' CHECK (user_role IN ('owner', 'customer')),
+  role TEXT DEFAULT 'customer' CHECK (role IN ('stringer', 'customer')),
   has_completed_onboarding BOOLEAN NOT NULL DEFAULT false,
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -450,7 +450,7 @@ CREATE TRIGGER update_jobs_updated_at
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
-  INSERT INTO public.profiles (id, email, user_role)
+  INSERT INTO public.profiles (id, email, role)
   VALUES (NEW.id, NEW.email, 'customer')
   ON CONFLICT (id) DO NOTHING;
   RETURN NEW;
