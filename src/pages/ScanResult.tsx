@@ -34,11 +34,12 @@ export default function ScanResult() {
         const { error: insertError } = await supabase
           .from('customers')
           .insert({
-            name: profile?.name || user.email?.split('@')[0] || "Customer",
+            first_name: profile?.full_name?.split(' ')[0] || user.email?.split('@')[0] || "New",
+            last_name: profile?.full_name?.split(' ').slice(1).join(' ') || "Customer",
             email: user.email,
             phone: profile?.phone || "",
             shop_id: result.data.id,
-            user_id: user.id,
+            profile_id: user.id,
           });
 
         if (insertError) throw insertError;

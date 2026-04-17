@@ -426,7 +426,7 @@ export default function Inventory({ user }: { user: any }) {
                   </div>
                 </td>
                 <td className="px-6 py-4">
-                  <span className="text-sm font-medium text-neutral-900 dark:text-white">${item.unit_price.toFixed(2)}</span>
+                  <span className="text-sm font-medium text-neutral-900 dark:text-white">${(item.unit_price ?? 0).toFixed(2)}</span>
                 </td>
                 <td className="px-6 py-4 text-right">
                   <button 

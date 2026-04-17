@@ -148,42 +148,46 @@ export default function CustomerList({ user }: { user: any }) {
     const fetchData = async () => {
       setLoading(true);
       
-      // Fetch Shop
-      const { data: shopData } = await supabase
-        .from('shops')
-        .select('*')
-        .eq('id', user.shop_id)
-        .single();
-      if (shopData) setShop(shopData);
+      try {
+        // Fetch Shop
+        const { data: shopData } = await supabase
+          .from('shops')
+          .select('*')
+          .eq('id', user.shop_id)
+          .single();
+        if (shopData) setShop(shopData);
 
-      // Fetch Customers
-      const { data: customersData, error: customersError } = await supabase
-        .from('customers')
-        .select('*')
-        .eq('shop_id', user.shop_id);
-      
-      if (customersError) {
-        console.error("Error fetching customers:", customersError);
-      } else {
-        setCustomers(customersData || []);
+        // Fetch Customers
+        const { data: customersData, error: customersError } = await supabase
+          .from('customers')
+          .select('*')
+          .eq('shop_id', user.shop_id);
+        
+        if (customersError) {
+          console.error("Error fetching customers:", customersError);
+        } else {
+          setCustomers(customersData || []);
+        }
+
+        // Fetch All Racquets for the shop
+        const { data: racquetsData } = await supabase
+          .from('racquets')
+          .select('*')
+          .eq('shop_id', user.shop_id);
+        if (racquetsData) setAllRacquets(racquetsData);
+
+        // Fetch Inventory Strings
+        const { data: inventoryData } = await supabase
+          .from('inventory')
+          .select('*')
+          .eq('shop_id', user.shop_id)
+          .eq('category', 'string');
+        if (inventoryData) setInventoryStrings(inventoryData);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      } finally {
+        setLoading(false);
       }
-
-      // Fetch All Racquets for the shop
-      const { data: racquetsData } = await supabase
-        .from('racquets')
-        .select('*, customers!inner(shop_id)')
-        .eq('customers.shop_id', user.shop_id);
-      if (racquetsData) setAllRacquets(racquetsData);
-
-      // Fetch Inventory Strings
-      const { data: inventoryData } = await supabase
-        .from('inventory')
-        .select('*')
-        .eq('shop_id', user.shop_id)
-        .eq('item_type', 'string');
-      if (inventoryData) setInventoryStrings(inventoryData);
-
-      setLoading(false);
     };
 
     fetchData();
@@ -253,7 +257,7 @@ export default function CustomerList({ user }: { user: any }) {
         .from('profiles')
         .select('id')
         .eq('email', newCustomer.email)
-        .eq('user_role', 'customer');
+        .eq('role', 'customer');
 
       let linkedProfileId = null;
       if (existingProfiles && existingProfiles.length > 0) {
@@ -340,6 +344,23 @@ export default function CustomerList({ user }: { user: any }) {
     if (!editingRacquet) return;
     setSubmitting(true);
     try {
+      // Build the full string names with gauge
+      const mainString = editingRacquet.current_string_main 
+        ? `${editingRacquet.current_string_main} ${editingRacquet.current_string_main_gauge || ''}`.trim()
+        : null;
+      const crossString = editingRacquet.current_string_cross
+        ? editingRacquet.current_string_cross === editingRacquet.current_string_main
+          ? mainString
+          : `${editingRacquet.current_string_cross} ${editingRacquet.current_string_cross_gauge || ''}`.trim()
+        : null;
+      
+      // Build two_piece_length from mains and crosses
+      const twoPieceLength = editingRacquet.two_piece_mains && editingRacquet.two_piece_crosses
+        ? `${editingRacquet.two_piece_mains}/${editingRacquet.two_piece_crosses}`
+        : editingRacquet.one_piece_length
+          ? String(editingRacquet.one_piece_length)
+          : null;
+
       const { error } = await supabase
         .from('racquets')
         .update({
@@ -349,8 +370,15 @@ export default function CustomerList({ user }: { user: any }) {
           head_size: editingRacquet.head_size,
           string_pattern_mains: editingRacquet.string_pattern_mains,
           string_pattern_crosses: editingRacquet.string_pattern_crosses,
-          current_string_main: editingRacquet.current_string_main,
-          current_string_cross: editingRacquet.current_string_cross,
+          mains_skip: editingRacquet.mains_skip,
+          mains_tie_off: editingRacquet.mains_tie_off,
+          crosses_start: editingRacquet.crosses_start,
+          crosses_tie_off: editingRacquet.crosses_tie_off,
+          one_piece_length: editingRacquet.one_piece_length ? String(editingRacquet.one_piece_length) : null,
+          two_piece_length: twoPieceLength,
+          stringing_instructions: editingRacquet.stringing_instructions,
+          current_string_main: mainString,
+          current_string_cross: crossString,
           current_tension_main: editingRacquet.current_tension_main,
           current_tension_cross: editingRacquet.current_tension_cross,
         })
@@ -485,7 +513,7 @@ export default function CustomerList({ user }: { user: any }) {
       {/* Edit Racquet Modal */}
       {editingRacquet && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-neutral-900 rounded-3xl p-8 max-w-md w-full shadow-2xl relative text-left border border-neutral-200 dark:border-neutral-800">
+          <div className="bg-white dark:bg-neutral-900 rounded-3xl p-8 max-w-2xl w-full shadow-2xl relative text-left border border-neutral-200 dark:border-neutral-800 max-h-[90vh] overflow-y-auto">
             <button 
               onClick={() => setEditingRacquet(null)}
               className="absolute top-6 right-6 p-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full transition-colors"
@@ -495,242 +523,380 @@ export default function CustomerList({ user }: { user: any }) {
 
             <h2 className="text-2xl font-bold text-primary mb-6">Edit Racquet</h2>
             
-            <form onSubmit={handleUpdateRacquet} className="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
-              <div>
-                <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">Brand</label>
-                <select 
-                  required
-                  value={RACQUET_BRANDS.includes(editingRacquet.brand) ? editingRacquet.brand : "Other"}
-                  onChange={e => {
-                    const val = e.target.value;
-                    if (val === "Other") {
-                      setEditingRacquet({...editingRacquet, brand: ""});
-                    } else {
-                      setEditingRacquet({...editingRacquet, brand: val, model: ""});
-                    }
-                  }}
-                  className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-xl outline-none focus:ring-2 focus:ring-primary"
-                >
-                  <option value="">Select Brand</option>
-                  {RACQUET_BRANDS.map(brand => (
-                    <option key={brand} value={brand}>{brand}</option>
-                  ))}
-                  <option value="Other">Other</option>
-                </select>
-                {(!RACQUET_BRANDS.includes(editingRacquet.brand) || editingRacquet.brand === "") && (
-                  <input 
-                    type="text" 
-                    placeholder="Enter Brand" 
-                    required
-                    value={editingRacquet.brand}
-                    onChange={e => setEditingRacquet({...editingRacquet, brand: e.target.value})}
-                    className="w-full mt-2 px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-xl outline-none focus:ring-2 focus:ring-primary"
-                  />
-                )}
-              </div>
-              <div className="relative">
-                <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">Model</label>
-                <div className="relative">
-                  <input 
-                    type="text" 
-                    placeholder="Search or enter model" 
-                    required
-                    value={editingRacquet.model}
-                    onChange={e => {
-                      setEditingRacquet({...editingRacquet, model: e.target.value});
-                      handleSearchModels(e.target.value, true);
-                    }}
-                    onFocus={() => editingRacquet.model.length >= 2 && setShowModelSuggestions(true)}
-                    className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-xl outline-none focus:ring-2 focus:ring-primary"
-                  />
-                  {searchingModels && (
-                    <div className="absolute right-3 top-2.5">
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+            <form onSubmit={handleUpdateRacquet} className="space-y-6">
+              {/* Basic Info Section */}
+              <div className="space-y-4">
+                <h3 className="text-sm font-bold text-neutral-500 uppercase tracking-wider">Basic Information</h3>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">Brand</label>
+                    <select 
+                      required
+                      value={RACQUET_BRANDS.includes(editingRacquet.brand) ? editingRacquet.brand : "Other"}
+                      onChange={e => {
+                        const val = e.target.value;
+                        if (val === "Other") {
+                          setEditingRacquet({...editingRacquet, brand: ""});
+                        } else {
+                          setEditingRacquet({...editingRacquet, brand: val, model: ""});
+                        }
+                      }}
+                      className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-xl outline-none focus:ring-2 focus:ring-primary"
+                    >
+                      <option value="">Select Brand</option>
+                      {RACQUET_BRANDS.map(brand => (
+                        <option key={brand} value={brand}>{brand}</option>
+                      ))}
+                      <option value="Other">Other</option>
+                    </select>
+                    {(!RACQUET_BRANDS.includes(editingRacquet.brand) || editingRacquet.brand === "") && (
+                      <input 
+                        type="text" 
+                        placeholder="Enter Brand" 
+                        required
+                        value={editingRacquet.brand}
+                        onChange={e => setEditingRacquet({...editingRacquet, brand: e.target.value})}
+                        className="w-full mt-2 px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-xl outline-none focus:ring-2 focus:ring-primary"
+                      />
+                    )}
+                  </div>
+                  <div className="relative">
+                    <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">Model</label>
+                    <div className="relative">
+                      <input 
+                        type="text" 
+                        placeholder="Search or enter model" 
+                        required
+                        value={editingRacquet.model}
+                        onChange={e => {
+                          setEditingRacquet({...editingRacquet, model: e.target.value});
+                          handleSearchModels(e.target.value, true);
+                        }}
+                        onFocus={() => editingRacquet.model.length >= 2 && setShowModelSuggestions(true)}
+                        className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-xl outline-none focus:ring-2 focus:ring-primary"
+                      />
+                      {searchingModels && (
+                        <div className="absolute right-3 top-2.5">
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                        </div>
+                      )}
                     </div>
-                  )}
+                    
+                    {showModelSuggestions && modelSuggestions.length > 0 && (
+                      <div className="absolute z-50 w-full mt-1 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl shadow-lg max-h-60 overflow-y-auto">
+                        {modelSuggestions.map((suggestion, index) => (
+                          <button
+                            key={index}
+                            type="button"
+                            className="w-full text-left px-4 py-2 hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-900 dark:text-white transition-colors"
+                            onClick={() => {
+                              setEditingRacquet({...editingRacquet, model: suggestion});
+                              setShowModelSuggestions(false);
+                            }}
+                          >
+                            {suggestion}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    
+                    <button
+                      type="button"
+                      onClick={() => handleFetchSpecs(editingRacquet.brand, editingRacquet.model, true)}
+                      disabled={!editingRacquet.brand || !editingRacquet.model || fetchingSpecs}
+                      className="mt-2 text-xs text-primary hover:text-primary/80 flex items-center gap-1 disabled:opacity-50"
+                    >
+                      <Search className="w-3 h-3" />
+                      {fetchingSpecs ? "Searching..." : "Search Technical Specs"}
+                    </button>
+                  </div>
                 </div>
                 
-                {showModelSuggestions && modelSuggestions.length > 0 && (
-                  <div className="absolute z-50 w-full mt-1 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl shadow-lg max-h-60 overflow-y-auto">
-                    {modelSuggestions.map((suggestion, index) => (
-                      <button
-                        key={index}
-                        type="button"
-                        className="w-full text-left px-4 py-2 hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-900 dark:text-white transition-colors"
-                        onClick={() => {
-                          setEditingRacquet({...editingRacquet, model: suggestion});
-                          setShowModelSuggestions(false);
-                        }}
-                      >
-                        {suggestion}
-                      </button>
-                    ))}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">Serial Number</label>
+                    <input 
+                      type="text" 
+                      value={editingRacquet.serial_number || ""}
+                      onChange={e => setEditingRacquet({...editingRacquet, serial_number: e.target.value})}
+                      className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-xl outline-none focus:ring-2 focus:ring-primary"
+                    />
                   </div>
-                )}
-
-                <button
-                  type="button"
-                  onClick={() => handleFetchSpecs(editingRacquet.brand, editingRacquet.model, true)}
-                  disabled={!editingRacquet.brand || !editingRacquet.model || fetchingSpecs}
-                  className="mt-2 text-xs text-primary hover:text-primary/80 flex items-center gap-1 disabled:opacity-50"
-                >
-                  <Search className="w-3 h-3" />
-                  {fetchingSpecs ? "Searching..." : "Search Technical Specs"}
-                </button>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">Serial Number</label>
-                <input 
-                  type="text" 
-                  value={editingRacquet.serial_number || ""}
-                  onChange={e => setEditingRacquet({...editingRacquet, serial_number: e.target.value})}
-                  className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-xl outline-none focus:ring-2 focus:ring-primary"
-                />
-              </div>
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">Head Size</label>
-                  <input 
-                    type="number" 
-                    value={editingRacquet.head_size || ""}
-                    onChange={e => setEditingRacquet({...editingRacquet, head_size: parseInt(e.target.value) || 0})}
-                    className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-xl outline-none focus:ring-2 focus:ring-primary"
-                    placeholder="sq in"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">Mains</label>
-                  <input 
-                    type="number" 
-                    value={editingRacquet.string_pattern_mains || ""}
-                    onChange={e => setEditingRacquet({...editingRacquet, string_pattern_mains: parseInt(e.target.value) || 0})}
-                    className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-xl outline-none focus:ring-2 focus:ring-primary"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">Crosses</label>
-                  <input 
-                    type="number" 
-                    value={editingRacquet.string_pattern_crosses || ""}
-                    onChange={e => setEditingRacquet({...editingRacquet, string_pattern_crosses: parseInt(e.target.value) || 0})}
-                    className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-xl outline-none focus:ring-2 focus:ring-primary"
-                  />
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300">Current Main String Brand</label>
-                  <select 
-                    value={STRINGS.find(brand => editingRacquet.current_string_main?.startsWith(brand.brand))?.brand || "Other"}
-                    onChange={e => {
-                      const val = e.target.value;
-                      if (val === "Other") {
-                        setEditingRacquet({...editingRacquet, current_string_main: ""});
-                      } else {
-                        setEditingRacquet({...editingRacquet, current_string_main: val + " "});
-                      }
-                    }}
-                    className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-xl outline-none focus:ring-2 focus:ring-primary"
-                  >
-                    <option value="">Select Brand</option>
-                    {STRINGS.map(s => (
-                      <option key={s.brand} value={s.brand}>{s.brand}</option>
-                    ))}
-                    <option value="Other">Other</option>
-                  </select>
-                  {(!STRINGS.some(brand => editingRacquet.current_string_main?.startsWith(brand.brand)) || editingRacquet.current_string_main === "") && (
+              {/* Specs Section */}
+              <div className="space-y-4">
+                <h3 className="text-sm font-bold text-neutral-500 uppercase tracking-wider">Racquet Specifications</h3>
+                
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">Head Size (sq in)</label>
+                    <input 
+                      type="number" 
+                      value={editingRacquet.head_size || ""}
+                      onChange={e => setEditingRacquet({...editingRacquet, head_size: parseInt(e.target.value) || 0})}
+                      className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-xl outline-none focus:ring-2 focus:ring-primary"
+                      placeholder="100"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">String Pattern (Mains)</label>
+                    <input 
+                      type="number" 
+                      value={editingRacquet.string_pattern_mains || ""}
+                      onChange={e => setEditingRacquet({...editingRacquet, string_pattern_mains: parseInt(e.target.value) || 0})}
+                      className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-xl outline-none focus:ring-2 focus:ring-primary"
+                      placeholder="16"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">String Pattern (Crosses)</label>
+                    <input 
+                      type="number" 
+                      value={editingRacquet.string_pattern_crosses || ""}
+                      onChange={e => setEditingRacquet({...editingRacquet, string_pattern_crosses: parseInt(e.target.value) || 0})}
+                      className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-xl outline-none focus:ring-2 focus:ring-primary"
+                      placeholder="19"
+                    />
+                  </div>
+                </div>
+
+                {/* Stringing Specifics */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">Mains Skip Holes</label>
                     <input 
                       type="text" 
-                      placeholder="Enter String" 
-                      value={editingRacquet.current_string_main || ""}
-                      onChange={e => setEditingRacquet({...editingRacquet, current_string_main: e.target.value})}
+                      value={editingRacquet.mains_skip || ""}
+                      onChange={e => setEditingRacquet({...editingRacquet, mains_skip: e.target.value})}
                       className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-xl outline-none focus:ring-2 focus:ring-primary"
+                      placeholder="7T, 9T"
                     />
-                  )}
-                  {STRINGS.some(brand => editingRacquet.current_string_main?.startsWith(brand.brand)) && (
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">Mains Tie-Off</label>
+                    <input 
+                      type="text" 
+                      value={editingRacquet.mains_tie_off || ""}
+                      onChange={e => setEditingRacquet({...editingRacquet, mains_tie_off: e.target.value})}
+                      className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-xl outline-none focus:ring-2 focus:ring-primary"
+                      placeholder="2T"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">Crosses Start</label>
+                    <input 
+                      type="text" 
+                      value={editingRacquet.crosses_start || ""}
+                      onChange={e => setEditingRacquet({...editingRacquet, crosses_start: e.target.value})}
+                      className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-xl outline-none focus:ring-2 focus:ring-primary"
+                      placeholder="6T"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">Crosses Tie-Off</label>
+                    <input 
+                      type="text" 
+                      value={editingRacquet.crosses_tie_off || ""}
+                      onChange={e => setEditingRacquet({...editingRacquet, crosses_tie_off: e.target.value})}
+                      className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-xl outline-none focus:ring-2 focus:ring-primary"
+                      placeholder="7B"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">One Piece Length (ft)</label>
+                    <input 
+                      type="number" 
+                      step="0.1"
+                      value={editingRacquet.one_piece_length || ""}
+                      onChange={e => setEditingRacquet({...editingRacquet, one_piece_length: e.target.value})}
+                      className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-xl outline-none focus:ring-2 focus:ring-primary"
+                      placeholder="22"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">Two Piece Length (ft)</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-xs text-neutral-500 mb-1">Mains</label>
+                        <input 
+                          type="number" 
+                          step="0.1"
+                          value={editingRacquet.two_piece_mains || ""}
+                          onChange={e => setEditingRacquet({...editingRacquet, two_piece_mains: e.target.value})}
+                          className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-xl outline-none focus:ring-2 focus:ring-primary text-sm"
+                          placeholder="11"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-neutral-500 mb-1">Crosses</label>
+                        <input 
+                          type="number" 
+                          step="0.1"
+                          value={editingRacquet.two_piece_crosses || ""}
+                          onChange={e => setEditingRacquet({...editingRacquet, two_piece_crosses: e.target.value})}
+                          className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-xl outline-none focus:ring-2 focus:ring-primary text-sm"
+                          placeholder="11"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">Stringing Instructions</label>
+                  <textarea 
+                    value={editingRacquet.stringing_instructions || ""}
+                    onChange={e => setEditingRacquet({...editingRacquet, stringing_instructions: e.target.value})}
+                    className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-xl outline-none focus:ring-2 focus:ring-primary resize-none"
+                    rows={3}
+                    placeholder="Any special instructions for stringing this racquet..."
+                  />
+                </div>
+              </div>
+
+              {/* Current String Setup Section */}
+              <div className="space-y-4">
+                <h3 className="text-sm font-bold text-neutral-500 uppercase tracking-wider">Current String Setup</h3>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300">Main String</label>
                     <select 
-                      value={editingRacquet.current_string_main?.split(' ').slice(1).join(' ') || ""}
+                      value={STRINGS.find(brand => editingRacquet.current_string_main?.startsWith(brand.brand))?.brand || "Other"}
                       onChange={e => {
-                        const brand = STRINGS.find(b => editingRacquet.current_string_main?.startsWith(b.brand))?.brand;
-                        setEditingRacquet({...editingRacquet, current_string_main: brand + " " + e.target.value});
+                        const val = e.target.value;
+                        if (val === "Other") {
+                          setEditingRacquet({...editingRacquet, current_string_main: ""});
+                        } else {
+                          setEditingRacquet({...editingRacquet, current_string_main: val + " "});
+                        }
                       }}
                       className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-xl outline-none focus:ring-2 focus:ring-primary"
                     >
-                      <option value="">Select Model</option>
-                      {STRINGS.find(b => editingRacquet.current_string_main?.startsWith(b.brand))?.models.map(model => (
-                        <option key={model} value={model}>{model}</option>
+                      <option value="">Select Brand</option>
+                      {STRINGS.map(s => (
+                        <option key={s.brand} value={s.brand}>{s.brand}</option>
                       ))}
                       <option value="Other">Other</option>
                     </select>
-                  )}
-                </div>
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300">Current Cross String Brand</label>
-                  <select 
-                    value={editingRacquet.current_string_cross === editingRacquet.current_string_main ? "Same as Mains" : (STRINGS.find(brand => editingRacquet.current_string_cross?.startsWith(brand.brand))?.brand || "Other")}
-                    onChange={e => {
-                      const val = e.target.value;
-                      if (val === "Same as Mains") {
-                        setEditingRacquet({...editingRacquet, current_string_cross: editingRacquet.current_string_main});
-                      } else if (val === "Other") {
-                        setEditingRacquet({...editingRacquet, current_string_cross: ""});
-                      } else {
-                        setEditingRacquet({...editingRacquet, current_string_cross: val + " "});
-                      }
-                    }}
-                    className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-xl outline-none focus:ring-2 focus:ring-primary"
-                  >
-                    <option value="">Select Brand</option>
-                    <option value="Same as Mains">Same as Mains</option>
-                    {STRINGS.map(s => (
-                      <option key={s.brand} value={s.brand}>{s.brand}</option>
-                    ))}
-                    <option value="Other">Other</option>
-                  </select>
-                  {editingRacquet.current_string_cross !== editingRacquet.current_string_main && (!STRINGS.some(brand => editingRacquet.current_string_cross?.startsWith(brand.brand)) || editingRacquet.current_string_cross === "") && (
+                    {(!STRINGS.some(brand => editingRacquet.current_string_main?.startsWith(brand.brand)) || editingRacquet.current_string_main === "") && (
+                      <input 
+                        type="text" 
+                        placeholder="Enter String" 
+                        value={editingRacquet.current_string_main || ""}
+                        onChange={e => setEditingRacquet({...editingRacquet, current_string_main: e.target.value})}
+                        className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-xl outline-none focus:ring-2 focus:ring-primary"
+                      />
+                    )}
+                    {STRINGS.some(brand => editingRacquet.current_string_main?.startsWith(brand.brand)) && (
+                      <select 
+                        value={editingRacquet.current_string_main?.split(' ').slice(1).join(' ') || ""}
+                        onChange={e => {
+                          const brand = STRINGS.find(b => editingRacquet.current_string_main?.startsWith(b.brand))?.brand;
+                          setEditingRacquet({...editingRacquet, current_string_main: brand + " " + e.target.value});
+                        }}
+                        className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-xl outline-none focus:ring-2 focus:ring-primary"
+                      >
+                        <option value="">Select Model</option>
+                        {STRINGS.find(b => editingRacquet.current_string_main?.startsWith(b.brand))?.models.map(model => (
+                          <option key={model} value={model}>{model}</option>
+                        ))}
+                        <option value="Other">Other</option>
+                      </select>
+                    )}
                     <input 
                       type="text" 
-                      placeholder="Enter String" 
-                      value={editingRacquet.current_string_cross || ""}
-                      onChange={e => setEditingRacquet({...editingRacquet, current_string_cross: e.target.value})}
+                      placeholder="Gauge (e.g., 16L)"
+                      value={editingRacquet.current_string_main_gauge || ""}
+                      onChange={e => setEditingRacquet({...editingRacquet, current_string_main_gauge: e.target.value})}
                       className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-xl outline-none focus:ring-2 focus:ring-primary"
                     />
-                  )}
-                  {editingRacquet.current_string_cross !== editingRacquet.current_string_main && STRINGS.some(brand => editingRacquet.current_string_cross?.startsWith(brand.brand)) && (
+                  </div>
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300">Cross String</label>
                     <select 
-                      value={editingRacquet.current_string_cross?.split(' ').slice(1).join(' ') || ""}
+                      value={editingRacquet.current_string_cross === editingRacquet.current_string_main ? "Same as Mains" : (STRINGS.find(brand => editingRacquet.current_string_cross?.startsWith(brand.brand))?.brand || "Other")}
                       onChange={e => {
-                        const brand = STRINGS.find(b => editingRacquet.current_string_cross?.startsWith(b.brand))?.brand;
-                        setEditingRacquet({...editingRacquet, current_string_cross: brand + " " + e.target.value});
+                        const val = e.target.value;
+                        if (val === "Same as Mains") {
+                          setEditingRacquet({...editingRacquet, current_string_cross: editingRacquet.current_string_main});
+                        } else if (val === "Other") {
+                          setEditingRacquet({...editingRacquet, current_string_cross: ""});
+                        } else {
+                          setEditingRacquet({...editingRacquet, current_string_cross: val + " "});
+                        }
                       }}
                       className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-xl outline-none focus:ring-2 focus:ring-primary"
                     >
-                      <option value="">Select Model</option>
-                      {STRINGS.find(b => editingRacquet.current_string_cross?.startsWith(b.brand))?.models.map(model => (
-                        <option key={model} value={model}>{model}</option>
+                      <option value="">Select Brand</option>
+                      <option value="Same as Mains">Same as Mains</option>
+                      {STRINGS.map(s => (
+                        <option key={s.brand} value={s.brand}>{s.brand}</option>
                       ))}
                       <option value="Other">Other</option>
                     </select>
-                  )}
+                    {editingRacquet.current_string_cross !== editingRacquet.current_string_main && (!STRINGS.some(brand => editingRacquet.current_string_cross?.startsWith(brand.brand)) || editingRacquet.current_string_cross === "") && (
+                      <input 
+                        type="text" 
+                        placeholder="Enter String" 
+                        value={editingRacquet.current_string_cross || ""}
+                        onChange={e => setEditingRacquet({...editingRacquet, current_string_cross: e.target.value})}
+                        className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-xl outline-none focus:ring-2 focus:ring-primary"
+                      />
+                    )}
+                    {editingRacquet.current_string_cross !== editingRacquet.current_string_main && STRINGS.some(brand => editingRacquet.current_string_cross?.startsWith(brand.brand)) && (
+                      <select 
+                        value={editingRacquet.current_string_cross?.split(' ').slice(1).join(' ') || ""}
+                        onChange={e => {
+                          const brand = STRINGS.find(b => editingRacquet.current_string_cross?.startsWith(b.brand))?.brand;
+                          setEditingRacquet({...editingRacquet, current_string_cross: brand + " " + e.target.value});
+                        }}
+                        className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-xl outline-none focus:ring-2 focus:ring-primary"
+                      >
+                        <option value="">Select Model</option>
+                        {STRINGS.find(b => editingRacquet.current_string_cross?.startsWith(b.brand))?.models.map(model => (
+                          <option key={model} value={model}>{model}</option>
+                        ))}
+                        <option value="Other">Other</option>
+                      </select>
+                    )}
+                    <input 
+                      type="text" 
+                      placeholder="Gauge (e.g., 16L)"
+                      value={editingRacquet.current_string_cross_gauge || ""}
+                      onChange={e => setEditingRacquet({...editingRacquet, current_string_cross_gauge: e.target.value})}
+                      className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-xl outline-none focus:ring-2 focus:ring-primary"
+                    />
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">Current Main Tension</label>
-                  <input 
-                    type="number" 
-                    value={editingRacquet.current_tension_main || ""}
-                    onChange={e => setEditingRacquet({...editingRacquet, current_tension_main: parseFloat(e.target.value) || 0})}
-                    className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-xl outline-none focus:ring-2 focus:ring-primary"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">Current Cross Tension</label>
-                  <input 
-                    type="number" 
-                    value={editingRacquet.current_tension_cross || ""}
-                    onChange={e => setEditingRacquet({...editingRacquet, current_tension_cross: parseFloat(e.target.value) || 0})}
-                    className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-xl outline-none focus:ring-2 focus:ring-primary"
-                  />
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">Main Tension (lbs)</label>
+                    <input 
+                      type="number" 
+                      value={editingRacquet.current_tension_main || ""}
+                      onChange={e => setEditingRacquet({...editingRacquet, current_tension_main: parseFloat(e.target.value) || 0})}
+                      className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-xl outline-none focus:ring-2 focus:ring-primary"
+                      placeholder="55"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">Cross Tension (lbs)</label>
+                    <input 
+                      type="number" 
+                      value={editingRacquet.current_tension_cross || ""}
+                      onChange={e => setEditingRacquet({...editingRacquet, current_tension_cross: parseFloat(e.target.value) || 0})}
+                      className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-xl outline-none focus:ring-2 focus:ring-primary"
+                      placeholder="55"
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -1312,52 +1478,67 @@ export default function CustomerList({ user }: { user: any }) {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {racquets.map((racquet) => (
-                    <div key={racquet.id} className="bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-2xl p-5 flex flex-col sm:flex-row gap-6 items-start sm:items-center">
+                    <div 
+                      key={racquet.id} 
+                      onClick={() => setEditingRacquet(racquet)}
+                      className="bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-2xl p-5 flex flex-col sm:flex-row gap-6 items-start sm:items-center cursor-pointer hover:border-primary/50 hover:shadow-md transition-all"
+                    >
                       <div className="flex-1 min-w-0 w-full">
-                        <div className="flex items-center gap-2 mb-2">
+                        <div className="flex items-center justify-between gap-2 mb-2">
                           <h4 className="font-bold text-neutral-900 dark:text-white truncate">
                             {racquet.brand} {racquet.model}
                           </h4>
-                          {racquet.serial_number && (
-                            <span className="text-[10px] px-1.5 py-0.5 bg-neutral-200 dark:bg-neutral-700 text-neutral-600 dark:text-neutral-400 rounded font-mono">
-                              {racquet.serial_number}
-                            </span>
-                          )}
+                          <span className="text-xs text-primary font-medium flex items-center gap-1 whitespace-nowrap">
+                            View/Edit <ChevronRight className="w-3 h-3" />
+                          </span>
                         </div>
+                        {racquet.serial_number && (
+                          <span className="text-[10px] px-1.5 py-0.5 bg-neutral-200 dark:bg-neutral-700 text-neutral-600 dark:text-neutral-400 rounded font-mono mb-2 inline-block">
+                            S/N: {racquet.serial_number}
+                          </span>
+                        )}
                         
-                        <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2 text-xs">
                           {racquet.head_size > 0 && (
                             <div className="flex flex-col">
                               <span className="text-neutral-400 uppercase text-[10px] font-bold tracking-wider">Head Size</span>
-                              <span className="text-neutral-700 dark:text-neutral-300 truncate">{racquet.head_size} sq in</span>
+                              <span className="text-neutral-700 dark:text-neutral-300">{racquet.head_size} sq in</span>
                             </div>
                           )}
                           {racquet.string_pattern_mains > 0 && (
                             <div className="flex flex-col">
                               <span className="text-neutral-400 uppercase text-[10px] font-bold tracking-wider">Pattern</span>
-                              <span className="text-neutral-700 dark:text-neutral-300 truncate">{racquet.string_pattern_mains}x{racquet.string_pattern_crosses}</span>
+                              <span className="text-neutral-700 dark:text-neutral-300">{racquet.string_pattern_mains}x{racquet.string_pattern_crosses}</span>
+                            </div>
+                          )}
+                          {(racquet.one_piece_length || racquet.two_piece_length) && (
+                            <div className="flex flex-col">
+                              <span className="text-neutral-400 uppercase text-[10px] font-bold tracking-wider">Str Length</span>
+                              <span className="text-neutral-700 dark:text-neutral-300">{racquet.two_piece_length || racquet.one_piece_length} ft</span>
                             </div>
                           )}
                           {racquet.current_string_main && (
-                            <div className="col-span-2 mt-1">
-                              <span className="text-neutral-400 uppercase text-[10px] font-bold tracking-wider">Current Setup</span>
-                              <p className="text-neutral-700 dark:text-neutral-300 truncate">
-                                {racquet.current_string_main} / {racquet.current_string_cross} @ {racquet.current_tension_main}/{racquet.current_tension_cross} lbs
+                            <div className="col-span-2 sm:col-span-3 mt-2 pt-2 border-t border-neutral-200 dark:border-neutral-700">
+                              <span className="text-neutral-400 uppercase text-[10px] font-bold tracking-wider">Current String Setup</span>
+                              <p className="text-neutral-700 dark:text-neutral-300">
+                                {racquet.current_string_main} / {racquet.current_string_cross || 'Same'} @ {racquet.current_tension_main || '?'}/{racquet.current_tension_cross || '?'} lbs
                               </p>
+                            </div>
+                          )}
+                          {racquet.stringing_instructions && (
+                            <div className="col-span-2 sm:col-span-3">
+                              <span className="text-neutral-400 uppercase text-[10px] font-bold tracking-wider">Notes</span>
+                              <p className="text-neutral-600 dark:text-neutral-400 text-xs truncate">{racquet.stringing_instructions}</p>
                             </div>
                           )}
                         </div>
 
                         <div className="mt-4 flex gap-2">
                           <button 
-                            onClick={() => setEditingRacquet(racquet)}
-                            className="p-2 text-neutral-400 hover:text-primary transition-colors"
-                            title="Edit Racquet"
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </button>
-                          <button 
-                            onClick={() => setDeleteConfirm({ type: 'racquet', id: racquet.id, name: `${racquet.brand} ${racquet.model}` })}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDeleteConfirm({ type: 'racquet', id: racquet.id, name: `${racquet.brand} ${racquet.model}` });
+                            }}
                             className="p-2 text-neutral-400 hover:text-red-500 transition-colors"
                             title="Delete Racquet"
                           >

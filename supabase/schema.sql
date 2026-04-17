@@ -24,8 +24,9 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   full_name TEXT,
   avatar_url TEXT,
   email TEXT,
+  phone TEXT,
   shop_id UUID,
-  user_role TEXT DEFAULT 'customer' CHECK (user_role IN ('owner', 'customer')),
+  role TEXT DEFAULT 'customer' CHECK (role IN ('stringer', 'customer')),
   has_completed_onboarding BOOLEAN NOT NULL DEFAULT false,
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -151,6 +152,33 @@ CREATE POLICY "Anyone can write to racquet specs cache"
   TO PUBLIC WITH CHECK (true);
 
 -- ============================================
+-- 4b. STRING CATALOG TABLE (Reference data for string selection)
+-- ============================================
+CREATE TABLE IF NOT EXISTS public.string_catalog (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  brand TEXT NOT NULL,
+  model TEXT NOT NULL,
+  category TEXT NOT NULL DEFAULT 'string' CHECK (category IN ('string', 'grip', 'dampener', 'other')),
+  gauge TEXT,
+  color TEXT,
+  description TEXT,
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE public.string_catalog ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Anyone can read string catalog" ON public.string_catalog;
+CREATE POLICY "Anyone can read string catalog" 
+  ON public.string_catalog FOR SELECT 
+  TO PUBLIC USING (true);
+
+DROP POLICY IF EXISTS "Shop owners can manage string catalog" ON public.string_catalog;
+CREATE POLICY "Shop owners can manage string catalog" 
+  ON public.string_catalog FOR ALL 
+  USING (auth.uid() IS NOT NULL);
+
+-- ============================================
 -- 5. RACQUETS TABLE
 -- ============================================
 CREATE TABLE IF NOT EXISTS public.racquets (
@@ -160,7 +188,21 @@ CREATE TABLE IF NOT EXISTS public.racquets (
   brand TEXT NOT NULL,
   model TEXT NOT NULL,
   serial_number TEXT,
-  qr_code_id TEXT UNIQUE,
+  qr_code TEXT UNIQUE,
+  head_size INTEGER DEFAULT 0,
+  string_pattern_mains INTEGER DEFAULT 0,
+  string_pattern_crosses INTEGER DEFAULT 0,
+  mains_skip TEXT,
+  mains_tie_off TEXT,
+  crosses_start TEXT,
+  crosses_tie_off TEXT,
+  one_piece_length TEXT,
+  two_piece_length TEXT,
+  stringing_instructions TEXT,
+  current_string_main TEXT,
+  current_string_cross TEXT,
+  current_tension_main NUMERIC DEFAULT 0,
+  current_tension_cross NUMERIC DEFAULT 0,
   specs_id UUID REFERENCES public.racquet_specs_cache(id) ON DELETE SET NULL,
   notes TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -450,7 +492,7 @@ CREATE TRIGGER update_jobs_updated_at
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
-  INSERT INTO public.profiles (id, email, user_role)
+  INSERT INTO public.profiles (id, email, role)
   VALUES (NEW.id, NEW.email, 'customer')
   ON CONFLICT (id) DO NOTHING;
   RETURN NEW;

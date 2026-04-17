@@ -118,7 +118,7 @@ function LayoutContent({ user, onLogout }: LayoutProps) {
               {user.email ? user.email[0].toUpperCase() : "?"}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-text-main truncate">{user.name || user.email?.split('@')[0] || "User"}</p>
+              <p className="text-sm font-semibold text-text-main truncate">{user.full_name || user.email?.split('@')[0] || "User"}</p>
               <p className="text-xs text-primary font-medium capitalize">{user.role}</p>
             </div>
           </div>
