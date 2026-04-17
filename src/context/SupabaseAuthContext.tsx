@@ -48,17 +48,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     console.log('fetchProfile called for userId:', userId);
     
     try {
-      const { data, error } = await supabase
+      // Add timeout to prevent hanging
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error('Profile fetch timeout')), 8000);
+      });
+
+      const profilePromise = supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .single();
 
+      const { data, error } = await Promise.race([profilePromise, timeoutPromise]) as any;
+
       if (error && error.code === 'PGRST116') {
         // Profile not found - create one
         const profileRole = role || pendingRole || 'customer';
         console.log('Profile not found, creating new profile for user:', userId, 'with role:', profileRole);
-        const { data: newProfile, error: createError } = await supabase
+        
+        const createPromise = supabase
           .from('profiles')
           .insert({
             id: userId,
@@ -67,6 +75,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           })
           .select()
           .single();
+        
+        const { data: newProfile, error: createError } = await Promise.race([createPromise, timeoutPromise]) as any;
 
         if (createError) {
           console.error('Error creating profile:', createError);
@@ -92,6 +102,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   
   useEffect(() => {
     let mounted = true;
+    let authInitialized = false;
     
     // Get initial session first
     const initializeAuth = async () => {
@@ -105,22 +116,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           console.log('AuthContext - user found, setting user immediately:', session.user.id);
           setUser(session.user);
           
-          // Fetch profile with timeout safety
-          try {
-            const profileData = await Promise.race([
-              fetchProfile(session.user.id, session.user.email),
-              new Promise<null>((_, reject) => setTimeout(() => reject(new Error('Profile fetch timeout')), 10000))
-            ]) as UserProfile | null;
-            console.log('AuthContext - profile fetched:', profileData);
-            if (mounted) {
-              setProfile(profileData);
-            }
-          } catch (err) {
-            console.error('AuthContext - profile fetch error:', err);
-            // Continue anyway - profile might be null but we have the user
-            if (mounted) {
-              setProfile(null);
-            }
+          // Fetch profile
+          const profileData = await fetchProfile(session.user.id, session.user.email);
+          console.log('AuthContext - profile fetched:', profileData);
+          if (mounted) {
+            setProfile(profileData);
           }
         } else {
           console.log('AuthContext - no session found');
@@ -134,6 +134,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setProfile(null);
         }
       } finally {
+        // Mark as initialized
+        authInitialized = true;
         // Always set loading to false after initialization
         if (mounted) {
           console.log('AuthContext - initialization complete');
@@ -148,13 +150,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const safetyTimeout = setTimeout(() => {
       console.log('AuthContext - safety timeout check');
       if (mounted) {
-        setLoading((currentLoading) => {
-          console.log('AuthContext - safety timeout: current loading state:', currentLoading);
-          if (currentLoading) {
-            console.log('AuthContext - safety timeout reached, forcing loading false');
-          }
-          return false;
-        });
+        setLoading(false);
       }
     }, 15000);
 
@@ -165,9 +161,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         console.log('Auth state changed:', event, session?.user?.email);
         
-        // Only process meaningful auth events, not initial sync
-        if (event === 'INITIAL_SESSION') {
-          console.log('Auth state - ignoring INITIAL_SESSION (already handled)');
+        // Skip INITIAL_SESSION if we already initialized
+        if (event === 'INITIAL_SESSION' && authInitialized) {
+          console.log('Auth state - ignoring duplicate INITIAL_SESSION');
+          return;
+        }
+        
+        // Skip other events if we're still initializing
+        if (!authInitialized && event !== 'SIGNED_IN') {
+          console.log('Auth state - waiting for init to complete');
           return;
         }
         
