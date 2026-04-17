@@ -120,14 +120,8 @@ export default function Landing() {
                   to="/register"
                   className="group inline-flex items-center justify-center gap-2 px-8 py-4 bg-gradient-primary text-white font-bold rounded-full hover:shadow-xl hover:shadow-primary/30 transition-all hover:-translate-y-1 active:translate-y-0"
                 >
-                  Start Free Trial
+                  Get Started
                   <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                </Link>
-                <Link
-                  to="/register?role=customer"
-                  className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-bg-card text-text-main font-bold rounded-full border border-border-main hover:border-primary/50 hover:bg-primary/5 transition-all"
-                >
-                  I'm a Customer
                 </Link>
               </div>
 
@@ -135,10 +129,6 @@ export default function Landing() {
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="w-5 h-5 text-success" />
                   <span>No credit card required</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="w-5 h-5 text-success" />
-                  <span>Free 14-day trial</span>
                 </div>
               </div>
             </div>
@@ -328,7 +318,7 @@ export default function Landing() {
                 to="/register"
                 className="group inline-flex items-center justify-center gap-2 px-10 py-4 bg-white text-primary font-bold rounded-full hover:shadow-xl transition-all hover:-translate-y-1 active:translate-y-0"
               >
-                Get Started Free
+                Get Started
                 <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </Link>
               <div className="flex items-center justify-center gap-6 mt-6 text-sm text-white/70">
