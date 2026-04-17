@@ -48,20 +48,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     console.log('fetchProfile called for userId:', userId);
     
     try {
-      // Add timeout to prevent hanging
-      const timeoutPromise = new Promise<null>((_, reject) => {
-        setTimeout(() => reject(new Error('Profile fetch timeout')), 8000);
-      });
-
-      const profilePromise = supabase
+      const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .single();
 
-      const { data, error } = await Promise.race([profilePromise, timeoutPromise]) as any;
-
-    if (error && error.code === 'PGRST116') {
+      if (error && error.code === 'PGRST116') {
         // Profile not found - create one
         const profileRole = role || pendingRole || 'customer';
         console.log('Profile not found, creating new profile for user:', userId, 'with role:', profileRole);

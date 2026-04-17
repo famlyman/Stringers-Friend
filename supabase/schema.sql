@@ -151,6 +151,33 @@ CREATE POLICY "Authenticated users can write to cache"
   WITH CHECK (auth.uid() IS NOT NULL);
 
 -- ============================================
+-- 4b. STRING CATALOG TABLE (Reference data for string selection)
+-- ============================================
+CREATE TABLE IF NOT EXISTS public.string_catalog (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  brand TEXT NOT NULL,
+  model TEXT NOT NULL,
+  category TEXT NOT NULL DEFAULT 'string' CHECK (category IN ('string', 'grip', 'dampener', 'other')),
+  gauge TEXT,
+  color TEXT,
+  description TEXT,
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE public.string_catalog ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Anyone can read string catalog" ON public.string_catalog;
+CREATE POLICY "Anyone can read string catalog" 
+  ON public.string_catalog FOR SELECT 
+  TO PUBLIC USING (true);
+
+DROP POLICY IF EXISTS "Shop owners can manage string catalog" ON public.string_catalog;
+CREATE POLICY "Shop owners can manage string catalog" 
+  ON public.string_catalog FOR ALL 
+  USING (auth.uid() IS NOT NULL);
+
+-- ============================================
 -- 5. RACQUETS TABLE
 -- ============================================
 CREATE TABLE IF NOT EXISTS public.racquets (
