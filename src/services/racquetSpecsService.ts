@@ -106,6 +106,10 @@ export const racquetSpecsService = {
   },
 
   async searchModels(brand: string, query: string): Promise<string[]> {
+    // Normalize brand - try both "Wilson" and "Wilson Tennis"
+    const normalizedBrand = brand.includes('Tennis') ? brand : `${brand} Tennis`;
+    const searchBrand = brand.includes('Tennis') ? brand : `%${brand}%`;
+
     // Search in predefined database first
     const brandData = PREDEFINED_RACQUETS[brand];
     if (brandData) {
@@ -115,7 +119,7 @@ export const racquetSpecsService = {
       );
       if (matchingModels.length > 0) {
         console.log("Returning predefined models for:", brand, query);
-        return matchingModels.slice(0, 10); // Limit to 10 results
+        return matchingModels.slice(0, 10);
       }
     }
 
@@ -124,7 +128,7 @@ export const racquetSpecsService = {
       const { data: cachedData, error: cacheError } = await supabase
         .from('racquet_specs_cache')
         .select('model')
-        .ilike('brand', brand)
+        .or(`brand.ilike.${searchBrand},brand.eq.${normalizedBrand}`)
         .ilike('model', `%${query}%`);
 
       if (cacheError) {
@@ -139,7 +143,6 @@ export const racquetSpecsService = {
       console.warn("Error searching models in cache:", cacheError);
     }
 
-    // No results found - user will need to enter manually
     console.log("No models found for:", brand, query);
     return [];
   },
@@ -204,13 +207,14 @@ export const racquetSpecsService = {
     return Array.from(brands).sort();
   },
 
-  async getModelsByBrand(brand: string): Promise<string[]> {
+async getModelsByBrand(brand: string): Promise<string[]> {
     const normalizedBrand = brand.includes('Tennis') ? brand : `${brand} Tennis`;
+    const searchBrand = brand.includes('Tennis') ? brand : `%${brand}%`;
     
     const { data, error } = await supabase
       .from('racquet_specs_cache')
       .select('model')
-      .or(`brand.eq.${brand},brand.eq.${normalizedBrand}`)
+      .or(`brand.ilike.${searchBrand},brand.eq.${normalizedBrand}`)
       .order('model');
 
     if (error) {
@@ -218,6 +222,6 @@ export const racquetSpecsService = {
       return [];
     }
 
-return data?.map(r => r.model) || [];
+    return data?.map(r => r.model) || [];
   }
 };
