@@ -61,11 +61,12 @@ export default function PublicShop() {
           .from('customers')
           .insert({
             id: customerId,
-            name: profile?.name || user.email?.split('@')[0] || "New Customer",
+            first_name: profile?.full_name?.split(' ')[0] || user.email?.split('@')[0] || "New",
+            last_name: profile?.full_name?.split(' ').slice(1).join(' ') || "Customer",
             email: user.email || '',
             phone: profile?.phone || "",
             shop_id: shop.id,
-            user_id: user.id,
+            profile_id: user.id,
             created_at: new Date().toISOString()
           });
       } else {

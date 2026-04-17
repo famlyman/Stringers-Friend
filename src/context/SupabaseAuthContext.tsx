@@ -7,7 +7,7 @@ interface UserProfile {
   email: string;
   role: 'stringer' | 'customer';
   shop_id?: string;
-  name?: string;
+  full_name?: string;
   phone?: string;
 }
 
@@ -105,38 +105,58 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           console.log('AuthContext - user found, setting user immediately:', session.user.id);
           setUser(session.user);
           
-          // Fetch profile without blocking
-          fetchProfile(session.user.id, session.user.email).then((profileData) => {
+          // Fetch profile with timeout safety
+          try {
+            const profileData = await Promise.race([
+              fetchProfile(session.user.id, session.user.email),
+              new Promise<null>((_, reject) => setTimeout(() => reject(new Error('Profile fetch timeout')), 10000))
+            ]) as UserProfile | null;
             console.log('AuthContext - profile fetched:', profileData);
             if (mounted) {
               setProfile(profileData);
             }
-          }).catch((err) => {
+          } catch (err) {
             console.error('AuthContext - profile fetch error:', err);
-          }).finally(() => {
+            // Continue anyway - profile might be null but we have the user
             if (mounted) {
-              setLoading(false);
+              setProfile(null);
             }
-          });
+          }
         } else {
           console.log('AuthContext - no session found');
           setUser(null);
           setProfile(null);
-          if (mounted) {
-            setLoading(false);
-          }
         }
       } catch (error) {
         console.error('Error initializing auth:', error);
         if (mounted) {
           setUser(null);
           setProfile(null);
+        }
+      } finally {
+        // Always set loading to false after initialization
+        if (mounted) {
+          console.log('AuthContext - initialization complete');
           setLoading(false);
         }
       }
     };
 
     initializeAuth();
+    
+    // Safety timeout - ensure loading is never stuck
+    const safetyTimeout = setTimeout(() => {
+      console.log('AuthContext - safety timeout check');
+      if (mounted) {
+        setLoading((currentLoading) => {
+          console.log('AuthContext - safety timeout: current loading state:', currentLoading);
+          if (currentLoading) {
+            console.log('AuthContext - safety timeout reached, forcing loading false');
+          }
+          return false;
+        });
+      }
+    }, 15000);
 
     // Then listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -151,17 +171,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           return;
         }
         
-        if (session?.user) {
-          setUser(session.user);
-          const profileData = await fetchProfile(session.user.id, session.user.email);
-          if (mounted) {
-            setProfile(profileData);
-            setLoading(false);
+        try {
+          if (session?.user) {
+            setUser(session.user);
+            const profileData = await fetchProfile(session.user.id, session.user.email);
+            if (mounted) {
+              setProfile(profileData);
+              setLoading(false);
+            }
+          } else {
+            setUser(null);
+            setProfile(null);
+            if (mounted) {
+              setLoading(false);
+            }
           }
-        } else {
-          setUser(null);
-          setProfile(null);
+        } catch (err) {
+          console.error('Auth state change error:', err);
           if (mounted) {
+            setUser(null);
+            setProfile(null);
             setLoading(false);
           }
         }
@@ -170,7 +199,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     return () => {
       mounted = false;
-      clearTimeout(timeoutId);
+      clearTimeout(safetyTimeout);
       subscription.unsubscribe();
     };
   }, []);
