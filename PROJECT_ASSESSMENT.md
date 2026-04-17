@@ -2,7 +2,21 @@
 
 ### Current State
 
-**Stringers Friend** is a well-structured racquet stringing shop management PWA built with React 19, Vite 6, Express SSR, and Supabase. The foundation is solid, but there are several areas that could be improved.
+**Stringers Friend** is a racquet stringing shop management PWA built with React 19, Vite 6, Express SSR, and Supabase.
+
+---
+
+### Recent Updates (2026-04-17)
+
+1. **SmartRacquetSelect Component** - New searchable dropdown that queries the `racquet_specs_cache` table for brands and models
+2. **racquetSpecsService Enhanced** - Now parses CSV data from database including:
+   - `tension_range` → `tensionRangeMin`/`tensionRangeMax`
+   - `string_pattern` → `patternMains`/`patternCrosses`
+   - `stringing_instructions` → `length`, `mainsSkip`, `mainsTieOff`, `crossesStart`, `crossesTieOff`
+3. **Brand/Model Search Fix** - Now searches both "Wilson" and "Wilson Tennis" in database
+4. **qr_code_id Fix** - Column name updated from `qr_code` to match schema
+5. **shop_id Handling** - Dashboard now handles `user.shop_id` properly with fallback
+6. **Auth Timeout Increased** - 15s timeout with resilient error handling
 
 ---
 
@@ -18,107 +32,40 @@
 
 ---
 
-### Critical Issues to Fix
+### Remaining Issues
 
 #### 1. **Schema/Code Mismatches** ⚠️
-
-The code and schema don't align in several places, causing potential bugs:
 
 | Location | Schema Expects | Code Uses |
 |----------|----------------|-----------|
 | `customers` | `first_name`, `last_name` | `name` |
 | `customers` | `profile_id` | `user_id` |
-| `jobs` table | `jobs` | CustomerDashboard queries `stringing_jobs` |
 | `inventory` | `unit_price` | Code uses `price` |
-| `profiles` | `role` ('stringer'/'customer') | ✅ Fixed - now aligned |
-
-**Fix needed:** Standardize on one naming convention throughout.
 
 #### 2. **Type Safety** ⚠️
 
-Heavy use of `any` types throughout:
-- `UserProfile` interface uses `any` for `shop_id`
-- Dashboard props: `user: any`
-- Inventory items all typed as `any`
-
-**Fix needed:** Enable strict TypeScript and define proper interfaces.
+Heavy use of `any` types throughout components.
 
 #### 3. **Massive Components** ⚠️
 
-- `Dashboard.tsx`: ~900 lines
+- `Dashboard.tsx`: ~826 lines
 - `PublicShop.tsx`: ~865 lines  
 - `Inventory.tsx`: ~655 lines
 
-These should be split into smaller, focused components.
-
 ---
 
-### Architecture Improvements
-
-#### 1. **Missing Data Layer**
-
-Currently, components directly call Supabase:
-```typescript
-// This pattern is repeated everywhere
-const { data, error } = await supabase.from('jobs').select('*')...
-```
-
-**Recommendation:** Create a proper data layer:
+### Architecture
 
 ```
 src/
 ├── lib/
 │   └── supabase.ts          # Existing
-├── services/                # New - business logic
-│   ├── jobService.ts
-│   ├── customerService.ts
-│   └── inventoryService.ts
-├── hooks/                  # New - data fetching
-│   ├── useJobs.ts
-│   ├── useCustomers.ts
-│   └── useInventory.ts
-└── types/                  # New - shared types
-    └── index.ts
-```
-
-#### 2. **State Management**
-
-All state is local `useState`. For a growing app, consider:
-- **Zustand** - lightweight, simple
-- **TanStack Query** - for server state (recommended)
-
-#### 3. **No Form Validation**
-
-The `handleCreateJob` function in Dashboard.tsx does manual validation. Consider:
-- **Zod** (already in dependencies!) for schema validation
-- **react-hook-form** for form handling
-
----
-
-### Specific Code Issues
-
-#### 1. **Hardcoded FIXED_SERVICES in PublicShop.tsx**
-```typescript
-const FIXED_SERVICES = [
-  { id: 'string_full_bed', name: 'String Job Full Bed', price: 25, ... },
-  // Hardcoded!
-]
-```
-Services should come from the shop's inventory/settings, not be hardcoded.
-
-#### 2. **CustomerDashboard Uses Wrong Table**
-```typescript
-const { data: jobsData } = await supabase
-  .from('stringing_jobs')  // Should be 'jobs'
-  .select('*')
-```
-
-#### 3. **Debug Logging Left in Production**
-
-`AuthContext.tsx` has extensive `console.log` statements:
-```typescript
-console.log('AuthContext - initializing...');
-console.log('fetchProfile called for userId:', userId);
+├── services/                # Partial - racquetSpecsService exists
+│   └── racquetSpecsService.ts
+├── components/
+│   └── SmartRacquetSelect.tsx   # New
+└── pages/
+    └── Dashboard.tsx        # Still needs refactoring
 ```
 
 ---
@@ -127,79 +74,30 @@ console.log('fetchProfile called for userId:', userId);
 
 | Feature | Status | Notes |
 |---------|--------|-------|
-| Push Notifications | TODO | Prompt UI exists but feature disabled |
+| Push Notifications | TODO | Prompt UI exists but disabled |
 | Messages (Customer) | Placeholder | "Messages feature coming soon" |
 | Job Search/Filter | Missing | Can only view all jobs |
-| Job Details | Incomplete | Only creates main_string, no cross_string |
-| Reel Inventory Tracking | Partial | `remaining_length` tracked but not updated when jobs created |
-| Job Status Notifications | Missing | No notification when job status changes |
-| Shop Settings | Minimal | Only name/address in schema, no pricing templates |
-
----
-
-### Performance Opportunities
-
-1. **Multiple Subscriptions for Same Data**
-```typescript
-// In Dashboard - three separate subscriptions for data that could be fetched once
-const jobsSubscription = supabase.channel(`jobs:${user.shop_id}`)...
-const customersSubscription = supabase.channel(`customers:${user.shop_id}`)...
-const messagesSubscription = supabase.channel(`messages:${user.shop_id}`)...
-```
-
-2. **No Loading Skeletons** - Just spinners
-
-3. **No Memoization** - Large lists will re-render unnecessarily
-
----
-
-### Security Considerations
-
-1. **Environment Variable Exposure**
-```typescript
-// In vite.config.ts
-define: {
-  'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY),
-}
-```
-Ensure this is properly scoped and not exposed to client.
-
-2. **No Rate Limiting** on public endpoints like `/contact`
-
-3. **Debug Mode** - Consider removing verbose logging before production
+| Job Status Notifications | Missing | No notification when status changes |
+| Reel Inventory Tracking | Partial | Not updated when jobs created |
 
 ---
 
 ### Recommended Roadmap
 
-**Phase 1: Fix Critical Bugs**
-1. Align schema and code naming conventions
-2. Fix CustomerDashboard table references
-3. Add TypeScript strict mode
+**Phase 1: Fix Remaining Bugs**
+1. Align customer table schema/code
+2. Fix inventory price vs unit_price
 
 **Phase 2: Architecture**
-1. Create service layer for data access
+1. Split large components
 2. Add TanStack Query for server state
-3. Split large components (Dashboard, PublicShop)
 
 **Phase 3: Features**
 1. Complete messages feature
 2. Add job search/filter
 3. Implement inventory deduction on job completion
-4. Add job status notifications
 
 **Phase 4: Polish**
 1. Add loading skeletons
 2. Complete push notifications
-3. Add comprehensive error boundaries
-4. Write tests
-
----
-
-### Quick Wins
-
-1. **Remove debug logging** from AuthContext
-2. **Enable TypeScript strict mode** in tsconfig.json
-3. **Move FIXED_SERVICES** to database configuration
-4. **Add JSDoc comments** to service functions
-5. **Create shared types file** for common interfaces
+3. Write tests
