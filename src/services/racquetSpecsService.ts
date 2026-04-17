@@ -1,4 +1,3 @@
-import { GoogleGenAI, Type } from "@google/genai";
 import { supabase } from "../lib/supabase";
 import { PREDEFINED_RACQUETS } from "../data/racquetDatabase";
 
@@ -25,6 +24,35 @@ export interface RacquetSpec {
   beamWidth?: string;
 }
 
+// Parse tension range from string like "50-60 lbs" or "50-60"
+function parseTensionRange(range: string | null): { min: number; max: number } {
+  if (!range) return { min: 50, max: 60 };
+  
+  const match = range.match(/(\d+)\s*[-–]\s*(\d+)/);
+  if (match) {
+    return { min: parseInt(match[1]), max: parseInt(match[2]) };
+  }
+  return { min: 50, max: 60 };
+}
+
+// Parse string pattern from string like "16x19" or "16 mains x 19 crosses"
+function parseStringPattern(pattern: string | null): { mains: number; crosses: number } {
+  if (!pattern) return { mains: 16, crosses: 19 };
+  
+  const match = pattern.match(/(\d+)\s*[xX×]\s*(\d+)/);
+  if (match) {
+    return { mains: parseInt(match[1]), crosses: parseInt(match[2]) };
+  }
+  
+  // Try to find single numbers
+  const numbers = pattern.match(/\d+/g);
+  if (numbers && numbers.length >= 2) {
+    return { mains: parseInt(numbers[0]), crosses: parseInt(numbers[1]) };
+  }
+  
+  return { mains: 16, crosses: 19 };
+}
+
 export const racquetSpecsService = {
   async getSpecs(brand: string, model: string): Promise<RacquetSpec | null> {
     // 1. Check Local Predefined Database
@@ -34,210 +62,99 @@ export const racquetSpecsService = {
       return brandData[model] as RacquetSpec;
     }
 
-    // 2. Check Cache
-    const cacheId = `${brand.toLowerCase().replace(/\s+/g, '_')}_${model.toLowerCase().replace(/\s+/g, '_')}`;
+    // 2. Check Database Cache
     try {
       const { data: cachedData, error: cacheError } = await supabase
         .from('racquet_specs_cache')
-        .select('specs')
-        .eq('id', cacheId)
-        .single();
+        .select('*')
+        .ilike('brand', brand)
+        .ilike('model', model)
+        .maybeSingle();
 
-      if (cacheError && cacheError.code !== 'PGRST116') { // PGRST116 = not found
+      if (cacheError) {
         console.warn("Error checking racquet specs cache:", cacheError);
       }
 
       if (cachedData) {
         console.log("Returning cached racquet specs for:", brand, model);
-        return cachedData.specs as RacquetSpec;
+        
+        // Parse tension range
+        const tensionRange = parseTensionRange(cachedData.tension_range);
+        
+        // Parse string pattern
+        const stringPattern = parseStringPattern(cachedData.string_pattern);
+        
+        return {
+          brand: cachedData.brand,
+          model: cachedData.model,
+          headSize: parseInt(cachedData.head_size) || 100,
+          patternMains: stringPattern.mains,
+          patternCrosses: stringPattern.crosses,
+          tensionRangeMin: tensionRange.min,
+          tensionRangeMax: tensionRange.max,
+          stringingInstructions: cachedData.stringing_instructions,
+        };
       }
     } catch (cacheError) {
       console.warn("Error checking racquet specs cache:", cacheError);
     }
 
-    // 2. Call Gemini if not in cache
-    const apiKey = process.env.GEMINI_API_KEY || import.meta.env.VITE_GEMINI_API_KEY;
-    if (!apiKey) {
-      console.error("GEMINI_API_KEY is not set");
-      return null;
-    }
-
-    const ai = new GoogleGenAI({ apiKey });
-
-    try {
-      const prompt = `Provide the technical stringing specifications for the following tennis racquet:
-      Brand: ${brand}
-      Model: ${model}
-      
-      Include head size (sq in), string pattern (mains x crosses), and recommended tension range (lbs).
-      Crucially, include detailed stringing instructions:
-      - Mains Skip: Which holes are skipped (e.g., 7H, 9H, 7T, 9T)
-      - Mains Tie-off: Where to tie off the mains (e.g., 8T)
-      - Crosses Start: Where the crosses start (e.g., Head or Throat)
-      - Crosses Tie-off: Where to tie off the crosses (e.g., 5H, 11T)
-      - One Piece Length: Total length for one-piece stringing (ft)
-      - Two Piece Length: Length for two-piece stringing (ft)
-      - General Instructions: Any other specific notes (e.g., "Start at Head", "No shared holes").
-
-      Use reliable sources like KlipperUSA (https://klipperusa.com/pages/racquet-stringing-patterns), USRSA, or manufacturer technical manuals.
-      If you can find more details like length, weight, balance, swingweight, stiffness, and beam width, include them too.
-      Return the response in JSON format.`;
-
-      const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
-        contents: prompt,
-        config: {
-          tools: [{ googleSearch: {} }],
-          responseMimeType: "application/json",
-          responseSchema: {
-            type: Type.OBJECT,
-            properties: {
-              brand: { type: Type.STRING },
-              model: { type: Type.STRING },
-              headSize: { type: Type.NUMBER, description: "Head size in square inches" },
-              patternMains: { type: Type.NUMBER, description: "Number of main strings" },
-              patternCrosses: { type: Type.NUMBER, description: "Number of cross strings" },
-              tensionRangeMin: { type: Type.NUMBER, description: "Minimum recommended tension in lbs" },
-              tensionRangeMax: { type: Type.NUMBER, description: "Maximum recommended tension in lbs" },
-              mainsSkip: { type: Type.STRING, description: "Skipped holes for mains (e.g., 7H, 9H, 7T, 9T)" },
-              mainsTieOff: { type: Type.STRING, description: "Tie-off location for mains (e.g., 8T)" },
-              crossesStart: { type: Type.STRING, description: "Starting point for crosses (e.g., Head or Throat)" },
-              crossesTieOff: { type: Type.STRING, description: "Tie-off location for crosses (e.g., 5H, 11T)" },
-              onePieceLength: { type: Type.STRING, description: "Total length for one-piece stringing in feet" },
-              twoPieceLength: { type: Type.STRING, description: "Total length for two-piece stringing in feet" },
-              stringingInstructions: { type: Type.STRING, description: "General stringing instructions" },
-              length: { type: Type.NUMBER, description: "Length in inches" },
-              unstrungWeight: { type: Type.NUMBER, description: "Unstrung weight in grams" },
-              balance: { type: Type.STRING, description: "Balance point" },
-              swingweight: { type: Type.NUMBER, description: "Swingweight" },
-              stiffness: { type: Type.NUMBER, description: "Stiffness (RA)" },
-              beamWidth: { type: Type.STRING, description: "Beam width in mm" }
-            },
-            required: ["brand", "model", "headSize", "patternMains", "patternCrosses", "tensionRangeMin", "tensionRangeMax"]
-          }
-        }
-      });
-
-      if (response.text) {
-        try {
-          const cleanedText = response.text.trim().replace(/^```json\n?/, '').replace(/\n?```$/, '');
-          const specs = JSON.parse(cleanedText) as RacquetSpec;
-
-          // 3. Save to Cache
-          try {
-            const { error: saveError } = await supabase
-              .from('racquet_specs_cache')
-              .upsert({
-                id: cacheId,
-                brand: specs.brand || brand,
-                model: specs.model || model,
-                specs: specs,
-                created_at: new Date().toISOString()
-              });
-
-            if (saveError) {
-              console.warn("Error saving racquet specs to cache:", saveError);
-            }
-          } catch (cacheSaveError) {
-            console.warn("Error saving racquet specs to cache:", cacheSaveError);
-          }
-
-          return specs;
-        } catch (parseError) {
-          console.error("Error parsing racquet specs JSON:", parseError, response.text);
-          return null;
-        }
-      }
-      return null;
-    } catch (error) {
-      console.error("Error fetching racquet specs:", error);
-      return null;
-    }
+    // 3. Gemini API is disabled due to CSP restrictions
+    // Users can manually enter specs or use predefined data
+    console.log("Racquet specs not found in cache. Manual entry required for:", brand, model);
+    return null;
   },
 
   async searchModels(brand: string, query: string): Promise<string[]> {
-    // 1. Check Cache First
-    const cacheId = `search_${brand.toLowerCase().replace(/\s+/g, '_')}_${query.toLowerCase().replace(/\s+/g, '_')}`;
+    // Search in predefined database first
+    const brandData = PREDEFINED_RACQUETS[brand];
+    if (brandData) {
+      const models = Object.keys(brandData);
+      const matchingModels = models.filter(model => 
+        model.toLowerCase().includes(query.toLowerCase())
+      );
+      if (matchingModels.length > 0) {
+        console.log("Returning predefined models for:", brand, query);
+        return matchingModels.slice(0, 10); // Limit to 10 results
+      }
+    }
+
+    // Search in database cache
     try {
       const { data: cachedData, error: cacheError } = await supabase
         .from('racquet_specs_cache')
-        .select('results')
-        .eq('id', cacheId)
-        .single();
+        .select('model')
+        .ilike('brand', brand)
+        .ilike('model', `%${query}%`);
 
-      if (cacheError && cacheError.code !== 'PGRST116') {
-        console.warn("Error checking model search cache:", cacheError);
+      if (cacheError) {
+        console.warn("Error searching models in cache:", cacheError);
       }
 
-      if (cachedData?.results) {
-        console.log("Returning cached model search results for:", brand, query);
-        return cachedData.results as string[];
+      if (cachedData && cachedData.length > 0) {
+        console.log("Returning cached models for:", brand, query);
+        return cachedData.map(c => c.model).slice(0, 10);
       }
     } catch (cacheError) {
-      console.warn("Error checking model search cache:", cacheError);
+      console.warn("Error searching models in cache:", cacheError);
     }
 
-    const apiKey = process.env.GEMINI_API_KEY || import.meta.env.VITE_GEMINI_API_KEY;
-    if (!apiKey) {
-      console.error("GEMINI_API_KEY is not set");
-      return [];
+    // No results found - user will need to enter manually
+    console.log("No models found for:", brand, query);
+    return [];
+  },
+
+  // Get all available brands from predefined database
+  getAvailableBrands(): string[] {
+    return Object.keys(PREDEFINED_RACQUETS);
+  },
+
+  // Get all models for a brand from predefined database
+  getModelsForBrand(brand: string): string[] {
+    const brandData = PREDEFINED_RACQUETS[brand];
+    if (brandData) {
+      return Object.keys(brandData);
     }
-
-    const ai = new GoogleGenAI({ apiKey });
-
-    try {
-      const prompt = `List the specific tennis racquet models for the brand "${brand}" that match or are related to "${query}".
-      Include all sub-models (e.g., Pro, MP, Team, Lite, Tour, S, L, etc.).
-      Search through reliable sources like KlipperUSA (https://klipperusa.com/pages/racquet-stringing-patterns), USRSA, and manufacturer sites to find all variations.
-      Return only a JSON array of strings containing the full model names.`;
-
-      const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
-        contents: prompt,
-        config: {
-          tools: [{ googleSearch: {} }],
-          responseMimeType: "application/json",
-          responseSchema: {
-            type: Type.ARRAY,
-            items: { type: Type.STRING }
-          }
-        }
-      });
-
-      if (response.text) {
-        try {
-          const cleanedText = response.text.trim().replace(/^```json\n?/, '').replace(/\n?```$/, '');
-          const results = JSON.parse(cleanedText) as string[];
-
-          // 2. Save to Cache
-          try {
-            const { error: saveError } = await supabase
-              .from('racquet_specs_cache')
-              .upsert({
-                id: cacheId,
-                brand: brand,
-                query: query,
-                results: results,
-                created_at: new Date().toISOString()
-              });
-
-            if (saveError) {
-              console.warn("Error saving model search to cache:", saveError);
-            }
-          } catch (cacheSaveError) {
-            console.warn("Error saving model search to cache:", cacheSaveError);
-          }
-
-          return results;
-        } catch (parseError) {
-          console.error("Error parsing racquet models JSON:", parseError, response.text);
-          return [];
-        }
-      }
-      return [];
-    } catch (error) {
-      console.error("Error searching racquet models:", error);
-      return [];
-    }
+    return [];
   }
 };

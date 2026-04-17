@@ -148,42 +148,46 @@ export default function CustomerList({ user }: { user: any }) {
     const fetchData = async () => {
       setLoading(true);
       
-      // Fetch Shop
-      const { data: shopData } = await supabase
-        .from('shops')
-        .select('*')
-        .eq('id', user.shop_id)
-        .single();
-      if (shopData) setShop(shopData);
+      try {
+        // Fetch Shop
+        const { data: shopData } = await supabase
+          .from('shops')
+          .select('*')
+          .eq('id', user.shop_id)
+          .single();
+        if (shopData) setShop(shopData);
 
-      // Fetch Customers
-      const { data: customersData, error: customersError } = await supabase
-        .from('customers')
-        .select('*')
-        .eq('shop_id', user.shop_id);
-      
-      if (customersError) {
-        console.error("Error fetching customers:", customersError);
-      } else {
-        setCustomers(customersData || []);
+        // Fetch Customers
+        const { data: customersData, error: customersError } = await supabase
+          .from('customers')
+          .select('*')
+          .eq('shop_id', user.shop_id);
+        
+        if (customersError) {
+          console.error("Error fetching customers:", customersError);
+        } else {
+          setCustomers(customersData || []);
+        }
+
+        // Fetch All Racquets for the shop
+        const { data: racquetsData } = await supabase
+          .from('racquets')
+          .select('*')
+          .eq('shop_id', user.shop_id);
+        if (racquetsData) setAllRacquets(racquetsData);
+
+        // Fetch Inventory Strings
+        const { data: inventoryData } = await supabase
+          .from('inventory')
+          .select('*')
+          .eq('shop_id', user.shop_id)
+          .eq('category', 'string');
+        if (inventoryData) setInventoryStrings(inventoryData);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      } finally {
+        setLoading(false);
       }
-
-      // Fetch All Racquets for the shop
-      const { data: racquetsData } = await supabase
-        .from('racquets')
-        .select('*, customers!inner(shop_id)')
-        .eq('customers.shop_id', user.shop_id);
-      if (racquetsData) setAllRacquets(racquetsData);
-
-      // Fetch Inventory Strings
-      const { data: inventoryData } = await supabase
-        .from('inventory')
-        .select('*')
-        .eq('shop_id', user.shop_id)
-        .eq('category', 'string');
-      if (inventoryData) setInventoryStrings(inventoryData);
-
-      setLoading(false);
     };
 
     fetchData();
