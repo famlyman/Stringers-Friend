@@ -152,6 +152,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         console.log('Auth state changed:', event, session?.user?.email);
         
+        // Only process meaningful auth events, not initial sync
+        if (event === 'INITIAL_SESSION') {
+          console.log('Auth state - ignoring INITIAL_SESSION (already handled)');
+          return;
+        }
+        
         if (session?.user) {
           setUser(session.user);
           const profileData = await fetchProfile(session.user.id, session.user.email);
