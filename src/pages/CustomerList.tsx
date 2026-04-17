@@ -319,7 +319,7 @@ export default function CustomerList({ user }: { user: any }) {
           current_string_cross: stringCross,
           current_tension_main: parseFloat(newRacquet.current_tension_main) || 0,
           current_tension_cross: parseFloat(newRacquet.current_tension_cross) || 0,
-          qr_code: `racquet_${crypto.randomUUID()}`,
+          qr_code_id: `racquet_${crypto.randomUUID()}`,
         });
 
       if (insertError) throw insertError;
