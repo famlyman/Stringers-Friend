@@ -102,39 +102,39 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (!mounted) return;
         
         if (session?.user) {
-          console.log('AuthContext - user found, fetching profile:', session.user.id);
+          console.log('AuthContext - user found, setting user immediately:', session.user.id);
           setUser(session.user);
-          const profileData = await fetchProfile(session.user.id, session.user.email);
-          console.log('AuthContext - profile fetched:', profileData);
-          if (mounted) {
-            setProfile(profileData);
-          }
+          
+          // Fetch profile without blocking
+          fetchProfile(session.user.id, session.user.email).then((profileData) => {
+            console.log('AuthContext - profile fetched:', profileData);
+            if (mounted) {
+              setProfile(profileData);
+            }
+          }).catch((err) => {
+            console.error('AuthContext - profile fetch error:', err);
+          }).finally(() => {
+            if (mounted) {
+              setLoading(false);
+            }
+          });
         } else {
           console.log('AuthContext - no session found');
           setUser(null);
           setProfile(null);
+          if (mounted) {
+            setLoading(false);
+          }
         }
       } catch (error) {
         console.error('Error initializing auth:', error);
         if (mounted) {
           setUser(null);
           setProfile(null);
-        }
-      } finally {
-        console.log('AuthContext - initialization complete, setting loading false');
-        if (mounted) {
           setLoading(false);
         }
       }
     };
-    
-    // Set a timeout to ensure loading is always set to false
-    const timeoutId = setTimeout(() => {
-      if (mounted && loading) {
-        console.log('AuthContext - timeout reached, forcing loading false');
-        setLoading(false);
-      }
-    }, 10000);
 
     initializeAuth();
 

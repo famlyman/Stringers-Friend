@@ -24,6 +24,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   full_name TEXT,
   avatar_url TEXT,
   email TEXT,
+  phone TEXT,
   shop_id UUID,
   role TEXT DEFAULT 'customer' CHECK (role IN ('stringer', 'customer')),
   has_completed_onboarding BOOLEAN NOT NULL DEFAULT false,

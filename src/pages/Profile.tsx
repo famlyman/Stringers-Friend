@@ -51,9 +51,8 @@ export default function Profile({ user }: ProfileProps) {
       if (profileError) {
         console.error("Error fetching profile:", profileError);
       } else if (profileData) {
-        setName(profileData.name || "");
+        setName(profileData.full_name || "");
         setEmail(profileData.email || "");
-        setPhone(profileData.phone || "");
 
         // Fetch Shop Data if stringer
         if (profileData.role === 'stringer' && profileData.shop_id) {
@@ -91,7 +90,7 @@ export default function Profile({ user }: ProfileProps) {
     try {
       // Update profile in Supabase
       const { error: updateError } = await updateProfile({
-        name,
+        full_name: name,
         phone,
       });
 
