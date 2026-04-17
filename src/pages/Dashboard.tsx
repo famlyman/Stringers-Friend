@@ -80,7 +80,12 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
     setError(null);
     
     try {
-      if (!user.shop_id) throw new Error("Shop ID is missing. Please check your profile.");
+      console.log('handleCreateJob - user:', user);
+      console.log('handleCreateJob - user.shop_id:', user?.shop_id);
+      
+      if (!user) throw new Error("User not authenticated.");
+      const shopId = user.shop_id || user.shopId;
+      if (!shopId) throw new Error("Shop ID is missing. Please check your profile and complete shop setup.");
 
       let finalCustomerId = selectedCustomerId;
       let finalRacquetId = selectedRacquetId;
@@ -108,7 +113,7 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
           const { data: newCustomerData, error: customerError } = await supabase
             .from('customers')
             .insert({
-              shop_id: user.shop_id,
+              shop_id: (user.shop_id || (user as any).shopId),
               first_name: firstName,
               last_name: lastName,
               email: newJob.customer_email,
@@ -144,7 +149,7 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
           .insert({
             id: finalRacquetId,
             customer_id: finalCustomerId,
-            shop_id: user.shop_id,
+            shop_id: (user.shop_id || (user as any).shopId),
             brand,
             model,
             serial_number: newJob.racquet_serial,
@@ -163,7 +168,7 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
           id: jobId,
           customer_id: finalCustomerId,
           racquet_id: finalRacquetId,
-          shop_id: user.shop_id,
+          shop_id: (user.shop_id || (user as any).shopId),
           status: 'pending',
           payment_status: 'unpaid',
           total_price: Number(newJob.price),

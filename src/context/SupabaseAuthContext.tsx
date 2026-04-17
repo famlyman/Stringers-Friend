@@ -48,9 +48,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     console.log('fetchProfile called for userId:', userId);
     
     try {
-      // Add timeout to prevent hanging
+      // Increased timeout to handle slow networks
       const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => reject(new Error('Profile fetch timeout')), 8000);
+        setTimeout(() => reject(new Error('Profile fetch timeout')), 15000);
       });
 
       const profilePromise = supabase
@@ -66,6 +66,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const profileRole = role || pendingRole || 'customer';
         console.log('Profile not found, creating new profile for user:', userId, 'with role:', profileRole);
         
+        // Use longer timeout for profile creation
+        const createTimeoutPromise = new Promise<never>((_, reject) => {
+          setTimeout(() => reject(new Error('Profile create timeout')), 15000);
+        });
+
         const createPromise = supabase
           .from('profiles')
           .insert({
@@ -76,7 +81,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           .select()
           .single();
         
-        const { data: newProfile, error: createError } = await Promise.race([createPromise, timeoutPromise]) as any;
+        const { data: newProfile, error: createError } = await Promise.race([createPromise, createTimeoutPromise]) as any;
 
         if (createError) {
           console.error('Error creating profile:', createError);
@@ -178,7 +183,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setUser(session.user);
             const profileData = await fetchProfile(session.user.id, session.user.email);
             if (mounted) {
-              setProfile(profileData);
+              // Only update profile if we got valid data, otherwise keep existing
+              if (profileData) {
+                setProfile(profileData);
+              }
               setLoading(false);
             }
           } else {
@@ -190,9 +198,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
         } catch (err) {
           console.error('Auth state change error:', err);
-          if (mounted) {
-            setUser(null);
-            setProfile(null);
+          // Don't nullify user/profile on timeout - keep existing state
+          if (mounted && profile) {
             setLoading(false);
           }
         }
