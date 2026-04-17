@@ -16,7 +16,7 @@ export interface RacquetSpec {
   onePieceLength?: string;
   twoPieceLength?: string;
   stringingInstructions?: string;
-  length?: number;
+  length?: string;
   unstrungWeight?: number;
   balance?: string;
   swingweight?: number;
@@ -53,6 +53,41 @@ function parseStringPattern(pattern: string | null): { mains: number; crosses: n
   return { mains: 16, crosses: 19 };
 }
 
+// Parse stringing instructions from CSV data
+function parseStringingInstructions(instructions: string | null): {
+  length?: string;
+  mainsSkip?: string;
+  mainsTieOff?: string;
+  crossesStart?: string;
+  crossesTieOff?: string;
+} {
+  if (!instructions) return {};
+  
+  const result: any = {};
+  
+  // Parse Length: 20'M - 18'C
+  const lengthMatch = instructions.match(/Length:\s*([^,]+)/);
+  if (lengthMatch) result.length = lengthMatch[1].trim();
+  
+  // Parse Skip M Holes: 7,9T - 7,9B
+  const skipMatch = instructions.match(/Skip M Holes:\s*([^,]+)/);
+  if (skipMatch) result.mainsSkip = skipMatch[1].trim();
+  
+  // Parse Tie Off M: 6B
+  const tieOffMMatch = instructions.match(/Tie Off M:\s*([^,]+)/);
+  if (tieOffMMatch) result.mainsTieOff = tieOffMMatch[1].trim();
+  
+  // Parse Start C: 7T
+  const startCMatch = instructions.match(/Start C:\s*([^,]+)/);
+  if (startCMatch) result.crossesStart = startCMatch[1].trim();
+  
+  // Parse Tie Off C: 5T - 13B
+  const tieOffCMatch = instructions.match(/Tie Off C:\s*([^,]+)/);
+  if (tieOffCMatch) result.crossesTieOff = tieOffCMatch[1].trim();
+  
+  return result;
+}
+
 export const racquetSpecsService = {
   async getSpecs(brand: string, model: string): Promise<RacquetSpec | null> {
     // 1. Check Local Predefined Database
@@ -84,6 +119,9 @@ export const racquetSpecsService = {
         // Parse string pattern
         const stringPattern = parseStringPattern(cachedData.string_pattern);
         
+        // Parse stringing instructions
+        const parsedInstructions = parseStringingInstructions(cachedData.stringing_instructions);
+        
         return {
           brand: cachedData.brand,
           model: cachedData.model,
@@ -93,6 +131,11 @@ export const racquetSpecsService = {
           tensionRangeMin: tensionRange.min,
           tensionRangeMax: tensionRange.max,
           stringingInstructions: cachedData.stringing_instructions,
+          length: parsedInstructions.length,
+          mainsSkip: parsedInstructions.mainsSkip,
+          mainsTieOff: parsedInstructions.mainsTieOff,
+          crossesStart: parsedInstructions.crossesStart,
+          crossesTieOff: parsedInstructions.crossesTieOff,
         };
       }
     } catch (cacheError) {
