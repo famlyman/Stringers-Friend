@@ -99,11 +99,15 @@ export const racquetSpecsService = {
 
     // 2. Check Database Cache
     try {
+      // Normalize brand - try both "Wilson" and "Wilson Tennis"
+      const normalizedBrand = brand.includes('Tennis') ? brand : `${brand} Tennis`;
+      const searchBrand = brand.includes('Tennis') ? brand : `%${brand}%`;
+
       const { data: cachedData, error: cacheError } = await supabase
         .from('racquet_specs_cache')
         .select('*')
-        .ilike('brand', brand)
-        .ilike('model', model)
+        .or(`brand.ilike.${searchBrand},brand.eq.${normalizedBrand}`)
+        .ilike('model', `%${model}%`)
         .maybeSingle();
 
       if (cacheError) {
