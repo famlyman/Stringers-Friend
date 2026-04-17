@@ -180,7 +180,7 @@ export default function CustomerList({ user }: { user: any }) {
         .from('inventory')
         .select('*')
         .eq('shop_id', user.shop_id)
-        .eq('item_type', 'string');
+        .eq('category', 'string');
       if (inventoryData) setInventoryStrings(inventoryData);
 
       setLoading(false);

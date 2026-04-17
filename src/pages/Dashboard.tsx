@@ -234,7 +234,7 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
       if (error) console.error("Error fetching inventory:", error);
       else {
         setInventoryItems(data || []);
-        setInventoryStrings((data || []).filter((i: any) => i.item_type === 'string'));
+        setInventoryStrings((data || []).filter((i: any) => i.category === 'string'));
       }
     };
 
