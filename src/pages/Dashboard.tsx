@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { RACQUET_BRANDS, RACQUET_MODELS, STRINGS, GAUGES } from "../constants";
+import { SmartRacquetBrandSelect, SmartRacquetModelSelect } from "../components/SmartRacquetSelect";
 import { Plus, Search, Filter, CheckCircle2, Clock, PlayCircle, CreditCard, X, Trash2, Users, Briefcase, Edit2, ChevronRight, Printer, Package, MessageSquare, Mail, Phone, Send, Scan, AlertTriangle, History, RefreshCw, DollarSign, Calendar, ArrowUpRight, ArrowDownRight, Ticket, QrCode } from "lucide-react";
 import QRCodeDisplay from "../components/QRCodeDisplay";
 import { QrScanner } from "../components/QrScanner";
@@ -737,30 +738,15 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
                   Racquet
                 </h4>
                 <div className="grid grid-cols-2 gap-3">
-                  <select
+                  <SmartRacquetBrandSelect
                     value={newJob.racquet_brand}
-                    onChange={(e) => setNewJob({...newJob, racquet_brand: e.target.value})}
-                    className="px-4 py-2.5 bg-bg-elevated border border-border-main rounded-xl text-text-main focus:ring-2 focus:ring-primary/20 outline-none text-sm"
-                    required
-                  >
-                    <option value="">Brand</option>
-                    {RACQUET_BRANDS.map((brand) => (
-                      <option key={brand} value={brand}>{brand}</option>
-                    ))}
-                    <option value="Other">Other</option>
-                  </select>
-                  <select
+                    onChange={(val) => setNewJob({...newJob, racquet_brand: val, racquet_model: ""})}
+                  />
+                  <SmartRacquetModelSelect
+                    brand={newJob.racquet_brand}
                     value={newJob.racquet_model}
-                    onChange={(e) => setNewJob({...newJob, racquet_model: e.target.value})}
-                    className="px-4 py-2.5 bg-bg-elevated border border-border-main rounded-xl text-text-main focus:ring-2 focus:ring-primary/20 outline-none text-sm"
-                    required
-                  >
-                    <option value="">Model</option>
-                    {RACQUET_MODELS[newJob.racquet_brand]?.map((model) => (
-                      <option key={model} value={model}>{model}</option>
-                    ))}
-                    <option value="Other">Other</option>
-                  </select>
+                    onChange={(val) => setNewJob({...newJob, racquet_model: val})}
+                  />
                 </div>
               </div>
 

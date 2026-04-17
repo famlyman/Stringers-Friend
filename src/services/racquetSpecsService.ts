@@ -239,5 +239,68 @@ export const racquetSpecsService = {
       console.error("Error searching racquet models:", error);
       return [];
     }
+  },
+
+  async searchRacquets(brandQuery: string, modelQuery: string): Promise<Array<{ brand: string; model: string }>> {
+    let query = supabase
+      .from('racquet_specs_cache')
+      .select('brand, model')
+      .limit(50);
+
+    if (brandQuery) {
+      const searchTerm = brandQuery.toLowerCase().replace('tennis', '').trim();
+      query = query.ilike('brand', `%${searchTerm}%`);
+    }
+
+    if (modelQuery) {
+      query = query.ilike('model', `%${modelQuery}%`);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      console.warn("Error searching racquets:", error);
+      return [];
+    }
+
+    return data || [];
+  },
+
+  async getAllBrands(): Promise<string[]> {
+    const { data, error } = await supabase
+      .from('racquet_specs_cache')
+      .select('brand')
+      .limit(1000);
+
+    if (error) {
+      console.warn("Error fetching brands:", error);
+      return [];
+    }
+
+    const brands = new Set<string>();
+    data?.forEach(row => {
+      const brandName = row.brand.replace(/\s+Tennis$/i, '').trim();
+      brands.add(brandName);
+      brands.add(row.brand);
+    });
+
+    return Array.from(brands).sort();
+  },
+
+  async getModelsByBrand(brand: string): Promise<string[]> {
+    const normalizedBrand = brand.includes('Tennis') ? brand : `${brand} Tennis`;
+    
+    const { data, error } = await supabase
+      .from('racquet_specs_cache')
+      .select('model')
+      .or(`brand.eq.${brand},brand.eq.${normalizedBrand}`)
+      .order('model');
+
+    if (error) {
+      console.warn("Error fetching models:", error);
+      return [];
+    }
+
+    return data?.map(r => r.model) || [];
   }
 };

@@ -145,10 +145,10 @@ CREATE POLICY "Anyone can read racquet specs cache"
   ON public.racquet_specs_cache FOR SELECT 
   TO PUBLIC USING (true);
 
-DROP POLICY IF EXISTS "Authenticated users can write to cache" ON public.racquet_specs_cache;
-CREATE POLICY "Authenticated users can write to cache" 
+DROP POLICY IF EXISTS "Anyone can write to racquet specs cache" ON public.racquet_specs_cache;
+CREATE POLICY "Anyone can write to racquet specs cache" 
   ON public.racquet_specs_cache FOR INSERT 
-  WITH CHECK (auth.uid() IS NOT NULL);
+  TO PUBLIC WITH CHECK (true);
 
 -- ============================================
 -- 5. RACQUETS TABLE
