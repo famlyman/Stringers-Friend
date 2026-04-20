@@ -8,6 +8,7 @@ import { useAuth } from "../context/SupabaseAuthContext";
 export default function ScanResult() {
   const { qrCode, racquetId } = useParams();
   const codeParam = qrCode || racquetId;
+  console.log('ScanResult params - qrCode:', qrCode, 'racquetId:', racquetId, 'codeParam:', codeParam);
   const { user, profile } = useAuth();
   const navigate = useNavigate();
   const [result, setResult] = useState<any>(null);
@@ -85,18 +86,26 @@ export default function ScanResult() {
         console.log("Scanning code:", cleanCode);
 
         // Check for plain UUID (racquet ID) - now id = qr_code_id, so just query by id
-        if (cleanCode.match(/^[a-z0-9:-]+$/i) && cleanCode.includes('-')) {
+        const isUuid = cleanCode.match(/^[a-z0-9:-]+$/i) && cleanCode.includes('-');
+        console.log('Is UUID format?', isUuid, 'code:', cleanCode);
+        
+        if (isUuid) {
+          console.log('Searching for racquet with ID:', cleanCode);
           let racquetData = null;
-          try {
-            // Query by id (which now equals qr_code_id)
-            const { data, error } = await supabase
-              .from('racquets')
-              .select('*, customers(*)')
-              .eq('id', cleanCode)
-              .maybeSingle();
-            if (data) racquetData = data;
-          } catch (e) {
-            console.log('Racquet not found:', e);
+          
+          // Query by id directly
+          const { data, error } = await supabase
+            .from('racquets')
+            .select('*, customers(*)')
+            .eq('id', cleanCode)
+            .maybeSingle();
+          
+          console.log('Query result:', data, error);
+          
+          if (data) {
+            racquetData = data;
+          } else if (error) {
+            console.log('Query error:', error.message);
           }
           
           if (racquetData) {
@@ -116,6 +125,11 @@ export default function ScanResult() {
               },
               jobs: jobs || []
             });
+            setLoading(false);
+            return;
+          } else {
+            // UUID was valid format but no racquet found - stop here
+            setError("Racquet not found");
             setLoading(false);
             return;
           }
@@ -356,14 +370,14 @@ export default function ScanResult() {
         }
       } catch (err) {
         console.error(err);
-        setError("Failed to fetch data from Firestore");
+        setError("Failed to fetch racquet data");
       } finally {
         clearTimeout(timeoutId);
         setLoading(false);
       }
     };
     fetchScan();
-  }, [qrCode]);
+  }, [qrCode, racquetId]);
 
   if (loading) return <div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div></div>;
 
