@@ -84,16 +84,16 @@ export default function ScanResult() {
 
         console.log("Scanning code:", cleanCode);
 
-        // Check for plain UUID (racquet ID) first - matches IDs like "iad1::st5dz-..." with colons
+        // Check for plain UUID (racquet ID) - search by qr_code column which contains the ID
         if (cleanCode.match(/^[a-z0-9:-]+$/i) && cleanCode.includes('-')) {
-          const rId = cleanCode;
           let racquetData = null;
           try {
+            // Try to find by qr_code column containing this ID
             const { data } = await supabase
               .from('racquets')
               .select('*, customers(*)')
-              .eq('id', rId)
-              .single();
+              .like('qr_code', `%${cleanCode}%`)
+              .maybeSingle();
             if (data) racquetData = data;
           } catch (e) {
             // Not found - continue to other checks
