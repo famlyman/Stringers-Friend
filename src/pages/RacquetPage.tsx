@@ -1,15 +1,13 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { supabase } from "../lib/supabase";
-import { QrCode, X, Loader2, Package } from "lucide-react";
+import { Loader2, Package } from "lucide-react";
 
 export default function RacquetPage() {
   const { id } = useParams();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [racquet, setRacquet] = useState<any>(null);
-
-  console.log('RacquetPage - id:', id);
 
   useEffect(() => {
     if (!id) {
@@ -19,15 +17,11 @@ export default function RacquetPage() {
     }
 
     const fetchRacquet = async () => {
-      console.log('Fetching racquet:', id);
-      
       const { data, error: err } = await supabase
         .from('racquets')
         .select('*, customers(*)')
         .eq('id', id)
         .maybeSingle();
-
-      console.log('Result:', data, err);
 
       if (data) {
         setRacquet(data);
@@ -69,50 +63,38 @@ export default function RacquetPage() {
         {/* Header */}
         <div className="bg-primary p-6 text-white">
           <h1 className="text-2xl font-bold">{racquet?.brand} {racquet?.model}</h1>
-          <p className="text-primary-light">S/N: {racquet?.serial_number || 'N/A'}</p>
         </div>
 
         {/* Content */}
         <div className="p-6 space-y-4">
-          {/* Strings */}
+          <p className="text-xs text-neutral-400 uppercase font-bold tracking-wider">Current Stringing</p>
+
+          {/* Mains */}
           <div className="bg-neutral-50 p-4 rounded-xl">
-            <p className="text-xs text-neutral-400 uppercase font-bold tracking-wider">Current Strings</p>
+            <p className="text-xs text-neutral-400 uppercase font-bold tracking-wider">Mains</p>
             <p className="font-medium text-lg">{racquet?.current_string_main || 'Not set'}</p>
-            {racquet?.current_string_cross && (
-              <p className="text-neutral-600">{racquet.current_string_cross}</p>
-            )}
+          </div>
+
+          {/* Crosses */}
+          <div className="bg-neutral-50 p-4 rounded-xl">
+            <p className="text-xs text-neutral-400 uppercase font-bold tracking-wider">Crosses</p>
+            <p className="font-medium text-lg">{racquet?.current_string_cross || 'Not set'}</p>
           </div>
 
           {/* Tension */}
           <div className="grid grid-cols-2 gap-4">
             <div className="bg-neutral-50 p-4 rounded-xl">
-              <p className="text-xs text-neutral-400 uppercase font-bold tracking-wider">Mains</p>
+              <p className="text-xs text-neutral-400 uppercase font-bold tracking-wider">Mains Tension</p>
               <p className="font-bold text-xl">{racquet?.current_tension_main || '?'}<span className="text-sm font-normal"> lbs</span></p>
             </div>
             <div className="bg-neutral-50 p-4 rounded-xl">
-              <p className="text-xs text-neutral-400 uppercase font-bold tracking-wider">Crosses</p>
+              <p className="text-xs text-neutral-400 uppercase font-bold tracking-wider">Crosses Tension</p>
               <p className="font-bold text-xl">{racquet?.current_tension_cross || '?'}<span className="text-sm font-normal"> lbs</span></p>
             </div>
           </div>
 
-          {/* Specs */}
-          <div className="grid grid-cols-2 gap-4">
-            {racquet?.head_size && (
-              <div className="bg-neutral-50 p-4 rounded-xl">
-                <p className="text-xs text-neutral-400 uppercase font-bold tracking-wider">Head Size</p>
-                <p className="font-bold">{racquet.head_size} sq in</p>
-              </div>
-            )}
-            {racquet?.string_pattern_mains && (
-              <div className="bg-neutral-50 p-4 rounded-xl">
-                <p className="text-xs text-neutral-400 uppercase font-bold tracking-wider">Pattern</p>
-                <p className="font-bold">{racquet.string_pattern_mains}x{racquet.string_pattern_crosses}</p>
-              </div>
-            )}
-          </div>
-
           {/* Owner */}
-          <div className="border-t pt-4">
+          <div className="bg-neutral-50 p-4 rounded-xl">
             <p className="text-xs text-neutral-400 uppercase font-bold tracking-wider">Owner</p>
             <p className="font-medium">
               {racquet?.customers 

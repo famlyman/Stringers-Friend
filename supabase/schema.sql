@@ -237,6 +237,12 @@ CREATE POLICY "Customers can view own racquets"
     )
   );
 
+DROP POLICY IF EXISTS "Anyone can view racquets" ON public.racquets;
+CREATE POLICY "Anyone can view racquets"
+  ON public.racquets FOR SELECT
+  TO anon, authenticated
+  USING (true);
+
 -- ============================================
 -- 6. INVENTORY TABLE
 -- ============================================
