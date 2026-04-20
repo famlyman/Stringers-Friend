@@ -27,11 +27,11 @@ export default function QRCodeDisplay({
 
   useEffect(() => {
     if (value) {
-      // Plain UUIDs are racquets - route to /r/{id}
+      // Plain UUIDs are racquets - route to /?r={id} (query param)
       // Slugs (e.g., "tennis-shop") are shops - route to /{slug}
       const isRacquetId = value.includes('-') && /^[\da-f:-]+$/i.test(value);
       const fullUrl = isRacquetId 
-        ? `${window.location.origin}/r/${value}`  // Racquet details page
+        ? `${window.location.origin}/?r=${value}`  // Racquet details via query
         : `${window.location.origin}/${value}`;  // Shop landing page
       QRCode.toDataURL(fullUrl, { width: 200, margin: 1, errorCorrectionLevel: 'L' }, (err, url) => {
         if (!err) setQrUrl(url);

@@ -1,9 +1,118 @@
-import { Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import { useTheme } from "../context/ThemeContext";
-import { Zap, Users, Package, QrCode, ArrowRight, CheckCircle2, Clock, Shield, Sparkles, Trophy } from "lucide-react";
+import { Zap, Users, Package, QrCode, ArrowRight, CheckCircle2, Clock, Shield, Sparkles, Trophy, X, Loader2 } from "lucide-react";
+import { supabase } from "../lib/supabase";
 
 export default function Landing() {
   const { darkMode } = useTheme();
+  const [searchParams] = useSearchParams();
+  const racquetId = searchParams.get('r');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [racquet, setRacquet] = useState<any>(null);
+
+  useEffect(() => {
+    if (!racquetId) return;
+    
+    const fetchRacquet = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('racquets')
+          .select('*, customers(*)')
+          .eq('id', racquetId)
+          .single();
+        
+        if (error || !data) {
+          setError("Racquet not found");
+        } else {
+          setRacquet(data);
+        }
+      } catch (e) {
+        setError("Error loading racquet");
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchRacquet();
+  }, [racquetId]);
+
+  // Show racquet details if loaded
+  if (racquetId && (loading || racquet || error)) {
+    return (
+      <div className="min-h-screen bg-bg-main p-4">
+        <div className="max-w-md mx-auto bg-bg-card rounded-3xl border border-border-main p-6 shadow-2xl">
+          <button 
+            onClick={() => window.location.href = '/'}
+            className="absolute top-4 right-4 p-2 text-neutral-400 hover:text-neutral-600"
+          >
+            <X className="w-5 h-5" />
+          </button>
+          
+          {loading && (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            </div>
+          )}
+          
+          {error && (
+            <div className="text-center py-12">
+              <p className="text-red-500">{error}</p>
+              <Link to="/" className="text-primary hover:underline mt-4 block">Go to Stringers Friend</Link>
+            </div>
+          )}
+          
+          {racquet && (
+            <div>
+              <h1 className="text-2xl font-bold text-primary mb-1">{racquet.brand} {racquet.model}</h1>
+              <p className="text-neutral-500 mb-6">S/N: {racquet.serial_number || 'N/A'}</p>
+              
+              <div className="space-y-4">
+                <div className="bg-neutral-50 dark:bg-neutral-800 p-4 rounded-xl">
+                  <p className="text-xs text-neutral-400 uppercase">Current Strings</p>
+                  <p className="font-medium">{racquet.current_string_main || 'Not set'}</p>
+                  {racquet.current_string_cross && <p className="text-sm text-neutral-600">{racquet.current_string_cross}</p>}
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-neutral-50 dark:bg-neutral-800 p-4 rounded-xl">
+                    <p className="text-xs text-neutral-400 uppercase">Mains Tension</p>
+                    <p className="font-medium">{racquet.current_tension_main || '?'} lbs</p>
+                  </div>
+                  <div className="bg-neutral-50 dark:bg-neutral-800 p-4 rounded-xl">
+                    <p className="text-xs text-neutral-400 uppercase">Cross Tension</p>
+                    <p className="font-medium">{racquet.current_tension_cross || '?'} lbs</p>
+                  </div>
+                </div>
+                
+                {racquet.head_size && (
+                  <div className="bg-neutral-50 dark:bg-neutral-800 p-4 rounded-xl">
+                    <p className="text-xs text-neutral-400 uppercase">Head Size</p>
+                    <p className="font-medium">{racquet.head_size} sq in</p>
+                  </div>
+                )}
+                
+                {racquet.string_pattern_mains && (
+                  <div className="bg-neutral-50 dark:bg-neutral-800 p-4 rounded-xl">
+                    <p className="text-xs text-neutral-400 uppercase">String Pattern</p>
+                    <p className="font-medium">{racquet.string_pattern_mains}x{racquet.string_pattern_crosses}</p>
+                  </div>
+                )}
+              </div>
+              
+              <Link 
+                to={`/scan/${racquet.id}`}
+                className="mt-6 block w-full text-center bg-primary text-white py-3 rounded-xl font-medium hover:bg-primary/90"
+              >
+                View Full Details
+              </Link>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   const features = [
     {
