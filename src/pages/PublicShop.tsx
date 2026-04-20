@@ -164,32 +164,33 @@ export default function PublicShop() {
       let customerId = "";
       const { data: existingCustomers } = await supabase
         .from('customers')
-        .select('id, user_id')
+        .select('id, profile_id')
         .eq('email', contactForm.email)
         .eq('shop_id', shop.id);
       
       if (!existingCustomers || existingCustomers.length === 0) {
         customerId = `cust_${Date.now()}`;
+        const nameParts = contactForm.name.split(' ');
         await supabase
           .from('customers')
           .insert({
             id: customerId,
-            name: contactForm.name,
+            first_name: nameParts[0] || '',
+            last_name: nameParts.slice(1).join(' ') || '',
             email: contactForm.email,
             phone: contactForm.phone,
             shop_id: shop.id,
-            user_id: currentUserId || null,
+            profile_id: currentUserId || null,
             created_at: new Date().toISOString(),
-            is_lead: !contactForm.register // Mark as lead if they didn't register
+            is_lead: !contactForm.register
           });
         setIsCustomerOfShop(true);
       } else {
         customerId = existingCustomers[0].id;
-        // Update user_id if it's now available
-        if (currentUserId && !existingCustomers[0].user_id) {
+        if (currentUserId && !existingCustomers[0].profile_id) {
           await supabase
             .from('customers')
-            .update({ user_id: currentUserId })
+            .update({ profile_id: currentUserId })
             .eq('id', customerId);
         }
       }
@@ -254,9 +255,9 @@ export default function PublicShop() {
             
           const services = inventory?.map(item => ({
             id: item.id,
-            name: item.name,
-            price: item.price,
-            description: item.description
+            name: `${item.brand} ${item.model}`,
+            price: item.unit_price,
+            description: item.gauge ? `${item.gauge} gauge` : ''
           })) || [];
           setServices(services);
         } else {
@@ -281,9 +282,9 @@ export default function PublicShop() {
             
             const services = inventory?.map(item => ({
               id: item.id,
-              name: item.name,
-              price: item.price,
-              description: item.description
+              name: `${item.brand} ${item.model}`,
+              price: item.unit_price,
+              description: item.gauge ? `${item.gauge} gauge` : ''
             })) || [];
             setServices(services);
           } else {

@@ -149,7 +149,7 @@ export default function ScanResult() {
               type: "racquet",
               data: { 
                 ...racquetData, 
-                customer_name: racquetData.customers?.name || 'Unknown',
+                customer_name: racquetData.customers ? `${racquetData.customers.first_name} ${racquetData.customers.last_name}` : 'Unknown',
                 customer_email: racquetData.customers?.email || 'Unknown'
               },
               jobs: jobs || []
@@ -245,7 +245,7 @@ export default function ScanResult() {
               type: "racquet", 
               data: { 
                 ...racquetData, 
-                customer_name: racquetData.customers?.name || 'Unknown',
+                customer_name: racquetData.customers ? `${racquetData.customers.first_name} ${racquetData.customers.last_name}` : 'Unknown',
                 customer_email: racquetData.customers?.email || 'Unknown'
               }, 
               jobs: jobs || []
@@ -374,7 +374,7 @@ export default function ScanResult() {
               </div>
               <div className="bg-neutral-50 dark:bg-neutral-900/50 p-4 rounded-xl border border-neutral-100 dark:border-neutral-700/50">
                 <p className="text-xs text-neutral-400 dark:text-neutral-500 uppercase tracking-wider font-bold">Price</p>
-                <p className="text-sm font-medium text-neutral-900 dark:text-white">${result.data.price}</p>
+                <p className="text-sm font-medium text-neutral-900 dark:text-white">${result.data.unit_price}</p>
               </div>
               <div className="bg-neutral-50 dark:bg-neutral-900/50 p-4 rounded-xl border border-neutral-100 dark:border-neutral-700/50">
                 <p className="text-xs text-neutral-400 dark:text-neutral-500 uppercase tracking-wider font-bold">Stock Level</p>

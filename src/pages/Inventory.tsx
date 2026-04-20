@@ -348,8 +348,8 @@ export default function Inventory({ user }: { user: any }) {
                   step="0.01"
                   placeholder="0.00" 
                   required
-                  value={newItem.price}
-                  onChange={e => setNewItem({...newItem, price: parseFloat(e.target.value) || 0})}
+                  value={newItem.unit_price}
+                  onChange={e => setNewItem({...newItem, unit_price: parseFloat(e.target.value) || 0})}
                   className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-xl outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
@@ -604,8 +604,8 @@ export default function Inventory({ user }: { user: any }) {
                     type="number" 
                     step="0.01"
                     required
-                    value={editingItem.price}
-                    onChange={e => setEditingItem({...editingItem, price: parseFloat(e.target.value) || 0})}
+                    value={editingItem.unit_price}
+                    onChange={e => setEditingItem({...editingItem, unit_price: parseFloat(e.target.value) || 0})}
                     className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-xl outline-none focus:ring-2 focus:ring-primary"
                   />
                 </div>

@@ -34,15 +34,7 @@
 
 ### Remaining Issues
 
-#### 1. **Schema/Code Mismatches** ⚠️
-
-| Location | Schema Expects | Code Uses |
-|----------|----------------|-----------|
-| `customers` | `first_name`, `last_name` | `name` |
-| `customers` | `profile_id` | `user_id` |
-| `inventory` | `unit_price` | Code uses `price` |
-
-#### 2. **Type Safety** ⚠️
+#### 1. **Type Safety** ⚠️
 
 Heavy use of `any` types throughout components.
 
@@ -84,7 +76,7 @@ src/
 
 ### Recommended Roadmap
 
-**Phase 1: Fix Remaining Bugs**
+**Phase 1: Fix Remaining Bugs** ✅ COMPLETED
 1. Align customer table schema/code
 2. Fix inventory price vs unit_price
 

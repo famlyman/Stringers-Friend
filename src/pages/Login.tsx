@@ -36,8 +36,9 @@ export default function Login() {
           .from('customers')
           .insert({
             shop_id: shopId,
-            user_id: userId,
-            name: userName || userEmail.split('@')[0],
+            profile_id: userId,
+            first_name: userName || userEmail.split('@')[0],
+            last_name: '',
             email: userEmail,
             phone: ""
           });

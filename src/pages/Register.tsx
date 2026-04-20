@@ -55,8 +55,9 @@ export default function Register() {
               .from('customers')
               .insert({
                 shop_id: shopId,
-                user_id: userId,
-                name: email.split('@')[0],
+                profile_id: userId,
+                first_name: email.split('@')[0],
+                last_name: '',
                 email: email,
                 phone: ""
               });
@@ -71,7 +72,7 @@ export default function Register() {
           .from('customers')
           .select('id')
           .eq('email', email)
-          .is('user_id', null);
+          .is('profile_id', null);
 
         if (linkError) {
           console.error("Error finding customers to link:", linkError);
@@ -79,7 +80,7 @@ export default function Register() {
           for (const customer of customersToLink) {
             await supabase
               .from('customers')
-              .update({ user_id: userId })
+              .update({ profile_id: userId })
               .eq('id', customer.id);
           }
         }

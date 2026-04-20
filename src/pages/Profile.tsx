@@ -111,7 +111,7 @@ export default function Profile({ user }: ProfileProps) {
           for (const customer of customers) {
             await supabase
               .from('customers')
-              .update({ name, phone })
+              .update({ first_name: name, phone })
               .eq('id', customer.id);
           }
         }
@@ -261,7 +261,7 @@ export default function Profile({ user }: ProfileProps) {
         await supabase
           .from('customers')
           .delete()
-          .eq('user_id', user.id);
+          .eq('profile_id', user.id);
       }
 
       // 3. Delete profile

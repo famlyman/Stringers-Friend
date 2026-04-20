@@ -23,7 +23,7 @@ export default function CustomerDashboard({ user, initialTab = 'jobs' }: { user:
       const { data: customerData } = await supabase
         .from('customers')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('profile_id', user.id)
         .single();
       
       if (customerData) {
