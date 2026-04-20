@@ -27,15 +27,11 @@ export default function QRCodeDisplay({
 
   useEffect(() => {
     if (value) {
-      // Plain UUIDs are racquets - route to /r/{id} 
-      // Slugs (e.g., "tennis-shop") are shops - route to /{slug}
-      // UUID can start with letters, contain alphanums, colons, dashes - just check for dash presence
-      const isRacquetId = value.includes('-') && /^[a-z0-9:-]+$/i.test(value);
-      console.log('QR generating for:', value, 'isRacquetId:', isRacquetId);
+      // UUIDs with dashes are racquets - route to /r/{id}
+      const isRacquetId = value.includes('-') && value.match(/^[a-z0-9:-]+$/i);
       const fullUrl = isRacquetId 
-        ? `${window.location.origin}/r/${value}`  // Racquet details page
-        : `${window.location.origin}/${value}`;  // Shop landing page
-      console.log('QR URL:', fullUrl);
+        ? `${window.location.origin}/r/${value}`  // Racquet page
+        : `${window.location.origin}/${value}`;  // Shop page
       QRCode.toDataURL(fullUrl, { width: 200, margin: 1, errorCorrectionLevel: 'L' }, (err, url) => {
         if (!err) setQrUrl(url);
       });

@@ -306,6 +306,7 @@ export default function CustomerList({ user }: { user: any }) {
           const { error: insertError } = await supabase
             .from('racquets')
             .insert({
+              id: racquetId,  // Use the same ID
               customer_id: selectedCustomer.id,
               shop_id: user.shop_id,
               brand,
@@ -325,7 +326,7 @@ export default function CustomerList({ user }: { user: any }) {
               current_string_cross: stringCross,
               current_tension_main: parseFloat(newRacquet.current_tension_main) || 0,
               current_tension_cross: parseFloat(newRacquet.current_tension_cross) || 0,
-              qr_code_id: racquetId,
+              qr_code_id: racquetId,  // Same as id
               qr_code: qrCodeData,
             });
 

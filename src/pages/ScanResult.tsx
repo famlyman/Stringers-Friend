@@ -84,29 +84,19 @@ export default function ScanResult() {
 
         console.log("Scanning code:", cleanCode);
 
-        // Check for plain UUID (racquet ID) - search by qr_code or qr_code_id
+        // Check for plain UUID (racquet ID) - now id = qr_code_id, so just query by id
         if (cleanCode.match(/^[a-z0-9:-]+$/i) && cleanCode.includes('-')) {
           let racquetData = null;
           try {
-            // Try by qr_code_id first
-            const { data: d1 } = await supabase
+            // Query by id (which now equals qr_code_id)
+            const { data, error } = await supabase
               .from('racquets')
               .select('*, customers(*)')
-              .eq('qr_code_id', cleanCode)
+              .eq('id', cleanCode)
               .maybeSingle();
-            if (d1) racquetData = d1;
-            
-            // Try by id if not found
-            if (!racquetData) {
-              const { data: d2 } = await supabase
-                .from('racquets')
-                .select('*, customers(*)')
-                .eq('id', cleanCode)
-                .maybeSingle();
-              if (d2) racquetData = d2;
-            }
+            if (data) racquetData = data;
           } catch (e) {
-            // Not found - continue to other checks
+            console.log('Racquet not found:', e);
           }
           
           if (racquetData) {
