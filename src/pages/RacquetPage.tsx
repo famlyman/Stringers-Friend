@@ -61,42 +61,43 @@ export default function RacquetPage() {
     <div className="min-h-screen bg-neutral-50 p-4">
       <div className="max-w-md mx-auto bg-white rounded-2xl border border-neutral-200 shadow-xl overflow-hidden">
         {/* Header */}
-        <div className="bg-primary p-6 text-white">
-          <h1 className="text-2xl font-bold">{racquet?.brand} {racquet?.model}</h1>
+        <div className="bg-primary p-6">
+          <h1 className="text-2xl font-bold text-white">{racquet?.brand} {racquet?.model}</h1>
+          <p className="text-white/80">S/N: {racquet?.serial_number || 'N/A'}</p>
         </div>
 
         {/* Content */}
         <div className="p-6 space-y-4">
-          <p className="text-xs text-neutral-400 uppercase font-bold tracking-wider">Current Stringing</p>
+          <p className="text-xs text-neutral-500 uppercase font-bold tracking-wider">Current Stringing</p>
 
           {/* Mains */}
-          <div className="bg-neutral-50 p-4 rounded-xl">
-            <p className="text-xs text-neutral-400 uppercase font-bold tracking-wider">Mains</p>
-            <p className="font-medium text-lg">{racquet?.current_string_main || 'Not set'}</p>
+          <div className="bg-neutral-100 p-4 rounded-xl">
+            <p className="text-xs text-neutral-500 uppercase font-bold tracking-wider">Mains</p>
+            <p className="font-medium text-lg text-neutral-900">{racquet?.current_string_main || 'Not set'}</p>
           </div>
 
           {/* Crosses */}
-          <div className="bg-neutral-50 p-4 rounded-xl">
-            <p className="text-xs text-neutral-400 uppercase font-bold tracking-wider">Crosses</p>
-            <p className="font-medium text-lg">{racquet?.current_string_cross || 'Not set'}</p>
+          <div className="bg-neutral-100 p-4 rounded-xl">
+            <p className="text-xs text-neutral-500 uppercase font-bold tracking-wider">Crosses</p>
+            <p className="font-medium text-lg text-neutral-900">{racquet?.current_string_cross || 'Not set'}</p>
           </div>
 
           {/* Tension */}
           <div className="grid grid-cols-2 gap-4">
-            <div className="bg-neutral-50 p-4 rounded-xl">
-              <p className="text-xs text-neutral-400 uppercase font-bold tracking-wider">Mains Tension</p>
-              <p className="font-bold text-xl">{racquet?.current_tension_main || '?'}<span className="text-sm font-normal"> lbs</span></p>
+            <div className="bg-neutral-100 p-4 rounded-xl">
+              <p className="text-xs text-neutral-500 uppercase font-bold tracking-wider">Mains Tension</p>
+              <p className="font-bold text-xl text-neutral-900">{racquet?.current_tension_main || '?'}<span className="text-sm font-normal text-neutral-600"> lbs</span></p>
             </div>
-            <div className="bg-neutral-50 p-4 rounded-xl">
-              <p className="text-xs text-neutral-400 uppercase font-bold tracking-wider">Crosses Tension</p>
-              <p className="font-bold text-xl">{racquet?.current_tension_cross || '?'}<span className="text-sm font-normal"> lbs</span></p>
+            <div className="bg-neutral-100 p-4 rounded-xl">
+              <p className="text-xs text-neutral-500 uppercase font-bold tracking-wider">Crosses Tension</p>
+              <p className="font-bold text-xl text-neutral-900">{racquet?.current_tension_cross || '?'}<span className="text-sm font-normal text-neutral-600"> lbs</span></p>
             </div>
           </div>
 
           {/* Owner */}
-          <div className="bg-neutral-50 p-4 rounded-xl">
-            <p className="text-xs text-neutral-400 uppercase font-bold tracking-wider">Owner</p>
-            <p className="font-medium">
+          <div className="bg-neutral-100 p-4 rounded-xl">
+            <p className="text-xs text-neutral-500 uppercase font-bold tracking-wider">Owner</p>
+            <p className="font-medium text-neutral-900">
               {racquet?.customers 
                 ? `${racquet.customers.first_name} ${racquet.customers.last_name}`
                 : 'Unknown'}
