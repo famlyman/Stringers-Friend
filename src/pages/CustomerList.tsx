@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { RACQUET_BRANDS, RACQUET_MODELS, STRINGS, GAUGES } from "../constants";
 import { racquetSpecsService } from "../services/racquetSpecsService";
+import { SmartStringBrandSelect, SmartStringModelSelect } from "../components/SmartStringSelect";
 import { Plus, Search, UserPlus, Mail, Phone, ChevronRight, Edit2, Trash2, X, Printer, Info } from "lucide-react";
 import QRCodeDisplay from "../components/QRCodeDisplay";
 import { supabase } from "../lib/supabase";
@@ -289,6 +290,7 @@ export default function CustomerList({ user }: { user: any }) {
     try {
       const brand = newRacquet.brand === "Other" ? newRacquet.brand_custom : newRacquet.brand;
       const model = newRacquet.model === "Other" ? newRacquet.model_custom : newRacquet.model;
+      const serialNumber = newRacquet.serial_number?.trim() || `SN-${Date.now()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
 
       const stringMain = newRacquet.string_main_brand === "Other" 
         ? `${newRacquet.string_main_brand_custom} ${newRacquet.string_main_model_custom} ${newRacquet.string_main_gauge}`.trim()
@@ -304,7 +306,7 @@ export default function CustomerList({ user }: { user: any }) {
           customer_id: selectedCustomer.id,
           brand,
           model,
-          serial_number: newRacquet.serial_number,
+          serial_number: serialNumber,
           head_size: parseInt(newRacquet.head_size) || 0,
           string_pattern_mains: parseInt(newRacquet.string_pattern_mains) || 0,
           string_pattern_crosses: parseInt(newRacquet.string_pattern_crosses) || 0,
@@ -1252,164 +1254,51 @@ export default function CustomerList({ user }: { user: any }) {
                         <div className="grid grid-cols-2 gap-4">
                           <div className="space-y-2">
                             <label className="block text-xs font-medium text-neutral-500 uppercase tracking-wider">Current Main String Brand</label>
-                            <select 
+                            <SmartStringBrandSelect
                               value={newRacquet.string_main_brand}
-                              onChange={e => setNewRacquet({...newRacquet, string_main_brand: e.target.value, string_main_model: ""})}
-                              className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white rounded-xl outline-none focus:ring-2 focus:ring-primary"
-                            >
-                              <option value="">Select Brand</option>
-                              {(() => {
-                                const allStrings = [...STRINGS];
-                                inventoryStrings.forEach(item => {
-                                  const existingBrand = allStrings.find(s => s.brand === item.brand);
-                                  if (existingBrand) {
-                                    if (!existingBrand.models.includes(item.name)) {
-                                      existingBrand.models.push(item.name);
-                                    }
-                                  } else {
-                                    allStrings.push({ brand: item.brand, models: [item.name] });
-                                  }
-                                });
-                                return allStrings.map(s => (
-                                  <option key={s.brand} value={s.brand}>{s.brand}</option>
-                                ));
-                              })()}
-                              <option value="Other">Other</option>
-                            </select>
-                            {newRacquet.string_main_brand === "Other" && (
-                              <input 
-                                type="text" 
-                                placeholder="Enter Brand" 
-                                className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white rounded-xl outline-none focus:ring-2 focus:ring-primary"
-                                onChange={e => setNewRacquet({...newRacquet, string_main_brand_custom: e.target.value})}
-                              />
-                            )}
+                              onChange={(val) => setNewRacquet({...newRacquet, string_main_brand: val, string_main_model: ""})}
+                            />
                           </div>
                           <div className="space-y-2">
                             <label className="block text-xs font-medium text-neutral-500 uppercase tracking-wider">Current Main String Model</label>
-                            {newRacquet.string_main_brand && newRacquet.string_main_brand !== "Other" ? (
-                              <select 
-                                value={newRacquet.string_main_model}
-                                onChange={e => setNewRacquet({...newRacquet, string_main_model: e.target.value})}
-                                className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white rounded-xl outline-none focus:ring-2 focus:ring-primary"
-                              >
-                                <option value="">Select Model</option>
-                                {(() => {
-                                  const brand = STRINGS.find(s => s.brand === newRacquet.string_main_brand);
-                                  const models = brand ? [...brand.models] : [];
-                                  
-                                  // Add inventory models
-                                  inventoryStrings.filter(s => s.brand === newRacquet.string_main_brand).forEach(item => {
-                                    if (!models.includes(item.name)) {
-                                      models.push(item.name);
-                                    }
-                                  });
-
-                                  return models.map(model => (
-                                    <option key={model} value={model}>{model}</option>
-                                  ));
-                                })()}
-                                <option value="Other">Other</option>
-                              </select>
-                            ) : (
-                              <input 
-                                type="text" 
-                                placeholder="Enter Model" 
-                                value={newRacquet.string_main_model}
-                                onChange={e => setNewRacquet({...newRacquet, string_main_model: e.target.value})}
-                                className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white rounded-xl outline-none focus:ring-2 focus:ring-primary"
-                              />
-                            )}
-                            {newRacquet.string_main_model === "Other" && (
-                              <input 
-                                type="text" 
-                                placeholder="Enter Model" 
-                                className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white rounded-xl outline-none focus:ring-2 focus:ring-primary"
-                                onChange={e => setNewRacquet({...newRacquet, string_main_model_custom: e.target.value})}
-                              />
-                            )}
+                            <SmartStringModelSelect
+                              brand={newRacquet.string_main_brand}
+                              value={newRacquet.string_main_model}
+                              onChange={(val) => setNewRacquet({...newRacquet, string_main_model: val})}
+                            />
                           </div>
                         </div>
 
                         <div className="grid grid-cols-2 gap-4">
                           <div className="space-y-2">
                             <label className="block text-xs font-medium text-neutral-500 uppercase tracking-wider">Current Cross String Brand</label>
-                            <select 
-                              value={newRacquet.string_cross_brand}
-                              onChange={e => setNewRacquet({...newRacquet, string_cross_brand: e.target.value, string_cross_model: ""})}
-                              className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white rounded-xl outline-none focus:ring-2 focus:ring-primary"
+                            <SmartStringBrandSelect
+                              value={newRacquet.string_cross_brand === "Same as Mains" ? "" : newRacquet.string_cross_brand}
+                              onChange={(val) => setNewRacquet({...newRacquet, string_cross_brand: val, string_cross_model: ""})}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setNewRacquet({...newRacquet, string_cross_brand: "Same as Mains", string_cross_model: newRacquet.string_main_model})}
+                              className="text-xs text-primary font-medium hover:underline"
                             >
-                              <option value="">Select Brand</option>
-                              <option value="Same as Mains">Same as Mains</option>
-                              {(() => {
-                                const allStrings = [...STRINGS];
-                                inventoryStrings.forEach(item => {
-                                  const existingBrand = allStrings.find(s => s.brand === item.brand);
-                                  if (existingBrand) {
-                                    if (!existingBrand.models.includes(item.name)) {
-                                      existingBrand.models.push(item.name);
-                                    }
-                                  } else {
-                                    allStrings.push({ brand: item.brand, models: [item.name] });
-                                  }
-                                });
-                                return allStrings.map(s => (
-                                  <option key={s.brand} value={s.brand}>{s.brand}</option>
-                                ));
-                              })()}
-                              <option value="Other">Other</option>
-                            </select>
-                            {newRacquet.string_cross_brand === "Other" && (
-                              <input 
-                                type="text" 
-                                placeholder="Enter Brand" 
-                                className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white rounded-xl outline-none focus:ring-2 focus:ring-primary"
-                                onChange={e => setNewRacquet({...newRacquet, string_cross_brand_custom: e.target.value})}
-                              />
-                            )}
+                              Same as Mains
+                            </button>
                           </div>
                           <div className="space-y-2">
                             <label className="block text-xs font-medium text-neutral-500 uppercase tracking-wider">Current Cross String Model</label>
-                            {newRacquet.string_cross_brand && newRacquet.string_cross_brand !== "Other" && newRacquet.string_cross_brand !== "Same as Mains" ? (
-                              <select 
+                            {newRacquet.string_cross_brand !== "Same as Mains" ? (
+                              <SmartStringModelSelect
+                                brand={newRacquet.string_cross_brand}
                                 value={newRacquet.string_cross_model}
-                                onChange={e => setNewRacquet({...newRacquet, string_cross_model: e.target.value})}
-                                className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white rounded-xl outline-none focus:ring-2 focus:ring-primary"
-                              >
-                                <option value="">Select Model</option>
-                                {(() => {
-                                  const brand = STRINGS.find(s => s.brand === newRacquet.string_cross_brand);
-                                  const models = brand ? [...brand.models] : [];
-                                  
-                                  // Add inventory models
-                                  inventoryStrings.filter(s => s.brand === newRacquet.string_cross_brand).forEach(item => {
-                                    if (!models.includes(item.name)) {
-                                      models.push(item.name);
-                                    }
-                                  });
-
-                                  return models.map(model => (
-                                    <option key={model} value={model}>{model}</option>
-                                  ));
-                                })()}
-                                <option value="Other">Other</option>
-                              </select>
+                                onChange={(val) => setNewRacquet({...newRacquet, string_cross_model: val})}
+                              />
                             ) : (
                               <input 
                                 type="text" 
-                                placeholder="Enter Model" 
-                                disabled={newRacquet.string_cross_brand === "Same as Mains"}
-                                value={newRacquet.string_cross_brand === "Same as Mains" ? "Same as Mains" : newRacquet.string_cross_model}
-                                onChange={e => setNewRacquet({...newRacquet, string_cross_model: e.target.value})}
-                                className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white rounded-xl outline-none focus:ring-2 focus:ring-primary disabled:opacity-50"
-                              />
-                            )}
-                            {newRacquet.string_cross_model === "Other" && (
-                              <input 
-                                type="text" 
-                                placeholder="Enter Model" 
-                                className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white rounded-xl outline-none focus:ring-2 focus:ring-primary"
-                                onChange={e => setNewRacquet({...newRacquet, string_cross_model_custom: e.target.value})}
+                                placeholder="Same as mains"
+                                disabled
+                                value={newRacquet.string_main_model}
+                                className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-neutral-100 dark:bg-neutral-800 text-neutral-400 rounded-xl"
                               />
                             )}
                           </div>
