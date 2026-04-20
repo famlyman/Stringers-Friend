@@ -7,6 +7,7 @@ import CustomerDashboard from "./pages/CustomerDashboard";
 import Inventory from "./pages/Inventory";
 import CustomerList from "./pages/CustomerList";
 import ScanResult from "./pages/ScanResult";
+import RacquetPage from "./pages/RacquetPage";
 import PublicShop from "./pages/PublicShop";
 import Profile from "./pages/Profile";
 import Landing from "./pages/Landing";
@@ -49,7 +50,7 @@ function AppRoutes() {
       <Route path="/" element={<Landing />} />
       <Route path="/login" element={!user ? <Login /> : <Navigate to="/dashboard" replace />} />
       <Route path="/register" element={!user ? <Register /> : <Navigate to="/dashboard" replace />} />
-      <Route path="/r/:racquetId" element={<ScanResult />} />
+      <Route path="/r/:id" element={<RacquetPage />} />
       <Route path="/scan/:qrCode" element={<ScanResult />} />
       
       {/* Protected Routes Wrapper */}

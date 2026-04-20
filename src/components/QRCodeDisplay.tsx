@@ -28,10 +28,14 @@ export default function QRCodeDisplay({
   useEffect(() => {
     if (value) {
       // UUIDs with dashes are racquets - route to /r/{id}
-      const isRacquetId = value.includes('-') && value.match(/^[a-z0-9:-]+$/i);
+      const hasDash = value.includes('-');
+      const isHexLike = /^[a-z0-9:-]+$/i.test(value);
+      const isRacquetId = hasDash && isHexLike;
+      
       const fullUrl = isRacquetId 
-        ? `${window.location.origin}/r/${value}`  // Racquet page
-        : `${window.location.origin}/${value}`;  // Shop page
+        ? `${window.location.origin}/r/${value}`
+        : `${window.location.origin}/${value}`;
+      
       QRCode.toDataURL(fullUrl, { width: 200, margin: 1, errorCorrectionLevel: 'L' }, (err, url) => {
         if (!err) setQrUrl(url);
       });

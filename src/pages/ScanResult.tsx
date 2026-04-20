@@ -6,9 +6,7 @@ import { supabase } from "../lib/supabase";
 import { useAuth } from "../context/SupabaseAuthContext";
 
 export default function ScanResult() {
-  const { qrCode, racquetId } = useParams();
-  const codeParam = qrCode || racquetId;
-  console.log('ScanResult params - qrCode:', qrCode, 'racquetId:', racquetId, 'codeParam:', codeParam);
+  const { qrCode } = useParams();
   const { user, profile } = useAuth();
   const navigate = useNavigate();
   const [result, setResult] = useState<any>(null);
@@ -377,7 +375,7 @@ export default function ScanResult() {
       }
     };
     fetchScan();
-  }, [qrCode, racquetId]);
+  }, [qrCode]);
 
   if (loading) return <div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div></div>;
 
