@@ -36,3 +36,13 @@
 ## Quirks
 - PWA plugin includes `icon.svg` - update manifest in `vite.config.ts` if needed
 - tsconfig excludes `supabase/functions` (Deno code, not TS)
+
+## QR Code System
+- **Racquet QR** -> encodes `/r/{racquet-uuid}` 
+- **Route** `/r/:id` -> RacquetPage (standalone, shows racquet specs without auth)
+- **Shop QR** -> encodes `/{shop-slug}` -> PublicShop page
+
+## Racquet Data Flow
+1. Create racquet -> generates UUID, sets `id` = `qr_code_id` = UUID
+2. QR displays -> `/r/{uuid}` encoded
+3. Scan -> Opens RacquetPage showing current strings, tension, specs

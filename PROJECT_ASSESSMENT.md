@@ -6,17 +6,25 @@
 
 ---
 
-### Recent Updates (2026-04-17)
+### Recent Updates (2026-04-20)
 
-1. **SmartRacquetSelect Component** - New searchable dropdown that queries the `racquet_specs_cache` table for brands and models
-2. **racquetSpecsService Enhanced** - Now parses CSV data from database including:
-   - `tension_range` → `tensionRangeMin`/`tensionRangeMax`
-   - `string_pattern` → `patternMains`/`patternCrosses`
-   - `stringing_instructions` → `length`, `mainsSkip`, `mainsTieOff`, `crossesStart`, `crossesTieOff`
-3. **Brand/Model Search Fix** - Now searches both "Wilson" and "Wilson Tennis" in database
-4. **qr_code_id Fix** - Column name updated from `qr_code` to match schema
-5. **shop_id Handling** - Dashboard now handles `user.shop_id` properly with fallback
-6. **Auth Timeout Increased** - 15s timeout with resilient error handling
+1. **Racquet QR Code System** - Simplified workflow:
+   - QR encodes racquet UUID → `/r/{uuid}`
+   - Dedicated `/r/:id` route → RacquetPage (standalone, no auth)
+   - Shows racquet specs, strings, tension, owner
+2. **RacquetPage.tsx** - New standalone page for scanned racquets
+3. **QR Code Density** - Reduced to width=200, margin=1, errorCorrection=L for easier scanning
+4. **Auto Serial Number** - Generates `SN-{timestamp}-{random}` on racquet creation
+5. **String Catalog Integration** - SmartStringSelect components for string selection
+6. **Shop QR Modal** - Dashboard can generate shop QR codes
+
+**Previous Updates (2026-04-17)**
+
+1. **SmartRacquetSelect Component** - New searchable dropdown for brands/models
+2. **racquetSpecsService Enhanced** - Parses CSV data from database
+3. **Brand/Model Search Fix** - Searches both "Wilson" and "Wilson Tennis"
+4. **shop_id Handling** - Dashboard handles `user.shop_id` properly
+5. **Auth Timeout Increased** - 15s timeout with resilient error handling
 
 ---
 
