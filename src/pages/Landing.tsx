@@ -7,7 +7,8 @@ import { supabase } from "../lib/supabase";
 export default function Landing() {
   const { darkMode } = useTheme();
   const [searchParams] = useSearchParams();
-  const racquetId = searchParams.get('r');
+  const racquetId = searchParams.get('r') || window.location.pathname.split('/r/')[1];
+  console.log('Landing - racquetId:', racquetId, 'path:', window.location.pathname);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [racquet, setRacquet] = useState<any>(null);
