@@ -255,7 +255,10 @@ export default function QRCodeDisplay({
           </div>
         </div>
 
-        <div className="p-1 bg-white rounded-lg shadow-sm border border-neutral-100 dark:border-neutral-700">
+        <div 
+          className="p-1 bg-white rounded-lg shadow-sm border border-neutral-100 dark:border-neutral-700 cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all"
+          onClick={() => setIsModalOpen(true)}
+        >
           {qrUrl && <img src={qrUrl} alt="QR Code" className="w-20 h-20 dark:invert dark:brightness-150" />}
         </div>
         <div className="flex gap-1">

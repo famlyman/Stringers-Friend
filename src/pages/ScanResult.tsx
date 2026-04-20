@@ -118,49 +118,32 @@ export default function ScanResult() {
           const parts = cleanCode.split('|');
           const isShort = cleanCode.startsWith("SF|r|");
           
-          if (isShort && parts.length < 5) {
-            setError("Invalid QR code format");
-            return;
-          }
-          if (!isShort && parts.length < 3) {
+          // Short format: SF|r|id|Brand Model (no strings - lookup from DB)
+          // Long format: SF|racket|id|brand|model|string|cross|tension
+          if (parts.length < 3) {
             setError("Invalid QR code format");
             return;
           }
           
-          let rId, brand, model, main, cross, tm, tc;
+          const rId = parts[2];
+          let rBrand = '', rModel = '';
           
+          // Parse brand and model from remaining parts
           if (isShort) {
-            // Short format: SF|r|id|Brand Model|main/cross|tension
-            rId = parts[2];
-            const bm = (parts[3] || ' ').split(' ');
-            brand = bm[0] || '';
-            model = bm.slice(1).join(' ') || '';
-            const sd = (parts[4] || '/').split('/');
-            main = sd[0] || '';
-            cross = sd[1] || '';
-            const tp = (parts[5] || '/').split('/');
-            tm = tp[0] || '';
-            tc = tp[1] || '';
+            // Short: parts[3] is "Brand Model"
+            const bm = (parts[3] || '').split(' ');
+            rBrand = bm[0] || '';
+            rModel = bm.slice(1).join(' ') || '';
           } else {
-            // Long format: SF|racket|id|brand|model|string|cross|tension
-            rId = parts[2];
-            brand = parts[3] || '';
-            model = parts[4] || '';
-            main = parts[5] || '';
-            cross = parts[6] || '';
-            const tp = (parts[7] || '/').split('/');
-            tm = tp[0] || '';
-            tc = tp[1] || '';
+            // Long: parts[3] is brand, parts[4] is model
+            rBrand = parts[3] || '';
+            rModel = parts[4] || '';
           }
           
           const embeddedData = {
             id: rId,
-            brand,
-            model,
-            current_string_main: main,
-            current_string_cross: cross,
-            current_tension_main: tm,
-            current_tension_cross: tc,
+            brand: rBrand,
+            model: rModel,
             isEmbedded: true
           };
             
