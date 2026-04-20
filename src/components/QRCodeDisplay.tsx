@@ -73,16 +73,16 @@ export default function QRCodeDisplay({
               border: 1px dashed #ccc;
               padding: 1mm;
               border-radius: 0.5mm;
-              width: 40mm;
+              width: 30mm;
               height: 14mm;
               box-sizing: border-box;
               overflow: hidden;
               background: white;
             }
             img { 
-              width: 12mm; 
-              height: 12mm; 
-              margin-right: 1.5mm;
+              width: 11mm; 
+              height: 11mm; 
+              margin-right: 1mm;
               flex-shrink: 0;
             }
             .info {
@@ -94,36 +94,36 @@ export default function QRCodeDisplay({
               height: 100%;
             }
             .label-text {
-              font-size: 10pt;
+              font-size: 7pt;
               font-weight: 900;
               margin: 0;
-              line-height: 1;
+              line-height: 1.1;
               word-break: break-word;
               color: #000;
-              max-height: 20pt;
+              max-height: 14pt;
               overflow: hidden;
             }
             .serial-text {
-              font-size: 7pt;
+              font-size: 5pt;
               font-weight: 700;
               color: #111;
-              margin-top: 0.5mm;
+              margin-top: 0.3mm;
               white-space: nowrap;
               overflow: hidden;
               text-overflow: ellipsis;
             }
             .shop-name { 
-              font-size: 5pt; 
+              font-size: 4pt; 
               font-weight: 800; 
               color: #000; 
-              margin-top: 0.5mm;
+              margin-top: 0.3mm;
               text-transform: uppercase;
               white-space: nowrap;
               overflow: hidden;
               text-overflow: ellipsis;
             }
             .shop-phone { 
-              font-size: 4pt; 
+              font-size: 3pt; 
               color: #333; 
               margin-top: 0px;
               font-weight: 600;

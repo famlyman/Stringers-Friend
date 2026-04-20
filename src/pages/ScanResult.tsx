@@ -114,6 +114,52 @@ export default function ScanResult() {
               });
             }
           }
+        } else if (cleanCode.startsWith("SF|racket|")) {
+          const parts = cleanCode.split('|');
+          if (parts.length >= 3) {
+            const racquetId = parts[2];
+            const embeddedData = {
+              id: racquetId,
+              brand: parts[3] || '',
+              model: parts[4] || '',
+              current_string_main: parts[5] || '',
+              current_string_cross: parts[6] || '',
+              current_tension_main: parts[7] ? parts[7].split('/')[0] : '',
+              current_tension_cross: parts[7] ? parts[7].split('/')[1] || '' : '',
+              isEmbedded: true
+            };
+            
+            // Try to find full racquet data from DB if online
+            let racquetData = null;
+            try {
+              const { data } = await supabase
+                .from('racquets')
+                .select('*, customers(*)')
+                .eq('id', racquetId)
+                .single();
+              if (data) racquetData = data;
+            } catch (e) {
+              // DB fetch failed, use embedded data
+            }
+            
+            const displayData = racquetData ? {
+              ...racquetData,
+              customer_name: racquetData.customers ? `${racquetData.customers.first_name} ${racquetData.customers.last_name}` : 'Unknown',
+              customer_email: racquetData.customers?.email || 'Unknown'
+            } : {
+              ...embeddedData,
+              customer_name: embeddedData.brand ? 'Offline Data' : 'Unknown',
+              customer_email: ''
+            };
+            
+            setResult({
+              type: "racquet",
+              data: displayData,
+              jobs: []
+            });
+          } else {
+            setError("Invalid QR code format");
+          }
         } else if (cleanCode.startsWith("racquet_")) {
           const racquetId = cleanCode.replace("racquet_", "");
           

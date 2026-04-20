@@ -300,30 +300,34 @@ export default function CustomerList({ user }: { user: any }) {
         ? `${newRacquet.string_cross_brand_custom} ${newRacquet.string_cross_model_custom} ${newRacquet.string_cross_gauge}`.trim()
         : (newRacquet.string_cross_brand === "Same as Mains" ? stringMain : `${newRacquet.string_cross_brand} ${newRacquet.string_cross_model} ${newRacquet.string_cross_gauge}`.trim());
 
-      const { error: insertError } = await supabase
-        .from('racquets')
-        .insert({
-          customer_id: selectedCustomer.id,
-          shop_id: user.shop_id,
-          brand,
-          model,
-          serial_number: serialNumber,
-          head_size: parseInt(newRacquet.head_size) || 0,
-          string_pattern_mains: parseInt(newRacquet.string_pattern_mains) || 0,
-          string_pattern_crosses: parseInt(newRacquet.string_pattern_crosses) || 0,
-          mains_skip: newRacquet.mains_skip,
-          mains_tie_off: newRacquet.mains_tie_off,
-          crosses_start: newRacquet.crosses_start,
-          crosses_tie_off: newRacquet.crosses_tie_off,
-          one_piece_length: String(parseFloat(newRacquet.one_piece_length) || 0),
-          two_piece_length: String(parseFloat(newRacquet.two_piece_length) || 0),
-          stringing_instructions: newRacquet.stringing_instructions,
-          current_string_main: stringMain,
-          current_string_cross: stringCross,
-          current_tension_main: parseFloat(newRacquet.current_tension_main) || 0,
-          current_tension_cross: parseFloat(newRacquet.current_tension_cross) || 0,
-          qr_code_id: `racquet_${crypto.randomUUID()}`,
-        });
+      const racquetId = crypto.randomUUID();
+          const qrCodeData = `SF|racket|${racquetId}|${brand}|${model}|${stringMain}|${stringCross}|${newRacquet.current_tension_main || 0}/${newRacquet.current_tension_cross || 0}`;
+          
+          const { error: insertError } = await supabase
+            .from('racquets')
+            .insert({
+              customer_id: selectedCustomer.id,
+              shop_id: user.shop_id,
+              brand,
+              model,
+              serial_number: serialNumber,
+              head_size: parseInt(newRacquet.head_size) || 0,
+              string_pattern_mains: parseInt(newRacquet.string_pattern_mains) || 0,
+              string_pattern_crosses: parseInt(newRacquet.string_pattern_crosses) || 0,
+              mains_skip: newRacquet.mains_skip,
+              mains_tie_off: newRacquet.mains_tie_off,
+              crosses_start: newRacquet.crosses_start,
+              crosses_tie_off: newRacquet.crosses_tie_off,
+              one_piece_length: String(parseFloat(newRacquet.one_piece_length) || 0),
+              two_piece_length: String(parseFloat(newRacquet.two_piece_length) || 0),
+              stringing_instructions: newRacquet.stringing_instructions,
+              current_string_main: stringMain,
+              current_string_cross: stringCross,
+              current_tension_main: parseFloat(newRacquet.current_tension_main) || 0,
+              current_tension_cross: parseFloat(newRacquet.current_tension_cross) || 0,
+              qr_code_id: racquetId,
+              qr_code: qrCodeData,
+            });
 
       if (insertError) throw insertError;
 
