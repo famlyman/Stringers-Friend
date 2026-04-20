@@ -114,20 +114,55 @@ export default function ScanResult() {
               });
             }
           }
-        } else if (cleanCode.startsWith("SF|racket|")) {
+        } else if (cleanCode.startsWith("SF|racket|") || cleanCode.startsWith("SF|r|")) {
           const parts = cleanCode.split('|');
-          if (parts.length >= 3) {
-            const racquetId = parts[2];
-            const embeddedData = {
-              id: racquetId,
-              brand: parts[3] || '',
-              model: parts[4] || '',
-              current_string_main: parts[5] || '',
-              current_string_cross: parts[6] || '',
-              current_tension_main: parts[7] ? parts[7].split('/')[0] : '',
-              current_tension_cross: parts[7] ? parts[7].split('/')[1] || '' : '',
-              isEmbedded: true
-            };
+          const isShort = cleanCode.startsWith("SF|r|");
+          
+          if (isShort && parts.length < 5) {
+            setError("Invalid QR code format");
+            return;
+          }
+          if (!isShort && parts.length < 3) {
+            setError("Invalid QR code format");
+            return;
+          }
+          
+          let rId, brand, model, main, cross, tm, tc;
+          
+          if (isShort) {
+            // Short format: SF|r|id|Brand Model|main/cross|tension
+            rId = parts[2];
+            const bm = (parts[3] || ' ').split(' ');
+            brand = bm[0] || '';
+            model = bm.slice(1).join(' ') || '';
+            const sd = (parts[4] || '/').split('/');
+            main = sd[0] || '';
+            cross = sd[1] || '';
+            const tp = (parts[5] || '/').split('/');
+            tm = tp[0] || '';
+            tc = tp[1] || '';
+          } else {
+            // Long format: SF|racket|id|brand|model|string|cross|tension
+            rId = parts[2];
+            brand = parts[3] || '';
+            model = parts[4] || '';
+            main = parts[5] || '';
+            cross = parts[6] || '';
+            const tp = (parts[7] || '/').split('/');
+            tm = tp[0] || '';
+            tc = tp[1] || '';
+          }
+          
+          const embeddedData = {
+            id: rId,
+            brand,
+            model,
+            current_string_main: main,
+            current_string_cross: cross,
+            current_tension_main: tm,
+            current_tension_cross: tc,
+            isEmbedded: true
+          };
             
             // Try to find full racquet data from DB if online
             let racquetData = null;
@@ -135,7 +170,7 @@ export default function ScanResult() {
               const { data } = await supabase
                 .from('racquets')
                 .select('*, customers(*)')
-                .eq('id', racquetId)
+                .eq('id', rId)
                 .single();
               if (data) racquetData = data;
             } catch (e) {
@@ -157,9 +192,6 @@ export default function ScanResult() {
               data: displayData,
               jobs: []
             });
-          } else {
-            setError("Invalid QR code format");
-          }
         } else if (cleanCode.startsWith("racquet_")) {
           const racquetId = cleanCode.replace("racquet_", "");
           

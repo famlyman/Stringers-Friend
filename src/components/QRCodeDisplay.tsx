@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import QRCode from "qrcode";
-import { Printer, Share2, Download, Copy, Check } from "lucide-react";
+import { Printer, Share2, Download, Copy, Check, X, Maximize2 } from "lucide-react";
 import { toPng } from "html-to-image";
 
 export default function QRCodeDisplay({ 
@@ -22,6 +22,7 @@ export default function QRCodeDisplay({
   const [isSharing, setIsSharing] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const labelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -296,7 +297,11 @@ export default function QRCodeDisplay({
         </div>
       </div>
 
-      <div className="p-2 bg-white rounded-lg shadow-inner">
+      <div 
+        className="p-2 bg-white rounded-lg shadow-inner cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all"
+        onClick={() => setIsModalOpen(true)}
+        title="Click to enlarge"
+      >
         {qrUrl && <img src={qrUrl} alt="QR Code" className="w-40 h-40 dark:invert dark:brightness-150" />}
       </div>
       {label && <p className="mt-2 text-sm font-bold text-neutral-900 dark:text-white">{label}</p>}
@@ -326,6 +331,60 @@ export default function QRCodeDisplay({
           {isDownloading ? "Generating..." : "Download Image"}
         </button>
       </div>
+
+      {/* Enlarge Modal */}
+      {isModalOpen && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
+          onClick={() => setIsModalOpen(false)}
+        >
+          <div 
+            className="bg-white dark:bg-neutral-800 rounded-2xl p-6 max-w-sm w-full mx-4 relative"
+            onClick={e => e.stopPropagation()}
+          >
+            <button 
+              onClick={() => setIsModalOpen(false)}
+              className="absolute top-3 right-3 p-2 bg-neutral-100 dark:bg-neutral-700 rounded-full hover:bg-neutral-200 dark:hover:bg-neutral-600"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            
+            <div className="flex flex-col items-center">
+              <p className="text-xs font-bold text-neutral-500 dark:text-neutral-400 mb-3 uppercase tracking-wide">Scan Racquet</p>
+              <div className="p-4 bg-white rounded-xl shadow-2xl">
+                {qrUrl && <img src={qrUrl} alt="QR Code" className="w-64 h-64" />}
+              </div>
+              <p className="mt-4 text-sm font-bold text-neutral-600 dark:text-neutral-300">{label}</p>
+              {serialNumber && <p className="text-xs font-bold text-neutral-400">S/N: {serialNumber}</p>}
+              
+              <div className="mt-6 flex gap-2 w-full">
+                <button 
+                  onClick={handlePrint}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-primary text-white rounded-xl font-bold hover:bg-primary/90 transition-all"
+                >
+                  <Printer className="w-4 h-4" />
+                  Print
+                </button>
+                <button 
+                  onClick={() => {
+                    const isShopQR = !value.includes('_');
+                    const fullUrl = isShopQR 
+                      ? `${window.location.origin}/${value}`
+                      : `${window.location.origin}/scan/${value}`;
+                    navigator.clipboard.writeText(fullUrl);
+                    setIsCopied(true);
+                    setTimeout(() => setIsCopied(false), 2000);
+                  }}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-neutral-100 dark:bg-neutral-700 text-neutral-700 dark:text-neutral-200 rounded-xl font-bold hover:bg-neutral-200 dark:hover:bg-neutral-600 transition-all"
+                >
+                  {isCopied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+                  {isCopied ? "Copied" : "Copy"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
