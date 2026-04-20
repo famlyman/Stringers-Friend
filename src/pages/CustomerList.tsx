@@ -301,7 +301,7 @@ export default function CustomerList({ user }: { user: any }) {
         : (newRacquet.string_cross_brand === "Same as Mains" ? stringMain : `${newRacquet.string_cross_brand} ${newRacquet.string_cross_model} ${newRacquet.string_cross_gauge}`.trim());
 
       const racquetId = crypto.randomUUID();
-          const qrCodeData = `SF|r|${racquetId}|${brand} ${model}`;
+          const qrCodeData = `${racquetId}`;
           
           const { error: insertError } = await supabase
             .from('racquets')

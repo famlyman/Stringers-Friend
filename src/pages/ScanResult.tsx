@@ -83,6 +83,43 @@ export default function ScanResult() {
 
         console.log("Scanning code:", cleanCode);
 
+        // Check for plain UUID (racquet ID) first
+        if (cleanCode.match(/^[0-9a-f-]+$/) && cleanCode.includes('-')) {
+          const rId = cleanCode;
+          let racquetData = null;
+          try {
+            const { data } = await supabase
+              .from('racquets')
+              .select('*, customers(*)')
+              .eq('id', rId)
+              .single();
+            if (data) racquetData = data;
+          } catch (e) {
+            // Not found - continue to other checks
+          }
+          
+          if (racquetData) {
+            const { data: jobs } = await supabase
+              .from('stringing_jobs')
+              .select('*')
+              .eq('racquet_id', racquetData.id)
+              .order('created_at', { ascending: false })
+              .limit(10);
+            
+            setResult({
+              type: "racquet",
+              data: {
+                ...racquetData,
+                customer_name: racquetData.customers ? `${racquetData.customers.first_name} ${racquetData.customers.last_name}` : 'Unknown',
+                customer_email: racquetData.customers?.email || 'Unknown'
+              },
+              jobs: jobs || []
+            });
+            setLoading(false);
+            return;
+          }
+        }
+
         if (cleanCode.startsWith("shop_")) {
           const shopId = cleanCode.replace("shop_", "");
           

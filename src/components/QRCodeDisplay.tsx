@@ -27,11 +27,12 @@ export default function QRCodeDisplay({
 
   useEffect(() => {
     if (value) {
-      // Shop QR codes are slugs (e.g., "tennis-shop"), racquet/inventory have prefixes like "SF|r|"
-      const isShopQR = value.includes('/') === false && value.startsWith('SF|') === false;
-      const fullUrl = isShopQR 
-        ? `${window.location.origin}/${value}`  // Direct to shop landing page
-        : `${window.location.origin}/scan/${value}`;  // To scan result page for other items
+      // Plain UUIDs are racquets - route to /r/{id}
+      // Slugs (e.g., "tennis-shop") are shops - route to /{slug}
+      const isRacquetId = value.includes('-') && /^[0-9a-f-]+$/i.test(value);
+      const fullUrl = isRacquetId 
+        ? `${window.location.origin}/r/${value}`  // Racquet details page
+        : `${window.location.origin}/${value}`;  // Shop landing page
       QRCode.toDataURL(fullUrl, { width: 200, margin: 1, errorCorrectionLevel: 'L' }, (err, url) => {
         if (!err) setQrUrl(url);
       });

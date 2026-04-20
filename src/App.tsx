@@ -50,6 +50,7 @@ function AppRoutes() {
       <Route path="/login" element={!user ? <Login /> : <Navigate to="/dashboard" replace />} />
       <Route path="/register" element={!user ? <Register /> : <Navigate to="/dashboard" replace />} />
       <Route path="/scan/:qrCode" element={<ScanResult />} />
+      <Route path="/r/:racquetId" element={<ScanResult />} />
       
       {/* Protected Routes Wrapper */}
       <Route element={user ? <Layout user={profile || user} onLogout={handleLogout} /> : <Navigate to="/" replace />}>
