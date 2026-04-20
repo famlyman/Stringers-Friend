@@ -6,7 +6,8 @@ import { supabase } from "../lib/supabase";
 import { useAuth } from "../context/SupabaseAuthContext";
 
 export default function ScanResult() {
-  const { qrCode } = useParams();
+  const { qrCode, racquetId } = useParams();
+  const codeParam = qrCode || racquetId;
   const { user, profile } = useAuth();
   const navigate = useNavigate();
   const [result, setResult] = useState<any>(null);
@@ -57,7 +58,7 @@ export default function ScanResult() {
 
   useEffect(() => {
     const fetchScan = async () => {
-      if (!qrCode) return;
+      if (!codeParam) return;
       setLoading(true);
       setError("");
 
