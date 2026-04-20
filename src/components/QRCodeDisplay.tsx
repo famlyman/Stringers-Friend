@@ -32,7 +32,7 @@ export default function QRCodeDisplay({
       const fullUrl = isShopQR 
         ? `${window.location.origin}/${value}`  // Direct to shop landing page
         : `${window.location.origin}/scan/${value}`;  // To scan result page for other items
-      QRCode.toDataURL(fullUrl, { width: 400, margin: 2 }, (err, url) => {
+      QRCode.toDataURL(fullUrl, { width: 400, margin: 2, errorCorrectionLevel: 'L' }, (err, url) => {
         if (!err) setQrUrl(url);
       });
     }
@@ -259,9 +259,9 @@ export default function QRCodeDisplay({
           className="p-1 bg-white rounded-lg shadow-sm border border-neutral-100 dark:border-neutral-700 cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all"
           onClick={() => setIsModalOpen(true)}
         >
-          {qrUrl && <img src={qrUrl} alt="QR Code" className="w-20 h-20 dark:invert dark:brightness-150" />}
+          {qrUrl && <img src={qrUrl} alt="QR Code" className="w-28 h-28 dark:invert dark:brightness-150" />}
         </div>
-        <div className="flex gap-1">
+        <div className="mt-1 flex gap-1">
           <button 
             onClick={handlePrint}
             className="p-1.5 bg-primary/10 text-primary rounded-lg hover:bg-primary hover:text-white transition-all"
