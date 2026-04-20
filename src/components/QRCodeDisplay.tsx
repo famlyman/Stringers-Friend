@@ -9,6 +9,10 @@ export default function QRCodeDisplay({
   shopName, 
   shopPhone,
   serialNumber,
+  stringMain,
+  stringCross,
+  tensionMain,
+  tensionCross,
   minimal = false
 }: { 
   value: string, 
@@ -16,6 +20,10 @@ export default function QRCodeDisplay({
   shopName?: string, 
   shopPhone?: string,
   serialNumber?: string,
+  stringMain?: string,
+  stringCross?: string,
+  tensionMain?: string | number,
+  tensionCross?: string | number,
   minimal?: boolean
 }) {
   const [qrUrl, setQrUrl] = useState("");
@@ -144,7 +152,9 @@ export default function QRCodeDisplay({
             <img src="${qrUrl}" />
             <div class="info">
               ${label ? `<div class="label-text">${label}</div>` : ''}
-              ${serialNumber ? `<div class="serial-text">S/N: ${serialNumber}</div>` : ''}
+              ${stringMain ? `<div class="serial-text">${stringMain}</div>` : ''}
+              ${stringCross ? `<div class="serial-text">${stringCross}</div>` : ''}
+              ${(tensionMain || tensionCross) ? `<div class="serial-text">${tensionMain}/${tensionCross} lbs</div>` : ''}
               ${shopName ? `<div class="shop-name">${shopName}</div>` : ''}
               ${shopPhone ? `<div class="shop-phone">${shopPhone}</div>` : ''}
             </div>
@@ -252,7 +262,9 @@ export default function QRCodeDisplay({
             {qrUrl && <img src={qrUrl} alt="QR Code" className="w-48 h-48 mr-4 flex-shrink-0" />}
             <div className="flex flex-col justify-center min-width-0 flex-1">
               {label && <p className="text-3xl font-black text-black leading-tight mb-1 line-clamp-2">{label}</p>}
-              {serialNumber && <p className="text-xl font-bold text-neutral-900 mb-1 truncate">S/N: {serialNumber}</p>}
+              {stringMain && <p className="text-xl font-bold text-neutral-900 mb-1 truncate">{stringMain}</p>}
+              {stringCross && <p className="text-lg font-bold text-neutral-800 mb-1 truncate">{stringCross}</p>}
+              {(tensionMain || tensionCross) && <p className="text-base font-bold text-neutral-700 truncate">{tensionMain}/{tensionCross} lbs</p>}
               {shopName && <p className="text-sm font-black text-black uppercase tracking-tight truncate">{shopName}</p>}
               {shopPhone && <p className="text-xs font-bold text-neutral-800">{shopPhone}</p>}
             </div>

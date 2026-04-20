@@ -83,8 +83,14 @@ ALTER TABLE public.profiles
   ADD CONSTRAINT profiles_shop_id_fkey 
   FOREIGN KEY (shop_id) REFERENCES public.shops(id) ON DELETE SET NULL;
 
+DROP POLICY IF EXISTS "Anyone can view customers" ON public.customers;
+CREATE POLICY "Anyone can view customers"
+  ON public.customers FOR SELECT
+  TO anon, authenticated
+  USING (true);
+
 -- ============================================
--- 3. CUSTOMERS TABLE
+-- 4. CUSTOMERS TABLE
 -- ============================================
 CREATE TABLE IF NOT EXISTS public.customers (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),

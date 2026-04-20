@@ -1446,7 +1446,10 @@ export default function CustomerList({ user }: { user: any }) {
                         <QRCodeDisplay 
                           value={racquet.qr_code} 
                           label={`${racquet.brand} ${racquet.model}`} 
-                          serialNumber={racquet.serial_number}
+                          stringMain={racquet.current_string_main}
+                          stringCross={racquet.current_string_cross}
+                          tensionMain={racquet.current_tension_main}
+                          tensionCross={racquet.current_tension_cross}
                           minimal={true}
                         />
                       </div>
