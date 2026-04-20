@@ -84,8 +84,8 @@ export default function ScanResult() {
 
         console.log("Scanning code:", cleanCode);
 
-        // Check for plain UUID (racquet ID) first
-        if (cleanCode.match(/^[0-9a-f-]+$/) && cleanCode.includes('-')) {
+        // Check for plain UUID (racquet ID) first - matches IDs like "iad1::st5dz-..." with colons
+        if (cleanCode.match(/^[0-9a-f:-]+$/) && cleanCode.includes('-')) {
           const rId = cleanCode;
           let racquetData = null;
           try {

@@ -29,7 +29,7 @@ export default function QRCodeDisplay({
     if (value) {
       // Plain UUIDs are racquets - route to /r/{id}
       // Slugs (e.g., "tennis-shop") are shops - route to /{slug}
-      const isRacquetId = value.includes('-') && /^[0-9a-f-]+$/i.test(value);
+      const isRacquetId = value.includes('-') && /^[\da-f:-]+$/i.test(value);
       const fullUrl = isRacquetId 
         ? `${window.location.origin}/r/${value}`  // Racquet details page
         : `${window.location.origin}/${value}`;  // Shop landing page
