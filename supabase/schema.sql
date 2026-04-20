@@ -171,12 +171,14 @@ ALTER TABLE public.string_catalog ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Anyone can read string catalog" ON public.string_catalog;
 CREATE POLICY "Anyone can read string catalog" 
   ON public.string_catalog FOR SELECT 
-  TO PUBLIC USING (true);
+  TO anon USING (true);
 
 DROP POLICY IF EXISTS "Shop owners can manage string catalog" ON public.string_catalog;
 CREATE POLICY "Shop owners can manage string catalog" 
   ON public.string_catalog FOR ALL 
-  USING (auth.uid() IS NOT NULL);
+  TO authenticated 
+  USING (auth.uid() IS NOT NULL)
+  WITH CHECK (auth.uid() IS NOT NULL);
 
 -- ============================================
 -- 5. RACQUETS TABLE

@@ -16,20 +16,25 @@ export const stringSpecsService = {
   async getAll(): Promise<StringSpec[]> {
     if (stringCache) return stringCache;
     
-    const { data, error } = await supabase
-      .from('string_catalog')
-      .select('*')
-      .eq('is_active', true)
-      .order('brand', { ascending: true })
-      .order('model', { ascending: true });
-    
-    if (error) {
-      console.error('Error fetching string catalog:', error);
+    try {
+      const { data, error } = await supabase
+        .from('string_catalog')
+        .select('*')
+        .or('is_active.is.null,is_active.eq.true')
+        .order('brand', { ascending: true })
+        .order('model', { ascending: true });
+      
+      if (error) {
+        console.warn('String catalog query failed:', error.message);
+        return [];
+      }
+      
+      stringCache = data || [];
+      return stringCache;
+    } catch (e: any) {
+      console.warn('Failed to load string catalog:', e.message);
       return [];
     }
-    
-    stringCache = data || [];
-    return stringCache;
   },
 
   async searchBrands(): Promise<string[]> {

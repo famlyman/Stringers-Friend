@@ -304,6 +304,7 @@ export default function CustomerList({ user }: { user: any }) {
         .from('racquets')
         .insert({
           customer_id: selectedCustomer.id,
+          shop_id: user.shop_id,
           brand,
           model,
           serial_number: serialNumber,
