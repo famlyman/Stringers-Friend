@@ -57,7 +57,7 @@ export default function ScanResult() {
 
   useEffect(() => {
     const fetchScan = async () => {
-      if (!codeParam) return;
+      if (!qrCode) return;
       setLoading(true);
       setError("");
 

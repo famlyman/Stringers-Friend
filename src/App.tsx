@@ -15,7 +15,6 @@ import Layout from "./components/Layout";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { AuthProvider, useAuth } from "./context/SupabaseAuthContext";
 import { ThemeProvider } from "./context/ThemeContext";
-import "./utils/clearAuth"; // Load auth clearing utility
 
 function AppRoutes() {
   const { user, profile, loading, signOut } = useAuth();
@@ -57,14 +56,9 @@ function AppRoutes() {
       <Route element={user ? <Layout user={profile || user} onLogout={handleLogout} /> : <Navigate to="/" replace />}>
         <Route path="/dashboard" element={
           profile ? (
-            (() => {
-              console.log('Dashboard route - profile:', profile);
-              console.log('Dashboard route - role:', profile.role);
-              console.log('Dashboard route - shop_id:', profile.shop_id);
-              return profile.role === 'stringer' ? (
-                profile.shop_id ? <Dashboard user={profile} /> : <Navigate to="/setup" replace />
-              ) : <CustomerDashboard user={profile} />;
-            })()
+            profile.role === 'stringer' ? (
+              profile.shop_id ? <Dashboard user={profile} /> : <Navigate to="/setup" replace />
+            ) : <CustomerDashboard user={profile} />
           ) : loading ? (
             <div className="min-h-screen flex flex-col items-center justify-center bg-bg-main p-6">
               <div className="text-center max-w-sm w-full bg-bg-card rounded-3xl p-10 shadow-2xl border border-border-main animate-scale-in">

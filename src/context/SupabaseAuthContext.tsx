@@ -45,12 +45,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Fetch profile from Supabase, create if missing
   const fetchProfile = async (userId: string, userEmail?: string, role?: 'stringer' | 'customer') => {
-    console.log('fetchProfile called for userId:', userId);
-    
     try {
-      // Increased timeout to handle slow networks
+      // Timeout for profile fetch
       const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => reject(new Error('Profile fetch timeout')), 15000);
+        setTimeout(() => reject(new Error('Profile fetch timeout')), 5000);
       });
 
       const profilePromise = supabase
@@ -64,11 +62,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (error && error.code === 'PGRST116') {
         // Profile not found - create one
         const profileRole = role || pendingRole || 'customer';
-        console.log('Profile not found, creating new profile for user:', userId, 'with role:', profileRole);
         
-        // Use longer timeout for profile creation
+        // Timeout for profile creation
         const createTimeoutPromise = new Promise<never>((_, reject) => {
-          setTimeout(() => reject(new Error('Profile create timeout')), 15000);
+          setTimeout(() => reject(new Error('Profile create timeout')), 5000);
         });
 
         const createPromise = supabase
@@ -96,7 +93,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return null;
       }
 
-      console.log('fetchProfile success:', data);
       return data as UserProfile;
     } catch (err) {
       console.error('fetchProfile error:', err);
@@ -112,23 +108,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Get initial session first
     const initializeAuth = async () => {
       try {
-        console.log('AuthContext - initializing...');
         const { data: { session } } = await supabase.auth.getSession();
         
         if (!mounted) return;
         
         if (session?.user) {
-          console.log('AuthContext - user found, setting user immediately:', session.user.id);
           setUser(session.user);
           
           // Fetch profile
           const profileData = await fetchProfile(session.user.id, session.user.email);
-          console.log('AuthContext - profile fetched:', profileData);
           if (mounted) {
             setProfile(profileData);
           }
         } else {
-          console.log('AuthContext - no session found');
           setUser(null);
           setProfile(null);
         }
@@ -143,7 +135,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         authInitialized = true;
         // Always set loading to false after initialization
         if (mounted) {
-          console.log('AuthContext - initialization complete');
           setLoading(false);
         }
       }
@@ -153,28 +144,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     // Safety timeout - ensure loading is never stuck
     const safetyTimeout = setTimeout(() => {
-      console.log('AuthContext - safety timeout check');
       if (mounted) {
         setLoading(false);
       }
-    }, 15000);
+    }, 8000);
 
     // Then listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (!mounted) return;
         
-        console.log('Auth state changed:', event, session?.user?.email);
-        
         // Skip INITIAL_SESSION if we already initialized
         if (event === 'INITIAL_SESSION' && authInitialized) {
-          console.log('Auth state - ignoring duplicate INITIAL_SESSION');
           return;
         }
         
         // Skip other events if we're still initializing
         if (!authInitialized && event !== 'SIGNED_IN') {
-          console.log('Auth state - waiting for init to complete');
           return;
         }
         
@@ -238,39 +224,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // If signup successful, create/update profile with role data using upsert
     if (data?.user && profileData) {
-      // Debug logging to see what we're working with
-      console.log('Signup data.user:', data.user);
-      console.log('data.user.id:', data.user.id);
-      console.log('profileData:', profileData);
-      
       // First, update existing profile immediately to fix wrong role
       if (profileData.role && data.user.id) {
-        console.log('Updating existing profile role to:', profileData.role, 'for user:', data.user.id);
-        const { error: updateError } = await supabase
+        await supabase
           .from('profiles')
           .update({ role: profileData.role })
           .eq('id', data.user.id);
-          
-        if (updateError) {
-          console.error('Error updating existing profile role:', updateError);
-        } else {
-          // Force profile refresh after role update
-          const { data: updatedProfile } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', data.user.id)
-            .single();
-            
-          if (updatedProfile) {
-            setProfile(updatedProfile);
-          }
-        }
-      } else {
-        console.warn('Skipping profile update - missing role or user.id:', {
-          hasRole: !!profileData.role,
-          hasUserId: !!data.user.id,
-          userId: data.user.id
-        });
       }
       
       const { error: upsertError } = await supabase
@@ -300,13 +259,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const updateProfile = async (updates: Partial<UserProfile>) => {
-    console.log('updateProfile called with:', updates);
-    console.log('updateProfile - user:', user);
-    console.log('updateProfile - user.id:', user?.id);
-    console.log('updateProfile call stack:', new Error().stack);
-    
     if (!user?.id) {
-      console.error('updateProfile - No user.id available, returning error');
       return { error: new Error('No user logged in') };
     }
 
