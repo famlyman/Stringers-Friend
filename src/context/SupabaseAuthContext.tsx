@@ -43,14 +43,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Temporary storage for role during signup to prevent race condition
   const [pendingRole, setPendingRole] = useState<'stringer' | 'customer' | null>(null);
 
-  // Fetch profile from Supabase, create if missing - with timeout protection
+  // Fetch profile from Supabase, create if missing
   const fetchProfile = async (userId: string, userEmail?: string, role?: 'stringer' | 'customer') => {
-    console.log('fetchProfile START - userId:', userId);
-    
     try {
-      console.log('fetchProfile - starting query with race...');
-      
-      // Race between query and timeout
+      // Race between query and timeout (5 seconds)
       const fetchPromise = supabase
         .from('profiles')
         .select('*')
@@ -58,29 +54,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .single();
       
       const timeoutPromise = new Promise<{ data: null, error: Error }>((resolve) => {
-        setTimeout(() => {
-          console.log('fetchProfile - TIMEOUT TRIGGERED');
-          resolve({ data: null, error: new Error('timeout') });
-        }, 8000);
+        setTimeout(() => resolve({ data: null, error: new Error('timeout') }), 5000);
       });
       
       const { data, error } = await Promise.race([fetchPromise, timeoutPromise]) as any;
-      console.log('fetchProfile QUERY DONE - data:', !!data, 'error:', error?.message || error?.code || null);
 
-      // Handle timeout
+      // Handle timeout - return null to show retry UI
       if (error?.message === 'timeout') {
-        console.log('fetchProfile QUERY - timed out');
         return null;
       }
 
       if (!error && data) {
-        console.log('fetchProfile - returning existing profile');
         return data as UserProfile;
       }
 
-      // Check if profile not found
+      // Check if profile not found - create it
       if (error?.code === 'PGRST116' || error?.message?.includes('No rows')) {
-        console.log('fetchProfile - profile not found, creating...');
         const profileRole = role || pendingRole || 'customer';
         
         const { error: createError } = await supabase
@@ -104,10 +93,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       }
 
-      console.log('fetchProfile END - returning null');
       return null;
     } catch (err: any) {
-      console.error('fetchProfile ERROR:', err.message || err);
+      console.error('fetchProfile error:', err.message || err);
       return null;
     }
   };
@@ -120,7 +108,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     // Get initial session first
     const initializeAuth = async () => {
-      console.log('initializeAuth START');
       try {
         // Try getSession first
         let sessionData;
@@ -128,51 +115,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const result = await supabase.auth.getSession();
           sessionData = result.data.session;
         } catch (e) {
-          console.log('getSession failed, trying getUser:', e.message);
           // Fallback - try to get user without checking session
           const { data } = await supabase.auth.getUser();
           if (data?.user) {
-            // Build a fake session object
             sessionData = { user: data.user };
           }
         }
         
-        console.log('initializeAuth session:', sessionData ? 'found' : 'null');
-        
         if (!mounted) return;
         
         if (sessionData?.user) {
-          console.log('initializeAuth - user found, fetching profile');
           setUser(sessionData.user);
-          
-          // Fetch profile
           const profileData = await fetchProfile(sessionData.user.id, sessionData.user.email);
-          console.log('initializeAuth - profile fetched:', !!profileData);
           if (mounted) {
             setProfile(profileData);
           }
         } else {
-          console.log('initializeAuth - no session, checking if we have persisted user...');
-          
-          // Try to get user directly - this doesn't require a valid session, just a valid token
+          // Try to get user directly
           try {
             const { data: userData } = await supabase.auth.getUser();
-            console.log('initializeAuth getUser result:', userData);
-            
             if (userData?.user) {
-              console.log('initializeAuth - found user via getUser');
               setUser(userData.user);
               const profileData = await fetchProfile(userData.user.id, userData.user.email);
               if (mounted) {
                 setProfile(profileData);
               }
             } else {
-              console.log('initializeAuth - no user anywhere');
               setUser(null);
               setProfile(null);
             }
-          } catch (getUserError) {
-            console.log('initializeAuth getUser failed:', getUserError.message);
+          } catch {
             setUser(null);
             setProfile(null);
           }
@@ -184,11 +156,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setProfile(null);
         }
       } finally {
-        // Mark as initialized
         authInitialized = true;
-        // Always set loading to false after initialization
         if (mounted) {
-          console.log('initializeAuth END - loading set to false');
           setLoading(false);
         }
       }
