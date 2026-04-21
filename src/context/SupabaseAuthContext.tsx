@@ -127,6 +127,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   
   useEffect(() => {
+    console.log('AuthContext useEffect FIRED');
     let mounted = true;
     let authInitialized = false;
     
@@ -134,25 +135,60 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const initializeAuth = async () => {
       console.log('initializeAuth START');
       try {
-        const { data: { session } } = await supabase.auth.getSession();
-        console.log('initializeAuth getSession - session:', !!session);
+        // Try getSession first
+        let sessionData;
+        try {
+          const result = await supabase.auth.getSession();
+          sessionData = result.data.session;
+        } catch (e) {
+          console.log('getSession failed, trying getUser:', e.message);
+          // Fallback - try to get user without checking session
+          const { data } = await supabase.auth.getUser();
+          if (data?.user) {
+            // Build a fake session object
+            sessionData = { user: data.user };
+          }
+        }
+        
+        console.log('initializeAuth session:', sessionData ? 'found' : 'null');
         
         if (!mounted) return;
         
-        if (session?.user) {
+        if (sessionData?.user) {
           console.log('initializeAuth - user found, fetching profile');
-          setUser(session.user);
+          setUser(sessionData.user);
           
           // Fetch profile
-          const profileData = await fetchProfile(session.user.id, session.user.email);
+          const profileData = await fetchProfile(sessionData.user.id, sessionData.user.email);
           console.log('initializeAuth - profile fetched:', !!profileData);
           if (mounted) {
             setProfile(profileData);
           }
         } else {
-          console.log('initializeAuth - no session');
-          setUser(null);
-          setProfile(null);
+          console.log('initializeAuth - no session, checking if we have persisted user...');
+          
+          // Try to get user directly - this doesn't require a valid session, just a valid token
+          try {
+            const { data: userData } = await supabase.auth.getUser();
+            console.log('initializeAuth getUser result:', userData);
+            
+            if (userData?.user) {
+              console.log('initializeAuth - found user via getUser');
+              setUser(userData.user);
+              const profileData = await fetchProfile(userData.user.id, userData.user.email);
+              if (mounted) {
+                setProfile(profileData);
+              }
+            } else {
+              console.log('initializeAuth - no user anywhere');
+              setUser(null);
+              setProfile(null);
+            }
+          } catch (getUserError) {
+            console.log('initializeAuth getUser failed:', getUserError.message);
+            setUser(null);
+            setProfile(null);
+          }
         }
       } catch (error) {
         console.error('Error initializing auth:', error);
