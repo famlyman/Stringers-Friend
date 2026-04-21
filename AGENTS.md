@@ -46,3 +46,16 @@
 1. Create racquet -> generates UUID, sets `id` = `qr_code_id` = UUID
 2. QR displays -> `/r/{uuid}` encoded
 3. Scan -> Opens RacquetPage showing current strings, tension, specs
+
+## Public Access RLS Policies
+For QR codes to work without authentication, these policies must be deployed:
+```sql
+-- In supabase/schema.sql already - run in SQL Editor to activate
+DROP POLICY IF EXISTS "Anyone can view racquets" ON public.racquets;
+CREATE POLICY "Anyone can view racquets"
+  ON public.racquets FOR SELECT TO anon, authenticated USING (true);
+
+DROP POLICY IF EXISTS "Anyone can view customers" ON public.customers;
+CREATE POLICY "Anyone can view customers"
+  ON public.customers FOR SELECT TO anon, authenticated USING (true);
+```
