@@ -46,29 +46,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Fetch profile from Supabase, create if missing
   const fetchProfile = async (userId: string, userEmail?: string, role?: 'stringer' | 'customer') => {
     try {
-      // Timeout for profile fetch
-      const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => reject(new Error('Profile fetch timeout')), 5000);
-      });
-
-      const profilePromise = supabase
+      // First, try to fetch existing profile - no artificial timeout
+      const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .single();
 
-      const { data, error } = await Promise.race([profilePromise, timeoutPromise]) as any;
+      if (!error && data) {
+        return data as UserProfile;
+      }
 
-      if (error && error.code === 'PGRST116') {
+      // Check if profile not found (PGRST116 = "could not find row")
+      if (error?.code === 'PGRST116' || error?.message?.includes('No rows')) {
         // Profile not found - create one
         const profileRole = role || pendingRole || 'customer';
         
-        // Timeout for profile creation
-        const createTimeoutPromise = new Promise<never>((_, reject) => {
-          setTimeout(() => reject(new Error('Profile create timeout')), 5000);
-        });
-
-        const createPromise = supabase
+        const { data: newProfile, error: createError } = await supabase
           .from('profiles')
           .insert({
             id: userId,
@@ -77,8 +71,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           })
           .select()
           .single();
-        
-        const { data: newProfile, error: createError } = await Promise.race([createPromise, createTimeoutPromise]) as any;
 
         if (createError) {
           console.error('Error creating profile:', createError);
@@ -88,12 +80,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return newProfile as UserProfile;
       }
 
+      // Other error - log but don't throw
       if (error) {
         console.error('Error fetching profile:', error);
-        return null;
       }
 
-      return data as UserProfile;
+      return null;
     } catch (err) {
       console.error('fetchProfile error:', err);
       return null;
@@ -142,12 +134,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     initializeAuth();
     
-    // Safety timeout - ensure loading is never stuck
+    // Safety timeout - ensure loading is never stuck if Supabase is completely down
     const safetyTimeout = setTimeout(() => {
       if (mounted) {
         setLoading(false);
       }
-    }, 8000);
+    }, 15000);
 
     // Then listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
