@@ -71,15 +71,22 @@ function AppRoutes() {
               </div>
             </div>
           ) : user ? (
+            // Profile fetch failed but user exists - show retry option instead of blocking error
             <div className="min-h-screen flex flex-col items-center justify-center bg-bg-main p-6">
               <div className="text-center max-w-sm w-full bg-bg-card rounded-[2.5rem] p-10 shadow-2xl border border-border-main">
-                <h2 className="text-xl font-black text-text-main mb-2 tracking-tight">Profile Error</h2>
+                <h2 className="text-xl font-black text-text-main mb-2 tracking-tight">Connection Issue</h2>
                 <p className="text-text-muted mb-8 text-sm">
-                  Your profile could not be loaded. Please sign out and try again.
+                  We had trouble loading your profile. This is often resolved by waiting a moment and trying again.
                 </p>
                 <button
+                  onClick={() => window.location.reload()}
+                  className="w-full py-4 bg-primary text-white rounded-2xl font-bold hover:bg-primary/90 transition-all active:scale-[0.98] mb-3"
+                >
+                  Try Again
+                </button>
+                <button
                   onClick={handleLogout}
-                  className="w-full py-4 bg-primary text-white rounded-2xl font-bold hover:bg-primary/90 transition-all active:scale-[0.98]"
+                  className="w-full py-4 bg-bg-card text-text-main rounded-2xl font-bold hover:bg-bg-card/80 transition-all border border-border-main"
                 >
                   Sign Out
                 </button>

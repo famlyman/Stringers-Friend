@@ -46,7 +46,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Fetch profile from Supabase, create if missing
   const fetchProfile = async (userId: string, userEmail?: string, role?: 'stringer' | 'customer') => {
     try {
-      // First, try to fetch existing profile - no artificial timeout
+      // First, try to fetch existing profile
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -62,27 +62,45 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Profile not found - create one
         const profileRole = role || pendingRole || 'customer';
         
-        const { data: newProfile, error: createError } = await supabase
+        const { error: createError } = await supabase
           .from('profiles')
           .insert({
             id: userId,
             email: userEmail || '',
             role: profileRole,
-          })
-          .select()
-          .single();
+          });
 
-        if (createError) {
-          console.error('Error creating profile:', createError);
-          return null;
+        // If insert succeeded or profile already exists, fetch again
+        if (!createError || createError?.code === '23505') { // 23505 = unique violation (already exists)
+          const { data: newProfile } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', userId)
+            .single();
+          
+          if (newProfile) {
+            return newProfile as UserProfile;
+          }
         }
 
-        return newProfile as UserProfile;
+        if (createError && createError.code !== '23505') {
+          console.error('Error creating profile:', createError);
+        }
       }
 
-      // Other error - log but don't throw
+      // If we get here with an error, try ONE retry after a short delay
       if (error) {
-        console.error('Error fetching profile:', error);
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        const { data: retryData } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', userId)
+          .single();
+        
+        if (retryData) {
+          return retryData as UserProfile;
+        }
       }
 
       return null;
