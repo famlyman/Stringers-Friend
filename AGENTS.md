@@ -59,3 +59,12 @@ DROP POLICY IF EXISTS "Anyone can view customers" ON public.customers;
 CREATE POLICY "Anyone can view customers"
   ON public.customers FOR SELECT TO anon, authenticated USING (true);
 ```
+
+## Recent Changes (Apr 2026)
+### Auth Performance Fixes
+- Added session fallback: If `getSession()` fails, tries `getUser()` directly to handle token refresh issues
+- Added 5-second timeout with recovery UI: Shows "Connection Issue" with "Try Again" button instead of blocking error
+- The auth context (`src/context/SupabaseAuthContext.tsx`) now handles edge cases where:
+  - User is logged in but session token needs refresh on page reload
+  - Supabase query hangs due to network issues
+  - Profile fetch times out
