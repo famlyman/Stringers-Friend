@@ -3,6 +3,10 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
+// Debug logging
+console.log('Supabase init - URL:', supabaseUrl ? 'present' : 'MISSING');
+console.log('Supabase init - Key:', supabaseAnonKey ? 'present' : 'MISSING');
+
 // Validate that credentials are present and look valid
 const hasValidCredentials = 
   supabaseUrl && 
@@ -10,13 +14,15 @@ const hasValidCredentials =
   supabaseUrl.startsWith('https://') && 
   supabaseAnonKey.length > 20;
 
+console.log('Supabase init - hasValidCredentials:', hasValidCredentials);
+
 // Create a stub client for when credentials are missing - returns resolved promises
 const createStubClient = (): SupabaseClient => {
+  console.warn('Supabase - USING STUB CLIENT (credentials missing)');
   return {
     auth: {
       getSession: () => Promise.resolve({ data: { session: null }, error: null }),
       onAuthStateChange: (callback: any) => {
-        // Return immediately with null session to prevent hanging
         callback('INITIAL_SESSION', { session: null });
         return { data: { subscription: { unsubscribe: () => {} } } };
       },

@@ -45,6 +45,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Fetch profile from Supabase, create if missing
   const fetchProfile = async (userId: string, userEmail?: string, role?: 'stringer' | 'customer') => {
+    console.log('fetchProfile START - userId:', userId);
     try {
       // First, try to fetch existing profile
       const { data, error } = await supabase
@@ -52,6 +53,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .select('*')
         .eq('id', userId)
         .single();
+
+      console.log('fetchProfile RESULT - data:', !!data, 'error:', error?.message || error?.code || null);
 
       if (!error && data) {
         return data as UserProfile;
@@ -70,6 +73,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             role: profileRole,
           });
 
+        console.log('fetchProfile INSERT - createError:', createError?.message || createError?.code || null);
+
         // If insert succeeded or profile already exists, fetch again
         if (!createError || createError?.code === '23505') { // 23505 = unique violation (already exists)
           const { data: newProfile } = await supabase
@@ -77,6 +82,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             .select('*')
             .eq('id', userId)
             .single();
+          
+          console.log('fetchProfile AFTER INSERT - newProfile:', !!newProfile);
           
           if (newProfile) {
             return newProfile as UserProfile;
@@ -90,6 +97,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       // If we get here with an error, try ONE retry after a short delay
       if (error) {
+        console.log('fetchProfile RETRY - waiting 500ms...');
         await new Promise(resolve => setTimeout(resolve, 500));
         
         const { data: retryData } = await supabase
@@ -98,14 +106,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           .eq('id', userId)
           .single();
         
+        console.log('fetchProfile RETRY RESULT - retryData:', !!retryData);
+        
         if (retryData) {
           return retryData as UserProfile;
         }
       }
 
+      console.log('fetchProfile END - returning null');
       return null;
     } catch (err) {
-      console.error('fetchProfile error:', err);
+      console.error('fetchProfile ERROR:', err);
       return null;
     }
   };
@@ -117,20 +128,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     // Get initial session first
     const initializeAuth = async () => {
+      console.log('initializeAuth START');
       try {
         const { data: { session } } = await supabase.auth.getSession();
+        console.log('initializeAuth getSession - session:', !!session);
         
         if (!mounted) return;
         
         if (session?.user) {
+          console.log('initializeAuth - user found, fetching profile');
           setUser(session.user);
           
           // Fetch profile
           const profileData = await fetchProfile(session.user.id, session.user.email);
+          console.log('initializeAuth - profile fetched:', !!profileData);
           if (mounted) {
             setProfile(profileData);
           }
         } else {
+          console.log('initializeAuth - no session');
           setUser(null);
           setProfile(null);
         }
@@ -145,6 +161,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         authInitialized = true;
         // Always set loading to false after initialization
         if (mounted) {
+          console.log('initializeAuth END - loading set to false');
           setLoading(false);
         }
       }
