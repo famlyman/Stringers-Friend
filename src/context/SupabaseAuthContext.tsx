@@ -43,30 +43,44 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Temporary storage for role during signup to prevent race condition
   const [pendingRole, setPendingRole] = useState<'stringer' | 'customer' | null>(null);
 
-  // Fetch profile from Supabase, create if missing
+  // Fetch profile from Supabase, create if missing - with timeout protection
   const fetchProfile = async (userId: string, userEmail?: string, role?: 'stringer' | 'customer') => {
     console.log('fetchProfile START - userId:', userId);
+    
     try {
-      // First, try to fetch existing profile
-      console.log('fetchProfile - querying profiles table...');
-      const { data, error } = await supabase
+      console.log('fetchProfile - starting query with race...');
+      
+      // Race between query and timeout
+      const fetchPromise = supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .single();
+      
+      const timeoutPromise = new Promise<{ data: null, error: Error }>((resolve) => {
+        setTimeout(() => {
+          console.log('fetchProfile - TIMEOUT TRIGGERED');
+          resolve({ data: null, error: new Error('timeout') });
+        }, 8000);
+      });
+      
+      const { data, error } = await Promise.race([fetchPromise, timeoutPromise]) as any;
+      console.log('fetchProfile QUERY DONE - data:', !!data, 'error:', error?.message || error?.code || null);
 
-      console.log('fetchProfile QUERY - data:', data, 'error:', error);
-      console.log('fetchProfile QUERY - error.code:', error?.code, 'error.message:', error?.message);
+      // Handle timeout
+      if (error?.message === 'timeout') {
+        console.log('fetchProfile QUERY - timed out');
+        return null;
+      }
 
       if (!error && data) {
         console.log('fetchProfile - returning existing profile');
         return data as UserProfile;
       }
 
-      // Check if profile not found (PGRST116 = "could not find row")
+      // Check if profile not found
       if (error?.code === 'PGRST116' || error?.message?.includes('No rows')) {
         console.log('fetchProfile - profile not found, creating...');
-        // Profile not found - create one
         const profileRole = role || pendingRole || 'customer';
         
         const { error: createError } = await supabase
@@ -77,50 +91,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             role: profileRole,
           });
 
-        console.log('fetchProfile INSERT - createError:', createError);
-
-        // If insert succeeded or profile already exists, fetch again
-        if (!createError || createError?.code === '23505') { // 23505 = unique violation (already exists)
+        if (!createError || createError?.code === '23505') {
           const { data: newProfile } = await supabase
             .from('profiles')
             .select('*')
             .eq('id', userId)
             .single();
           
-          console.log('fetchProfile AFTER INSERT - newProfile:', newProfile);
-          
           if (newProfile) {
             return newProfile as UserProfile;
           }
-        }
-
-        if (createError && createError.code !== '23505') {
-          console.error('Error creating profile:', createError);
-        }
-      }
-
-      // If we get here with an error, try ONE retry after a short delay
-      if (error) {
-        console.log('fetchProfile RETRY - waiting 500ms...');
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        const { data: retryData } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', userId)
-          .single();
-        
-        console.log('fetchProfile RETRY RESULT - retryData:', retryData);
-        
-        if (retryData) {
-          return retryData as UserProfile;
         }
       }
 
       console.log('fetchProfile END - returning null');
       return null;
-    } catch (err) {
-      console.error('fetchProfile ERROR:', err);
+    } catch (err: any) {
+      console.error('fetchProfile ERROR:', err.message || err);
       return null;
     }
   };
