@@ -48,20 +48,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     console.log('fetchProfile START - userId:', userId);
     try {
       // First, try to fetch existing profile
+      console.log('fetchProfile - querying profiles table...');
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .single();
 
-      console.log('fetchProfile RESULT - data:', !!data, 'error:', error?.message || error?.code || null);
+      console.log('fetchProfile QUERY - data:', data, 'error:', error);
+      console.log('fetchProfile QUERY - error.code:', error?.code, 'error.message:', error?.message);
 
       if (!error && data) {
+        console.log('fetchProfile - returning existing profile');
         return data as UserProfile;
       }
 
       // Check if profile not found (PGRST116 = "could not find row")
       if (error?.code === 'PGRST116' || error?.message?.includes('No rows')) {
+        console.log('fetchProfile - profile not found, creating...');
         // Profile not found - create one
         const profileRole = role || pendingRole || 'customer';
         
@@ -73,7 +77,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             role: profileRole,
           });
 
-        console.log('fetchProfile INSERT - createError:', createError?.message || createError?.code || null);
+        console.log('fetchProfile INSERT - createError:', createError);
 
         // If insert succeeded or profile already exists, fetch again
         if (!createError || createError?.code === '23505') { // 23505 = unique violation (already exists)
@@ -83,7 +87,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             .eq('id', userId)
             .single();
           
-          console.log('fetchProfile AFTER INSERT - newProfile:', !!newProfile);
+          console.log('fetchProfile AFTER INSERT - newProfile:', newProfile);
           
           if (newProfile) {
             return newProfile as UserProfile;
@@ -106,7 +110,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           .eq('id', userId)
           .single();
         
-        console.log('fetchProfile RETRY RESULT - retryData:', !!retryData);
+        console.log('fetchProfile RETRY RESULT - retryData:', retryData);
         
         if (retryData) {
           return retryData as UserProfile;
