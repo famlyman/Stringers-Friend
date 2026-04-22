@@ -83,9 +83,8 @@ export default function ScanResult() {
 
         console.log("Scanning code:", cleanCode);
 
-        // Check for plain UUID (racquet ID) - now id = qr_code_id, so just query by id
-        const isUuid = cleanCode.match(/^[a-z0-9:-]+$/i) && cleanCode.includes('-');
-        console.log('Is UUID format?', isUuid, 'code:', cleanCode);
+// Check for valid UUID format specifically
+        const isUuid = cleanCode.match(/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i);
         
         if (isUuid) {
           console.log('Searching for racquet with ID:', cleanCode);
