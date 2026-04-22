@@ -85,6 +85,10 @@ export default function ScanResult() {
           cleanCode = cleanCode.slice(0, -1);
         }
 
+        console.log("QR Code received:", qrCode);
+        console.log("Cleaned Code:", cleanCode);
+        console.log("Is Valid UUID:", isValidUuid(cleanCode));
+
         // If it's NOT a valid UUID, try as shop slug first (most common case)
         if (!isValidUuid(cleanCode)) {
           try {

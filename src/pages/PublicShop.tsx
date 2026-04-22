@@ -259,39 +259,49 @@ export default function PublicShop() {
             price: item.unit_price,
             description: item.gauge ? `${item.gauge} gauge` : ''
           })) || [];
-          setServices(services);
+setServices(services);
         } else {
-          // Fallback: try to find shop by ID (for backward compatibility)
-          const { data: shopById } = await supabase
-            .from('shops')
-            .select('*')
-            .eq('id', slug)
-            .single();
+          // Try shops by ID only if it's a valid UUID
+          const isValidUuid = (str: string) => /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(str);
           
-          if (shopById) {
-            const shopData = shopById as Shop;
-            console.log("Shop found by ID fallback:", shopData);
-            setShop(shopData);
-            
-            // Fetch inventory for this shop
-            const { data: inventory } = await supabase
-              .from('inventory')
-              .select('*')
-              .eq('shop_id', shopData.id)
-              .eq('type', 'string');
-            
-            const services = inventory?.map(item => ({
-              id: item.id,
-              name: `${item.brand} ${item.model}`,
-              price: item.unit_price,
-              description: item.gauge ? `${item.gauge} gauge` : ''
-            })) || [];
-            setServices(services);
+          if (isValidUuid(slug)) {
+            try {
+              const { data: shopById } = await supabase
+                .from('shops')
+                .select('*')
+                .eq('id', slug)
+                .single();
+              
+              if (shopById) {
+                const shopData = shopById as Shop;
+                console.log("Shop found by ID fallback:", shopData);
+                setShop(shopData);
+                
+                // Fetch inventory for this shop
+                const { data: inventory } = await supabase
+                  .from('inventory')
+                  .select('*')
+                  .eq('shop_id', shopData.id)
+                  .eq('type', 'string');
+                
+                const services = inventory?.map(item => ({
+                  id: item.id,
+                  name: `${item.brand} ${item.model}`,
+                  price: item.unit_price,
+                  description: item.gauge ? `${item.gauge} gauge` : ''
+                })) || [];
+                setServices(services);
+              } else {
+                setError("Shop not found");
+              }
+            } catch (err) {
+              console.error("Error fetching shop:", err);
+              setError("Failed to load shop. Please try again later.");
+            }
           } else {
             setError("Shop not found");
           }
         }
-      } catch (err: any) {
         console.error("Error fetching shop:", err);
         setError("Failed to load shop. Please try again later.");
       } finally {
