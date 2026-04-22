@@ -82,7 +82,7 @@ export default function ScanResult() {
         }
 
         // LOGIC: Shop QR codes use SLUG (not UUID). Racquet QR codes use UUID.
-        // If it's NOT a valid UUID format, assume it's a shop slug
+        // If it's NOT a valid UUID format, assume it's a shop slug - try by slug first
         
         if (!isValidUuid(code)) {
           // It's a shop slug! Query by slug field
@@ -98,6 +98,12 @@ export default function ScanResult() {
             setLoading(false);
             return;
           }
+
+          // If shop not found by slug, try redirecting to public shop page
+          window.location.href = `/${code}`;
+          clearTimeout(timeoutId);
+          setLoading(false);
+          return;
         }
 
         // If we get here, it might be a UUID - try as racquet

@@ -3,6 +3,10 @@ import { useParams, Link } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { Loader2, Package } from "lucide-react";
 
+function isValidUuid(str: string): boolean {
+  return /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(str);
+}
+
 export default function RacquetPage() {
   const { id } = useParams();
   const [loading, setLoading] = useState(true);
@@ -11,12 +15,33 @@ export default function RacquetPage() {
 
   useEffect(() => {
     if (!id) {
-      setError("No racquet ID");
+      setError("No ID provided");
       setLoading(false);
       return;
     }
 
-    const fetchRacquet = async () => {
+    async function fetchRacquet() {
+      // If it's not a valid UUID, it's probably a shop slug - redirect or show error
+      if (!isValidUuid(id)) {
+        // Try as shop slug instead
+        const { data: shop, error: shopError } = await supabase
+          .from('shops')
+          .select('*')
+          .eq('slug', id)
+          .maybeSingle();
+
+        if (shop) {
+          // Redirect to public shop page
+          window.location.href = `/${id}`;
+          return;
+        }
+        
+        setError("Invalid QR code format");
+        setLoading(false);
+        return;
+      }
+
+      // Valid UUID - query as racquet
       const { data, error: err } = await supabase
         .from('racquets')
         .select('*, customers(*)')
@@ -31,7 +56,7 @@ export default function RacquetPage() {
         setError("Racquet not found");
       }
       setLoading(false);
-    };
+    }
 
     fetchRacquet();
   }, [id]);
