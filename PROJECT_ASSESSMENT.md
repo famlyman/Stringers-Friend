@@ -6,7 +6,18 @@
 
 ---
 
-### Recent Updates (2026-04-20)
+### Recent Updates (2026-04-22)
+
+1. **Messaging Feature** - Full implementation:
+   - `Messages.tsx` - Shop owner messaging with conversation list and chat UI
+   - `CustomerMessages.tsx` - Customer chat view
+   - Real-time subscriptions for new messages
+   - `/messages` route with role-based routing
+2. **APP_SUMMARY.md** - Updated from Expo mobile to PWA architecture
+3. **ScanResult.tsx** - Fixed UUID validation to prevent invalid UUID errors
+4. **Logo Update** - Enlarged icon elements for better recognition
+
+**Previous Updates (2026-04-20)**
 
 1. **Racquet QR Code System** - Simplified workflow:
    - QR encodes racquet UUID → `/r/{uuid}`
@@ -75,10 +86,19 @@ src/
 | Feature | Status | Notes |
 |---------|--------|-------|
 | Push Notifications | TODO | Prompt UI exists but disabled |
-| Messages | Implemented | Full chat UI for shops and customers with real-time |
 | Job Search/Filter | Missing | Can only view all jobs |
 | Job Status Notifications | Missing | No notification when status changes |
 | Reel Inventory Tracking | Partial | Not updated when jobs created |
+
+---
+
+### Bugs Fixed
+
+| Issue | File | Fix |
+|-------|------|-----|
+| Invalid UUID error | ScanResult.tsx | UUID format validation before `.eq('id')` |
+| stringing_jobs table | Multiple files | Changed to `jobs` |
+| NavItem badge type | Layout.tsx | Added NavItem interface |
 
 ---
 

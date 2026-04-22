@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { QrCode, User, Info, History, AlertCircle, CheckCircle2 } from "lucide-react";
+import { QrCode, User, Info, History, AlertCircle, CheckCircle2, Search } from "lucide-react";
 import { safeFormatDate } from "../lib/utils";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../context/SupabaseAuthContext";
@@ -14,6 +14,11 @@ export default function ScanResult() {
   const [error, setError] = useState("");
   const [joining, setJoining] = useState(false);
   const [joined, setJoined] = useState(false);
+
+  // Helper to check if string is a valid UUID
+  const isValidUuid = (str: string) => {
+    return /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(str);
+  };
 
   const handleJoinShop = async () => {
     if (!user || !result || result.type !== 'shop' || joining) return;
@@ -84,28 +89,16 @@ export default function ScanResult() {
         console.log("Scanning code:", cleanCode);
 
 // Check for valid UUID format specifically
-        const isUuid = cleanCode.match(/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i);
-        
-        if (isUuid) {
-          console.log('Searching for racquet with ID:', cleanCode);
-          let racquetData = null;
+        if (isValidUuid(cleanCode)) {
           
           // Query by id directly
-          const { data, error } = await supabase
+          const { data: racquetData, error: racquetError } = await supabase
             .from('racquets')
             .select('*, customers(*)')
             .eq('id', cleanCode)
             .maybeSingle();
           
-          console.log('Query result:', data, error);
-          
-          if (data) {
-            racquetData = data;
-          } else if (error) {
-            console.log('Query error:', error.message);
-          }
-          
-          if (racquetData) {
+          if (racquetData && !racquetError) {
             const { data: jobs } = await supabase
               .from('jobs')
               .select('*')
@@ -125,43 +118,54 @@ export default function ScanResult() {
             setLoading(false);
             return;
           } else {
-            // UUID was valid format but no racquet found - stop here
             setError("Racquet not found");
             setLoading(false);
             return;
           }
         }
 
+        // Handle shops with shop_ prefix - check UUID first
         if (cleanCode.startsWith("shop_")) {
           const shopId = cleanCode.replace("shop_", "");
           
-          // Try to find shop by ID
-          const { data: shop, error: shopError } = await supabase
+          // Only query by ID if it's a valid UUID
+          if (isValidUuid(shopId)) {
+            const { data: shop, error: shopError } = await supabase
+              .from('shops')
+              .select('*')
+              .eq('id', shopId)
+              .maybeSingle();
+            
+            if (shop && !shopError) {
+              setResult({
+                type: "shop",
+                data: shop
+              });
+              setLoading(false);
+              return;
+            }
+          }
+          
+          // Try finding by slug or qr_code
+          const { data: shops, error: shopsError } = await supabase
             .from('shops')
             .select('*')
-            .eq('id', shopId)
-            .single();
+            .eq('slug', cleanCode)
+            .limit(1);
           
-          if (shop) {
-            setResult({
-              type: "shop",
-              data: shop
-            });
-          } else {
-            // Try finding by QR code
-            const { data: shops, error: shopsError } = await supabase
+          if (!shops || shops.length === 0) {
+            const { data: shopsByQr } = await supabase
               .from('shops')
               .select('*')
               .eq('qr_code', cleanCode);
             
-            if (!shops || shops.length === 0) {
+            if (!shopsByQr || shopsByQr.length === 0) {
               setError("Shop not found");
             } else {
-              setResult({
-                type: "shop",
-                data: shops[0]
-              });
+              setResult({ type: "shop", data: shopsByQr[0] });
             }
+          } else {
+            setResult({ type: "shop", data: shops[0] });
           }
         } else if (cleanCode.startsWith("SF|racket|") || cleanCode.startsWith("SF|r|")) {
           const parts = cleanCode.split('|');
@@ -227,97 +231,78 @@ export default function ScanResult() {
         } else if (cleanCode.startsWith("racquet_")) {
           const racquetId = cleanCode.replace("racquet_", "");
           
-          // Try to find racquet by ID
-          let { data: racquetData, error: racquetError } = await supabase
-            .from('racquets')
-            .select('*, customers(*)')
-            .eq('id', racquetId)
-            .single();
-          
-          if (!racquetData) {
-            // Try finding by QR code
-            const { data: racquets } = await supabase
+          // Only query by ID if valid UUID
+          if (isValidUuid(racquetId)) {
+            const { data: racquetData, error: racquetError } = await supabase
               .from('racquets')
               .select('*, customers(*)')
-              .eq('qr_code', cleanCode);
+              .eq('id', racquetId)
+              .maybeSingle();
             
-            if (racquets && racquets.length > 0) {
-              racquetData = racquets[0];
+            if (racquetData && !racquetError) {
+              const { data: jobs } = await supabase
+                .from('jobs')
+                .select('*')
+                .eq('racquet_id', racquetData.id)
+                .order('created_at', { ascending: false })
+                .limit(10);
+
+              setResult({
+                type: "racquet",
+                data: { 
+                  ...racquetData, 
+                  customer_name: racquetData.customers ? `${racquetData.customers.first_name} ${racquetData.customers.last_name}` : 'Unknown',
+                  customer_email: racquetData.customers?.email || 'Unknown'
+                },
+                jobs: jobs || []
+              });
+            } else {
+              setError("Racquet not found");
             }
-          }
-
-          if (racquetData) {
-            // Get jobs for this racquet
-            const { data: jobs } = await supabase
-              .from('jobs')
-              .select('*')
-              .eq('racquet_id', racquetData.id)
-              .order('created_at', { ascending: false })
-              .limit(10);
-
-            setResult({
-              type: "racquet",
-              data: { 
-                ...racquetData, 
-                customer_name: racquetData.customers ? `${racquetData.customers.first_name} ${racquetData.customers.last_name}` : 'Unknown',
-                customer_email: racquetData.customers?.email || 'Unknown'
-              },
-              jobs: jobs || []
-            });
           } else {
-            setError("Racquet not found");
+            setError("Invalid racquet QR code");
           }
         } else if (cleanCode.startsWith("inventory_")) {
           const itemId = cleanCode.replace("inventory_", "");
           
-          // Try to find inventory by ID
-          const { data: itemData, error: itemError } = await supabase
-            .from('inventory')
-            .select('*')
-            .eq('id', itemId)
-            .single();
-          
-          if (itemData) {
-            setResult({
-              type: "inventory",
-              data: itemData
-            });
-          } else {
-            // Try finding by QR code
-            const { data: items } = await supabase
+          // Only query by ID if valid UUID
+          if (isValidUuid(itemId)) {
+            const { data: itemData, error: itemError } = await supabase
               .from('inventory')
               .select('*')
-              .eq('qr_code', cleanCode);
+              .eq('id', itemId)
+              .maybeSingle();
             
-            if (items && items.length > 0) {
+            if (itemData && !itemError) {
               setResult({
                 type: "inventory",
-                data: items[0]
+                data: itemData
               });
             } else {
               setError("Inventory item not found");
             }
+          } else {
+            setError("Invalid inventory QR code");
           }
         } else {
           // Last resort: try to find by ID or slug in all collections if no prefix
           // Skip non-UUID strings for id query to avoid errors
-          const isUuidForQuery = cleanCode.match(/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i);
-          
           // Try shops by ID first (only if valid UUID)
-          if (isUuidForQuery) {
+          if (isValidUuid(cleanCode)) {
             const { data: shopData } = await supabase
               .from('shops')
               .select('*')
               .eq('id', cleanCode)
-              .single();
+              .maybeSingle();
             
             if (shopData) {
               setResult({ type: "shop", data: shopData });
+              setLoading(false);
               return;
             }
           }
 
-          // Try shops by slug/qr_code (for shop QR codes)
+          // Try shops by slug (for shop QR codes)
           const { data: shopsBySlug } = await supabase
             .from('shops')
             .select('*')
@@ -326,6 +311,7 @@ export default function ScanResult() {
           
           if (shopsBySlug && shopsBySlug.length > 0) {
             setResult({ type: "shop", data: shopsBySlug[0] });
+            setLoading(false);
             return;
           }
 
@@ -338,17 +324,17 @@ export default function ScanResult() {
           
           if (shopsByQr && shopsByQr.length > 0) {
             setResult({ type: "shop", data: shopsByQr[0] });
+            setLoading(false);
             return;
           }
 
           // Try racquets (only valid UUID)
-          const isUuidForRacquet = cleanCode.match(/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i);
-          if (isUuidForRacquet) {
+          if (isValidUuid(cleanCode)) {
             const { data: racquetData } = await supabase
               .from('racquets')
               .select('*, customers(*)')
               .eq('id', cleanCode)
-              .single();
+              .maybeSingle();
             
             if (racquetData) {
               const { data: jobs } = await supabase

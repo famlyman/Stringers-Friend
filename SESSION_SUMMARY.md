@@ -1,72 +1,57 @@
-# Session Summary - 2026-04-20
+# Session Summary - 2026-04-22
 
 ## Goal
-Build racquet stringing shop management PWA with simplified QR code system for scanning racquets.
+Build messaging feature, fix QR scan errors, update documentation.
 
 ---
 
-## Problem
-Original QR code system was too complex and wasn't working:
-- Too many ID fields (id, qr_code_id, qr_code)
-- Dense QR patterns that wouldn't scan at small sizes
-- Routing issues (not reaching correct page)
-- "404 not found" errors when scanning
+## Progress
+
+### 1. Messaging Feature ✅
+- **Messages.tsx** - Shop owner page with conversation list and real-time chat
+- **CustomerMessages.tsx** - Customer chat view
+- Real-time Supabase subscriptions for instant updates
+- `/messages` route with role-based routing to correct component
+- Layout nav updated to link to `/messages`
+
+### 2. QR Scan Fix ✅
+- **Problem**: ScanResult.tsx was passing slugs to `.eq('id')` queries
+- Non-UUID strings like "baseline-racquet-services" caused database errors
+- **Solution**: Added strict UUID format validation regex before any `.eq('id')` queries
+- Only queries by `id` if string matches `/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i`
+
+### 3. Documentation Update ✅
+- **APP_SUMMARY.md** - Full rewrite from Expo mobile to PWA architecture
+- **PROJECT_ASSESSMENT.md** - Updated with messaging and recent fixes
+- **README.md** - Tech stack reflects PWA instead of Express backend
+
+### 4. Logo Update ✅
+- Enlarged icon graphics in `public/icon.svg` for better recognition
 
 ---
 
-## Solution Implemented
+## Bugs Fixed
 
-### 1. Racquet QR System
-- **QR Value**: Just the racquet UUID (e.g., `4a402c62-8ab9-49c8-...`)
-- **QR URL**: Encodes `/r/{uuid}`
-- **Route**: `/r/:id` → RacquetPage
-
-### 2. RacquetPage.tsx (New)
-Standalone page for scanned racquets (no auth required):
-- Brand & model
-- Serial number
-- Current strings (main/cross)
-- Tension (mains/crosses)
-- Head size & pattern
-- Owner name
-- "Open in Stringers Friend" link
-
-### 3. QR Code Optimizations
-- Reduced width: 400 → 200
-- Reduced margin: 2 → 1  
-- Error correction: M → L
-- Click-to-enlarge modal for easy scanning
-
-### 4. Database Changes
-New racquets now:
-- Use same UUID for `id` and `qr_code_id`
-- Store UUID in `qr_code` column
+| Issue | File | Fix |
+|-------|------|-----|
+| Invalid UUID query | ScanResult.tsx | UUID validation before `.eq('id')` |
+| stringing_jobs table | ScanResult.tsx, CustomerList.tsx, Profile.tsx | Changed to `jobs` |
+| NavItem badge type | Layout.tsx | Added NavItem interface |
 
 ---
 
-## Files Modified
+## Remaining Issues
 
-| File | Change |
-|------|--------|
-| `src/pages/RacquetPage.tsx` | NEW - Standalone racquet details page |
-| `src/pages/CustomerList.tsx` | Set `id` = UUID on create |
-| `src/components/QRCodeDisplay.tsx` | Route to `/r/{id}`, reduced density |
-| `src/App.tsx` | Add `/r/:id` route |
-| `src/pages/ScanResult.tsx` | Simplified UUID detection |
-| `PROJECT_ASSESSMENT.md` | Updated with recent changes |
-| `AGENTS.md` | Added QR code system docs |
+| Feature | Status | Notes |
+|---------|--------|-------|
+| Push Notifications | TODO | Prompt UI exists but disabled |
+| Job Search/Filter | Missing | Can only view all jobs |
+| Job Status Notifications | Missing | No notification when status changes |
+| Reel Inventory Tracking | Partial | Not updated when jobs created |
 
 ---
 
-## Test Workflow
-
-1. **Add new racquet** in CustomerList
-2. **QR code displays** on racquet card (minimal mode)
-3. **Tap QR** to open large modal
-4. **Scan with phone** - should open RacquetPage
-5. **View stringing details** - brand, model, strings, tension
-
----
-
-## Note for Existing Racquets
-Old racquets have different `id` and `qr_code_id`. May need to delete and re-add them for QR scanning to work properly.
+## Next Steps
+1. Complete push notifications
+2. Job search/filter
+3. TanStack Query for architecture improvement
