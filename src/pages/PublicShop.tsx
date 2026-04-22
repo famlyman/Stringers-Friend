@@ -79,9 +79,10 @@ export default function PublicShop() {
         }
       }
       setIsCustomerOfShop(true);
-      navigate("/");
+      navigate(0); // Refresh current page
     } catch (err) {
       console.error("Error joining shop:", err);
+      alert("Failed to join shop. Please try again.");
     } finally {
       setJoining(false);
     }
@@ -111,31 +112,28 @@ export default function PublicShop() {
 
   const handleContactSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Contact form submitted:", contactForm);
-    console.log("Shop data:", shop);
     
     if (!shop) {
-      console.log("No shop data available");
+      setSubmitError("Shop data not loaded. Please refresh the page.");
       return;
     }
     
-    // Basic validation
-    console.log("Submitting contact form...", contactForm);
     if (!contactForm.name.trim() || !contactForm.email.trim() || !contactForm.content.trim()) {
       setSubmitError("Please fill in all required fields (Name, Email, and Message).");
       return;
     }
     
-    if (contactForm.register && !contactForm.password) {
-      console.log("Registration requested but no password provided");
+    let currentUserId = user?.id;
+    
+    if (contactForm.register && !currentUserId && !contactForm.password) {
+      setSubmitError("Please enter a password to create an account.");
       return;
     }
     
     setSubmitting(true);
     setSubmitError(null);
+    
     try {
-      let currentUserId = user?.id;
-
       // 1. Handle Account Creation if requested
       if (contactForm.register && !currentUserId && contactForm.password) {
         try {
@@ -196,25 +194,27 @@ export default function PublicShop() {
       }
 
       // 3. Create Message linked to Customer
-      const messageId = `msg_${Date.now()}`;
       const messageData = {
-        id: messageId,
         shop_id: shop.id,
-        customer_id: customerId, // Link to customer!
-        sender_name: contactForm.name,
-        sender_role: 'customer', // Use 'customer' role so it shows up in dashboard filters
-        content: contactForm.content,
-        service_requested: selectedService,
-        created_at: new Date().toISOString(),
-        read: false,
-        customer_email: contactForm.email,
-        phone: contactForm.phone,
-        title: selectedService ? `New ${selectedService} Inquiry from ${contactForm.name}` : `New Inquiry from ${contactForm.name}`
+        customer_id: customerId,
+        sender_type: 'customer',
+        content: selectedService 
+          ? `Service: ${selectedService}\n\n${contactForm.content}`
+          : contactForm.content,
+        is_read: false,
+        created_at: new Date().toISOString()
       };
       
-      await supabase
+      const { error: messageError } = await supabase
         .from('messages')
         .insert(messageData);
+      
+      if (messageError) {
+        console.error("Error sending message:", messageError);
+        setSubmitError("Failed to send message. Please try again.");
+        setSubmitting(false);
+        return;
+      }
       
       setSubmitted(true);
       setContactForm({ name: "", email: "", phone: "", content: "", register: false, password: "" });
@@ -613,15 +613,15 @@ setServices(services);
                 ) : (
                   <>
                     <button
-                      onClick={handleJoinShop}
-                      disabled={joining}
-                      className="flex items-center justify-center gap-2 w-full py-3 bg-primary text-white rounded-xl font-bold hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 disabled:opacity-50"
+                      onClick={() => {
+                        setContactForm({ name: profile?.full_name || '', email: user?.email || '', phone: profile?.phone || '', content: `I'd like to register as a customer of ${shop?.name}.`, register: true, password: '' });
+                        setShowContactModal(true);
+                      }}
+                      className="flex items-center justify-center gap-2 w-full py-3 bg-primary text-white rounded-xl font-bold hover:bg-primary/90 transition-all shadow-lg shadow-primary/20"
                     >
-                      {joining ? "Joining..." : "Join this Shop"} <UserPlus className="w-4 h-4" />
+                      Join this Shop <UserPlus className="w-4 h-4" />
                     </button>
-                    {joining === false && (
-                      <p className="text-xs text-neutral-500 mt-2">Link your account to this shop to track jobs.</p>
-                    )}
+                    <p className="text-xs text-neutral-500 mt-2">Register to track your racquets and jobs.</p>
                   </>
                 )
               ) : (
@@ -848,7 +848,7 @@ setServices(services);
                         </div>
                       </label>
 
-                      {contactForm.register && !user && (
+                      {contactForm.register && (
                         <div className="space-y-1 animate-in slide-in-from-top-2 duration-200">
                           <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest ml-1">Create Password</label>
                           <input 
