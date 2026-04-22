@@ -1,57 +1,44 @@
 # Session Summary - 2026-04-22
 
-## Goal
-Build messaging feature, fix QR scan errors, update documentation.
+## QR Code Scan Fix Session
+
+### Root Cause
+- Shop QR encoded `shop.slug` as value, which went to `/r/:slug` route (RacquetPage)
+- RacquetPage tried to query slug as UUID, causing "invalid input syntax for type uuid" error
+
+### Fixes Applied
+1. **RacquetPage.tsx** - Added UUID validation, redirects to `/:slug` if not UUID
+2. **ScanResult.tsx** - Added redirect to `/:slug` if slug lookup fails
+3. **PublicShop.tsx** - Added UUID validation for `.eq('id')` queries
 
 ---
 
-## Progress
+## Issues to Fix (Next Session)
 
-### 1. Messaging Feature ✅
-- **Messages.tsx** - Shop owner page with conversation list and real-time chat
-- **CustomerMessages.tsx** - Customer chat view
-- Real-time Supabase subscriptions for instant updates
-- `/messages` route with role-based routing to correct component
-- Layout nav updated to link to `/messages`
+### 1. Shop Landing Page - Request Service Button
+**Location:** `src/pages/PublicShop.tsx`
+**Issue:** Clicking "Request Service" button opens modal but does nothing
+**Expected:** Should trigger inquiry/lead creation or open form
 
-### 2. QR Scan Fix ✅
-- **Problem**: ScanResult.tsx was passing slugs to `.eq('id')` queries
-- Non-UUID strings like "baseline-racquet-services" caused database errors
-- **Solution**: Added strict UUID format validation regex before any `.eq('id')` queries
-- Only queries by `id` if string matches `/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i`
+### 2. Registration Modal - Missing Password Fields
+**Location:** `src/pages/PublicShop.tsx` (registration modal)
+**Issue:** Checkbox "Register as customer" shown but no password fields appear when checked
+**Expected:** When checkbox checked, password and confirm password fields should appear
 
-### 3. Documentation Update ✅
-- **APP_SUMMARY.md** - Full rewrite from Expo mobile to PWA architecture
-- **PROJECT_ASSESSMENT.md** - Updated with messaging and recent fixes
-- **README.md** - Tech stack reflects PWA instead of Express backend
+### 3. Join This Shop Button - Wrong Redirect
+**Location:** `src/pages/PublicShop.tsx` 
+**Issue:** "Join this Shop" button redirects to platform landing page instead of opening registration modal
+**Expected:** Should open registration modal or form
 
-### 4. Logo Update ✅
-- Enlarged icon graphics in `public/icon.svg` for better recognition
-
----
-
-## Bugs Fixed
-
-| Issue | File | Fix |
-|-------|------|-----|
-| Invalid UUID query | ScanResult.tsx | UUID validation before `.eq('id')` |
-| stringing_jobs table | ScanResult.tsx, CustomerList.tsx, Profile.tsx | Changed to `jobs` |
-| NavItem badge type | Layout.tsx | Added NavItem interface |
+### 4. Order Now Button - Not Working
+**Location:** `src/pages/PublicShop.tsx`
+**Issue:** Same as #1 - opens modal but nothing happens
+**Expected:** Should add items to cart or trigger job creation
 
 ---
 
-## Remaining Issues
-
-| Feature | Status | Notes |
-|---------|--------|-------|
-| Push Notifications | TODO | Prompt UI exists but disabled |
-| Job Search/Filter | Missing | Can only view all jobs |
-| Job Status Notifications | Missing | No notification when status changes |
-| Reel Inventory Tracking | Partial | Not updated when jobs created |
-
----
-
-## Next Steps
-1. Complete push notifications
-2. Job search/filter
-3. TanStack Query for architecture improvement
+## Previously In Progress
+- Messaging feature (completed)
+- Push notifications (not started)
+- Job search/filter (not started)
+- Reel inventory tracking (not started)
