@@ -14,8 +14,7 @@ A React PWA for tennis stringers to manage customers, racquets, stringing jobs, 
 
 ## Tech Stack
 
-- **Frontend**: React 19 + Vite + Tailwind CSS + React Router
-- **Backend**: Express + Supabase Edge Functions
+- **Frontend**: React 19 + Vite + React Router + Tailwind CSS + PWA (Workbox)
 - **Auth**: Supabase Auth
 - **Database**: Supabase PostgreSQL with RLS policies
 - **Notifications**: Supabase Realtime

@@ -1,6 +1,8 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import Messages from "./pages/Messages";
+import CustomerMessages from "./pages/CustomerMessages";
 import ShopSetup from "./pages/ShopSetup";
 import Dashboard from "./pages/Dashboard";
 import CustomerDashboard from "./pages/CustomerDashboard";
@@ -100,9 +102,7 @@ function AppRoutes() {
         <Route path="/inventory" element={profile?.role === 'stringer' ? <Inventory user={profile} /> : <Navigate to="/" replace />} />
         <Route path="/customers" element={profile?.role === 'stringer' ? <CustomerList user={profile} /> : <Navigate to="/" replace />} />
         <Route path="/messages" element={
-          profile ? (
-            profile.role === 'stringer' ? <Dashboard user={profile} initialTab="messages" /> : <CustomerDashboard user={profile} initialTab="messages" />
-          ) : <Navigate to="/" replace />
+          profile?.role === 'stringer' ? <Messages user={profile} /> : <CustomerMessages user={profile} />
         } />
         <Route path="/racquets" element={
           profile ? (

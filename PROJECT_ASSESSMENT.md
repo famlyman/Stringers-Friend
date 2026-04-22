@@ -2,7 +2,7 @@
 
 ### Current State
 
-**Stringers Friend** is a racquet stringing shop management PWA built with React 19, Vite 6, Express SSR, and Supabase.
+**Stringers Friend** is a racquet stringing shop management PWA built with React 19, Vite 6, Supabase, and Workbox for offline support.
 
 ---
 
@@ -30,7 +30,7 @@
 
 ### Strengths
 
-1. **Modern Tech Stack** - React 19, Vite 6, Tailwind CSS v4, Express for SSR
+1. **Modern Tech Stack** - React 19, Vite 6, Tailwind CSS v4, PWA with Workbox
 2. **Comprehensive Database Schema** - Well-designed tables with proper RLS policies
 3. **Real-time Ready** - Supabase subscriptions already implemented
 4. **PWA Support** - Workbox configured, icons, manifest ready
@@ -75,7 +75,7 @@ src/
 | Feature | Status | Notes |
 |---------|--------|-------|
 | Push Notifications | TODO | Prompt UI exists but disabled |
-| Messages (Customer) | Placeholder | "Messages feature coming soon" |
+| Messages | Implemented | Full chat UI for shops and customers with real-time |
 | Job Search/Filter | Missing | Can only view all jobs |
 | Job Status Notifications | Missing | No notification when status changes |
 | Reel Inventory Tracking | Partial | Not updated when jobs created |

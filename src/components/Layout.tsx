@@ -9,6 +9,13 @@ interface LayoutProps {
   onLogout: () => void;
 }
 
+interface NavItem {
+  path: string;
+  icon: any;
+  label: string;
+  badge?: number;
+}
+
 function LayoutContent({ user, onLogout }: LayoutProps) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -37,18 +44,18 @@ function LayoutContent({ user, onLogout }: LayoutProps) {
 
   if (!user) return <Outlet />;
 
-  const stringerNavItems = [
+  const stringerNavItems: NavItem[] = [
     { path: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
     { path: "/customers", icon: Users, label: "Customers" },
-    { path: "/messages", icon: MessageSquare, label: "Messages", badge: messageUnreadCount },
+    { path: "/messages", icon: MessageSquare, label: "Messages" },
     { path: "/inventory", icon: Package, label: "Inventory" },
     { path: "/profile", icon: User, label: "Profile" },
   ];
 
-  const customerNavItems = [
+  const customerNavItems: NavItem[] = [
     { path: "/dashboard?tab=jobs", icon: FileText, label: "My Jobs" },
     { path: "/dashboard?tab=racquets", icon: Package, label: "My Bag" },
-    { path: "/dashboard?tab=messages", icon: MessageSquare, label: "Messages", badge: messageUnreadCount },
+    { path: "/messages", icon: MessageSquare, label: "Messages" },
     { path: "/profile", icon: User, label: "Profile" },
   ];
 
