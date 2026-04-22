@@ -7,8 +7,7 @@ export default function RacquetSpecsAdmin({ user }: { user: any }) {
   const { fetchProfile } = useAuth();
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
-  const [existingRacquets, setExistingRacquets] = useState<any[]>([]);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [stringSuccess, setStringSuccess] = useState(false);
   const navigate = useNavigate();
 
   const [form, setForm] = useState({
@@ -21,25 +20,14 @@ export default function RacquetSpecsAdmin({ user }: { user: any }) {
     stringing_instructions: ""
   });
 
-  useEffect(() => {
-    const fetchRacquets = async () => {
-      const { data, error } = await supabase
-        .from('racquet_specs_cache')
-        .select('*')
-        .order('brand', { ascending: true })
-        .limit(100);
-
-      if (!error && data) {
-        setExistingRacquets(data);
-      }
-    };
-    fetchRacquets();
-  }, []);
-
-  const filteredRacquets = existingRacquets.filter(r => 
-    r.brand.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    r.model.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const [stringForm, setStringForm] = useState({
+    brand: "",
+    model: "",
+    category: "string",
+    gauge: "",
+    color: "",
+    description: ""
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -81,16 +69,41 @@ export default function RacquetSpecsAdmin({ user }: { user: any }) {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Delete this racquet?")) return;
+  const handleStringSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
 
-    const { error } = await supabase
-      .from('racquet_specs_cache')
-      .delete()
-      .eq('id', id);
+    try {
+      const { error } = await supabase
+        .from('string_catalog')
+        .insert({
+          brand: stringForm.brand,
+          model: stringForm.model,
+          category: stringForm.category,
+          gauge: stringForm.gauge || null,
+          color: stringForm.color || null,
+          description: stringForm.description || null
+        });
 
-    if (!error) {
-      setExistingRacquets(prev => prev.filter(r => r.id !== id));
+      if (error) throw error;
+
+      setStringSuccess(true);
+      setTimeout(() => {
+        setStringSuccess(false);
+        setStringForm({
+          brand: "",
+          model: "",
+          category: "string",
+          gauge: "",
+          color: "",
+          description: ""
+        });
+      }, 2000);
+    } catch (err: any) {
+      console.error("Error adding string:", err);
+      alert(err.message || "Failed to add string");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -99,7 +112,7 @@ export default function RacquetSpecsAdmin({ user }: { user: any }) {
       <div className="max-w-4xl mx-auto">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-            Racquet Specs Admin
+            Admin
           </h1>
           <button
             onClick={() => navigate(-1)}
@@ -112,7 +125,7 @@ export default function RacquetSpecsAdmin({ user }: { user: any }) {
         <div className="grid md:grid-cols-2 gap-6">
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
             <h2 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">
-              Add New Racquet
+              Add Racquet Spec
             </h2>
 
             {success && (
@@ -227,40 +240,107 @@ export default function RacquetSpecsAdmin({ user }: { user: any }) {
 
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
             <h2 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">
-              Existing Racquets ({existingRacquets.length})
+              Add String to Catalog
             </h2>
 
-            <input
-              type="text"
-              placeholder="Search racquets..."
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              className="w-full px-3 py-2 mb-4 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-            />
+            {stringSuccess && (
+              <div className="mb-4 p-3 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 rounded">
+                String added successfully!
+              </div>
+            )}
 
-            <div className="max-h-96 overflow-y-auto space-y-2">
-              {filteredRacquets.map(racquet => (
-                <div
-                  key={racquet.id}
-                  className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded"
+            <form onSubmit={handleStringSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Brand *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={stringForm.brand}
+                  onChange={e => setStringForm({ ...stringForm, brand: e.target.value })}
+                  placeholder="e.g., HEAD"
+                  className="mt-1 w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Model *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={stringForm.model}
+                  onChange={e => setStringForm({ ...stringForm, model: e.target.value })}
+                  placeholder="e.g., Lynx Tour"
+                  className="mt-1 w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Category
+                </label>
+                <select
+                  value={stringForm.category}
+                  onChange={e => setStringForm({ ...stringForm, category: e.target.value })}
+                  className="mt-1 w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 >
-                  <div>
-                    <div className="font-medium text-gray-900 dark:text-white">
-                      {racquet.brand} {racquet.model}
-                    </div>
-                    <div className="text-sm text-gray-500 dark:text-gray-400">
-                      {racquet.head_size} • {racquet.string_pattern} • {racquet.tension_range}
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => handleDelete(racquet.id)}
-                    className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
-                  >
-                    Delete
-                  </button>
-                </div>
-              ))}
-            </div>
+                  <option value="string">String</option>
+                  <option value="grip">Grip</option>
+                  <option value="dampener">Dampener</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Gauge
+                </label>
+                <input
+                  type="text"
+                  value={stringForm.gauge}
+                  onChange={e => setStringForm({ ...stringForm, gauge: e.target.value })}
+                  placeholder="e.g., 17"
+                  className="mt-1 w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Color
+                </label>
+                <input
+                  type="text"
+                  value={stringForm.color}
+                  onChange={e => setStringForm({ ...stringForm, color: e.target.value })}
+                  placeholder="e.g., Black"
+                  className="mt-1 w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Description
+                </label>
+                <textarea
+                  value={stringForm.description}
+                  onChange={e => setStringForm({ ...stringForm, description: e.target.value })}
+                  placeholder="Additional details..."
+                  rows={2}
+                  className="mt-1 w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-md font-medium disabled:opacity-50"
+              >
+                {loading ? "Adding..." : "Add String"}
+              </button>
+            </form>
           </div>
         </div>
       </div>
