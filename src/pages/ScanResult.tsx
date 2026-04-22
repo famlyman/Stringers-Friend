@@ -108,7 +108,7 @@ export default function ScanResult() {
           
           if (racquetData) {
             const { data: jobs } = await supabase
-              .from('stringing_jobs')
+              .from('jobs')
               .select('*')
               .eq('racquet_id', racquetData.id)
               .order('created_at', { ascending: false })
@@ -250,7 +250,7 @@ export default function ScanResult() {
           if (racquetData) {
             // Get jobs for this racquet
             const { data: jobs } = await supabase
-              .from('stringing_jobs')
+              .from('jobs')
               .select('*')
               .eq('racquet_id', racquetData.id)
               .order('created_at', { ascending: false })
@@ -346,7 +346,7 @@ export default function ScanResult() {
           
           if (racquetData) {
             const { data: jobs } = await supabase
-              .from('stringing_jobs')
+              .from('jobs')
               .select('*')
               .eq('racquet_id', racquetData.id)
               .order('created_at', { ascending: false })

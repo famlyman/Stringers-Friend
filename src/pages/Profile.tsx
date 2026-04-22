@@ -245,7 +245,7 @@ export default function Profile({ user }: ProfileProps) {
 
         // Delete stringing jobs
         await supabase
-          .from('stringing_jobs')
+          .from('jobs')
           .delete()
           .eq('shop_id', user.shop_id);
 

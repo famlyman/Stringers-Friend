@@ -405,14 +405,14 @@ export default function CustomerList({ user }: { user: any }) {
     try {
       // Delete associated jobs first
       const { data: jobsToDelete } = await supabase
-        .from('stringing_jobs')
+        .from('jobs')
         .select('id')
         .eq('shop_id', user.shop_id);
 
       if (jobsToDelete) {
         for (const job of jobsToDelete) {
           await supabase
-            .from('stringing_jobs')
+            .from('jobs')
             .delete()
             .eq('id', job.id);
         }
@@ -451,14 +451,14 @@ export default function CustomerList({ user }: { user: any }) {
 
       // Delete customer's jobs
       const { data: jobsToDelete } = await supabase
-        .from('stringing_jobs')
+        .from('jobs')
         .select('id')
         .eq('shop_id', user.shop_id);
 
       if (jobsToDelete) {
         for (const job of jobsToDelete) {
           await supabase
-            .from('stringing_jobs')
+            .from('jobs')
             .delete()
             .eq('id', job.id);
         }
