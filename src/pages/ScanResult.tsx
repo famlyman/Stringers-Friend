@@ -68,10 +68,9 @@ export default function ScanResult() {
 
       // Add timeout to prevent hanging
       const timeoutId = setTimeout(() => {
-        console.log('ScanResult - timeout reached, forcing loading false');
         setLoading(false);
         setError("Scan timed out. Please try again.");
-      }, 5000);
+      }, 10000);
 
       try {
         let cleanCode = qrCode.trim();
@@ -86,12 +85,28 @@ export default function ScanResult() {
           cleanCode = cleanCode.slice(0, -1);
         }
 
-        console.log("Scanning code:", cleanCode);
+        // If it's NOT a valid UUID, try as shop slug first (most common case)
+        if (!isValidUuid(cleanCode)) {
+          try {
+            const { data: shops } = await supabase
+              .from('shops')
+              .select('*')
+              .eq('slug', cleanCode)
+              .limit(1);
+            
+            if (shops && shops.length > 0) {
+              setResult({ type: "shop", data: shops[0] });
+              setLoading(false);
+              clearTimeout(timeoutId);
+              return;
+            }
+          } catch (e) {
+            console.log("Error querying shop by slug:", e);
+          }
+        }
 
-// Check for valid UUID format specifically
+        // Only for valid UUIDs - check racquets
         if (isValidUuid(cleanCode)) {
-          
-          // Query by id directly
           try {
             const { data: racquetData, error: racquetError } = await supabase
               .from('racquets')
@@ -117,267 +132,7 @@ export default function ScanResult() {
                 jobs: jobs || []
               });
               setLoading(false);
-              return;
-            }
-          } catch (e) {
-            console.log("Error querying racquet:", e);
-          }
-          
-          setError("Racquet not found");
-          setLoading(false);
-          return;
-        }
-
-        // Handle shops with shop_ prefix - check UUID first
-        if (cleanCode.startsWith("shop_")) {
-          const shopId = cleanCode.replace("shop_", "");
-          
-          // Only query by ID if it's a valid UUID
-          if (isValidUuid(shopId)) {
-            try {
-              const { data: shop, error: shopError } = await supabase
-                .from('shops')
-                .select('*')
-                .eq('id', shopId)
-                .maybeSingle();
-              
-              if (shop && !shopError) {
-                setResult({
-                  type: "shop",
-                  data: shop
-                });
-                setLoading(false);
-                return;
-              }
-            } catch (e) {
-              console.log("Error querying shop by ID:", e);
-            }
-          }
-          
-          // Try finding by slug or qr_code
-          const { data: shops, error: shopsError } = await supabase
-            .from('shops')
-            .select('*')
-            .eq('slug', cleanCode)
-            .limit(1);
-          
-          if (!shops || shops.length === 0) {
-            const { data: shopsByQr } = await supabase
-              .from('shops')
-              .select('*')
-              .eq('qr_code', cleanCode);
-            
-            if (!shopsByQr || shopsByQr.length === 0) {
-              setError("Shop not found");
-            } else {
-              setResult({ type: "shop", data: shopsByQr[0] });
-            }
-          } else {
-            setResult({ type: "shop", data: shops[0] });
-          }
-        } else if (cleanCode.startsWith("SF|racket|") || cleanCode.startsWith("SF|r|")) {
-          const parts = cleanCode.split('|');
-          const isShort = cleanCode.startsWith("SF|r|");
-          
-          // Short format: SF|r|id|Brand Model (no strings - lookup from DB)
-          // Long format: SF|racket|id|brand|model|string|cross|tension
-          if (parts.length < 3) {
-            setError("Invalid QR code format");
-            return;
-          }
-          
-          const rId = parts[2];
-          let rBrand = '', rModel = '', racquetData = null;
-          
-          // Parse brand and model from remaining parts
-          if (isShort) {
-            // Short: parts[3] is "Brand Model"
-            const bm = (parts[3] || '').split(' ');
-            rBrand = bm[0] || '';
-            rModel = bm.slice(1).join(' ') || '';
-          } else {
-            // Long: parts[3] is brand, parts[4] is model
-            rBrand = parts[3] || '';
-            rModel = parts[4] || '';
-          }
-          
-          const embeddedData = {
-            id: rId,
-            brand: rBrand,
-            model: rModel,
-            isEmbedded: true
-          };
-            
-            // Try to find full racquet data from DB if online
-            if (isValidUuid(rId)) {
-              try {
-                const { data } = await supabase
-                  .from('racquets')
-                  .select('*, customers(*)')
-                  .eq('id', rId)
-                  .maybeSingle();
-                if (data) racquetData = data;
-              } catch (e) {
-                console.log("Error fetching racquet:", e);
-              }
-            }
-            
-            const displayData = racquetData ? {
-              ...racquetData,
-              customer_name: racquetData.customers ? `${racquetData.customers.first_name} ${racquetData.customers.last_name}` : 'Unknown',
-              customer_email: racquetData.customers?.email || 'Unknown'
-            } : {
-              ...embeddedData,
-              customer_name: embeddedData.brand ? 'Offline Data' : 'Unknown',
-              customer_email: ''
-            };
-            
-            setResult({
-              type: "racquet",
-              data: displayData,
-              jobs: []
-            });
-        } else if (cleanCode.startsWith("racquet_")) {
-          const racquetId = cleanCode.replace("racquet_", "");
-          
-          // Only query by ID if valid UUID
-          if (isValidUuid(racquetId)) {
-            try {
-              const { data: racquetData, error: racquetError } = await supabase
-                .from('racquets')
-                .select('*, customers(*)')
-                .eq('id', racquetId)
-                .maybeSingle();
-              
-              if (racquetData && !racquetError) {
-                const { data: jobs } = await supabase
-                  .from('jobs')
-                  .select('*')
-                  .eq('racquet_id', racquetData.id)
-                  .order('created_at', { ascending: false })
-                  .limit(10);
-
-                setResult({
-                  type: "racquet",
-                  data: { 
-                    ...racquetData, 
-                    customer_name: racquetData.customers ? `${racquetData.customers.first_name} ${racquetData.customers.last_name}` : 'Unknown',
-                    customer_email: racquetData.customers?.email || 'Unknown'
-                  },
-                  jobs: jobs || []
-                });
-              } else {
-                setError("Racquet not found");
-              }
-            } catch (e) {
-              setError("Racquet not found");
-            }
-          } else {
-            setError("Invalid racquet QR code");
-          }
-        } else if (cleanCode.startsWith("inventory_")) {
-          const itemId = cleanCode.replace("inventory_", "");
-          
-          // Only query by ID if valid UUID
-          if (isValidUuid(itemId)) {
-            const { data: itemData, error: itemError } = await supabase
-              .from('inventory')
-              .select('*')
-              .eq('id', itemId)
-              .maybeSingle();
-            
-            if (itemData && !itemError) {
-              setResult({
-                type: "inventory",
-                data: itemData
-              });
-            } else {
-              setError("Inventory item not found");
-            }
-          } else {
-            setError("Invalid inventory QR code");
-          }
-        } else {
-          // Last resort: try to find by ID or slug in all collections if no prefix
-          // Try shops by ID first (only if valid UUID)
-          if (isValidUuid(cleanCode)) {
-            try {
-              const { data: shopData } = await supabase
-                .from('shops')
-                .select('*')
-                .eq('id', cleanCode)
-                .maybeSingle();
-              
-              if (shopData) {
-                setResult({ type: "shop", data: shopData });
-                setLoading(false);
-                return;
-              }
-            } catch (e) {
-              console.log("Error querying shop by ID:", e);
-            }
-          }
-
-          // Try shops by slug (for shop QR codes)
-          try {
-            const { data: shopsBySlug } = await supabase
-              .from('shops')
-              .select('*')
-              .eq('slug', cleanCode)
-              .limit(1);
-            
-            if (shopsBySlug && shopsBySlug.length > 0) {
-              setResult({ type: "shop", data: shopsBySlug[0] });
-              setLoading(false);
-              return;
-            }
-          } catch (e) {
-            console.log("Error querying shops by slug:", e);
-          }
-
-          // Try shops by qr_code field
-          try {
-            const { data: shopsByQr } = await supabase
-              .from('shops')
-              .select('*')
-              .eq('qr_code', cleanCode)
-              .limit(1);
-            
-            if (shopsByQr && shopsByQr.length > 0) {
-              setResult({ type: "shop", data: shopsByQr[0] });
-              setLoading(false);
-              return;
-            }
-          } catch (e) {
-            console.log("Error querying shops by qr_code:", e);
-          }
-
-          // Try racquets (only valid UUID)
-          try {
-            const { data: racquetData } = await supabase
-              .from('racquets')
-              .select('*, customers(*)')
-              .eq('id', cleanCode)
-              .maybeSingle();
-            
-            if (racquetData) {
-              const { data: jobs } = await supabase
-                .from('jobs')
-                .select('*')
-                .eq('racquet_id', racquetData.id)
-                .order('created_at', { ascending: false })
-                .limit(10);
-              
-              setResult({ 
-                type: "racquet", 
-                data: { 
-                  ...racquetData, 
-                  customer_name: racquetData.customers ? `${racquetData.customers.first_name} ${racquetData.customers.last_name}` : 'Unknown',
-                  customer_email: racquetData.customers?.email || 'Unknown'
-                }, 
-                jobs: jobs || []
-              });
-              setLoading(false);
+              clearTimeout(timeoutId);
               return;
             }
           } catch (e) {
@@ -385,10 +140,11 @@ export default function ScanResult() {
           }
         }
 
-        setError("Unknown QR code");
+        // Not found
+        setError("Not found - try scanning a valid shop or racquet QR code");
       } catch (err) {
-        console.error(err);
-        setError("Failed to fetch data");
+        console.error("Scan error:", err);
+        setError("Failed to scan");
       } finally {
         clearTimeout(timeoutId);
         setLoading(false);
@@ -482,41 +238,6 @@ export default function ScanResult() {
                       Sign in
                     </Link>
                   </p>
-                </div>
-              )}
-            </div>
-          </div>
-        ) : result.type === "inventory" ? (
-          <div className="bg-white dark:bg-neutral-800 rounded-2xl border border-neutral-200 dark:border-neutral-700 p-8 shadow-sm">
-            <div className="flex justify-between items-start mb-6">
-              <div>
-                <h1 className="text-2xl font-bold text-primary">{result.data.brand} {result.data.name}</h1>
-                <p className="text-neutral-500 dark:text-neutral-400">Inventory Item</p>
-              </div>
-              <div className="bg-primary/10 dark:bg-primary/20 p-2 rounded-lg">
-                <QrCode className="w-6 h-6 text-primary" />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-neutral-50 dark:bg-neutral-900/50 p-4 rounded-xl border border-neutral-100 dark:border-neutral-700/50">
-                <p className="text-xs text-neutral-400 dark:text-neutral-500 uppercase tracking-wider font-bold">Type</p>
-                <p className="text-sm font-medium text-neutral-900 dark:text-white capitalize">{result.data.type} ({result.data.packaging || result.data.sub_type || ''})</p>
-              </div>
-              <div className="bg-neutral-50 dark:bg-neutral-900/50 p-4 rounded-xl border border-neutral-100 dark:border-neutral-700/50">
-                <p className="text-xs text-neutral-400 dark:text-neutral-500 uppercase tracking-wider font-bold">Price</p>
-                <p className="text-sm font-medium text-neutral-900 dark:text-white">${result.data.unit_price}</p>
-              </div>
-              <div className="bg-neutral-50 dark:bg-neutral-900/50 p-4 rounded-xl border border-neutral-100 dark:border-neutral-700/50">
-                <p className="text-xs text-neutral-400 dark:text-neutral-500 uppercase tracking-wider font-bold">Stock Level</p>
-                <p className={`text-sm font-medium ${result.data.quantity <= (result.data.low_stock_threshold || 0) ? 'text-red-500' : 'text-neutral-900 dark:text-white'}`}>
-                  {result.data.quantity} in stock
-                </p>
-              </div>
-              {result.data.gauge && (
-                <div className="bg-neutral-50 dark:bg-neutral-900/50 p-4 rounded-xl border border-neutral-100 dark:border-neutral-700/50">
-                  <p className="text-xs text-neutral-400 dark:text-neutral-500 uppercase tracking-wider font-bold">Gauge</p>
-                  <p className="text-sm font-medium text-neutral-900 dark:text-white">{result.data.gauge}</p>
                 </div>
               )}
             </div>
