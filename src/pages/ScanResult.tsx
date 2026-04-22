@@ -300,16 +300,21 @@ export default function ScanResult() {
           }
         } else {
           // Last resort: try to find by ID or slug in all collections if no prefix
-          // Try shops by ID first
-          const { data: shopData } = await supabase
-            .from('shops')
-            .select('*')
-            .eq('id', cleanCode)
-            .single();
+          // Skip non-UUID strings for id query to avoid errors
+          const isUuidForQuery = cleanCode.match(/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i);
           
-          if (shopData) {
-            setResult({ type: "shop", data: shopData });
-            return;
+          // Try shops by ID first (only if valid UUID)
+          if (isUuidForQuery) {
+            const { data: shopData } = await supabase
+              .from('shops')
+              .select('*')
+              .eq('id', cleanCode)
+              .single();
+            
+            if (shopData) {
+              setResult({ type: "shop", data: shopData });
+              return;
+            }
           }
 
           // Try shops by slug/qr_code (for shop QR codes)
@@ -336,31 +341,34 @@ export default function ScanResult() {
             return;
           }
 
-          // Try racquets
-          const { data: racquetData } = await supabase
-            .from('racquets')
-            .select('*, customers(*)')
-            .eq('id', cleanCode)
-            .single();
-          
-          if (racquetData) {
-            const { data: jobs } = await supabase
-              .from('jobs')
-              .select('*')
-              .eq('racquet_id', racquetData.id)
-              .order('created_at', { ascending: false })
-              .limit(10);
+          // Try racquets (only valid UUID)
+          const isUuidForRacquet = cleanCode.match(/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i);
+          if (isUuidForRacquet) {
+            const { data: racquetData } = await supabase
+              .from('racquets')
+              .select('*, customers(*)')
+              .eq('id', cleanCode)
+              .single();
             
-            setResult({ 
-              type: "racquet", 
-              data: { 
-                ...racquetData, 
-                customer_name: racquetData.customers ? `${racquetData.customers.first_name} ${racquetData.customers.last_name}` : 'Unknown',
-                customer_email: racquetData.customers?.email || 'Unknown'
-              }, 
-              jobs: jobs || []
-            });
-            return;
+            if (racquetData) {
+              const { data: jobs } = await supabase
+                .from('jobs')
+                .select('*')
+                .eq('racquet_id', racquetData.id)
+                .order('created_at', { ascending: false })
+                .limit(10);
+              
+              setResult({ 
+                type: "racquet", 
+                data: { 
+                  ...racquetData, 
+                  customer_name: racquetData.customers ? `${racquetData.customers.first_name} ${racquetData.customers.last_name}` : 'Unknown',
+                  customer_email: racquetData.customers?.email || 'Unknown'
+                }, 
+                jobs: jobs || []
+              });
+              return;
+            }
           }
 
           setError("Unknown QR code");
