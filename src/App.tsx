@@ -15,6 +15,7 @@ import Profile from "./pages/Profile";
 import Landing from "./pages/Landing";
 import Layout from "./components/Layout";
 import ErrorBoundary from "./components/ErrorBoundary";
+import RacquetSpecsAdmin from "./pages/RacquetSpecsAdmin";
 import { AuthProvider, useAuth } from "./context/SupabaseAuthContext";
 import { ThemeProvider } from "./context/ThemeContext";
 
@@ -110,6 +111,7 @@ function AppRoutes() {
           ) : <Navigate to="/" replace />
         } />
         <Route path="/profile" element={profile ? <Profile user={profile} /> : <Navigate to="/" replace />} />
+        <Route path="/racquet-specs" element={profile?.role === 'stringer' ? <RacquetSpecsAdmin user={profile} /> : <Navigate to="/" replace />} />
       </Route>
 
       {/* Public Shop Slug - Should be last */}

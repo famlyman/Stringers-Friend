@@ -302,8 +302,6 @@ setServices(services);
             setError("Shop not found");
           }
         }
-        console.error("Error fetching shop:", err);
-        setError("Failed to load shop. Please try again later.");
       } finally {
         setLoading(false);
       }

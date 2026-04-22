@@ -49,6 +49,7 @@ function LayoutContent({ user, onLogout }: LayoutProps) {
     { path: "/customers", icon: Users, label: "Customers" },
     { path: "/messages", icon: MessageSquare, label: "Messages" },
     { path: "/inventory", icon: Package, label: "Inventory" },
+    { path: "/racquet-specs", icon: Settings, label: "Racquet Specs" },
     { path: "/profile", icon: User, label: "Profile" },
   ];
 
