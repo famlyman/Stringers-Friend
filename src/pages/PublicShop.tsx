@@ -603,22 +603,26 @@ setServices(services);
                       : "You have an account but aren't registered with this shop yet. Join now to start tracking your jobs here.")
                   : "Register to create your \"Bag\" of racquets and track all your stringing history in one place."}
               </p>
-              {user ? (
-                isCustomerOfShop ? (
-                  <Link
-                    to="/"
-                    className="flex items-center justify-center gap-2 w-full py-3 bg-primary text-white rounded-xl font-bold hover:bg-primary/90 transition-all shadow-lg shadow-primary/20"
-                  >
-                    Go to Dashboard <LayoutDashboard className="w-4 h-4" />
-                  </Link>
+              {user ? (isCustomerOfShop ? (
+                  <div className="text-center">
+                    <div className="flex items-center justify-center gap-2 w-full py-3 bg-green-500 text-white rounded-xl font-bold">
+                      <CheckCircle2 className="w-5 h-5" /> Already a Customer
+                    </div>
+                    <p className="text-xs text-neutral-500 mt-2">You can manage your racquets in the dashboard.</p>
+                  </div>
                 ) : (
-                  <button
-                    onClick={handleJoinShop}
-                    disabled={joining}
-                    className="flex items-center justify-center gap-2 w-full py-3 bg-primary text-white rounded-xl font-bold hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 disabled:opacity-50"
-                  >
-                    {joining ? "Joining..." : "Join this Shop"} <UserPlus className="w-4 h-4" />
-                  </button>
+                  <>
+                    <button
+                      onClick={handleJoinShop}
+                      disabled={joining}
+                      className="flex items-center justify-center gap-2 w-full py-3 bg-primary text-white rounded-xl font-bold hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 disabled:opacity-50"
+                    >
+                      {joining ? "Joining..." : "Join this Shop"} <UserPlus className="w-4 h-4" />
+                    </button>
+                    {joining === false && (
+                      <p className="text-xs text-neutral-500 mt-2">Link your account to this shop to track jobs.</p>
+                    )}
+                  </>
                 )
               ) : (
                 <Link
@@ -761,13 +765,18 @@ setServices(services);
             ) : (
               <>
                 <div className="mb-8">
-                  <h3 className="text-3xl font-black text-neutral-900 dark:text-white tracking-tight mb-2">Request Service</h3>
                   {selectedService ? (
-                    <div className="flex items-center gap-2 px-3 py-1 bg-primary/10 text-primary rounded-lg w-fit text-xs font-bold mb-2">
-                      <Zap className="w-3 h-3" /> Selected: {selectedService}
-                    </div>
+                    <>
+                      <h3 className="text-3xl font-black text-neutral-900 dark:text-white tracking-tight mb-2">{selectedService}</h3>
+                      <div className="flex items-center gap-2 px-3 py-1 bg-primary/10 text-primary rounded-lg w-fit text-xs font-bold">
+                        <Zap className="w-3 h-3" /> Service Request
+                      </div>
+                    </>
                   ) : (
-                    <p className="text-neutral-500 dark:text-neutral-400">Send a message to {shop.name} about your racquet.</p>
+                    <>
+                      <h3 className="text-3xl font-black text-neutral-900 dark:text-white tracking-tight mb-2">Request Service</h3>
+                      <p className="text-neutral-500 dark:text-neutral-400">Send a message to {shop.name} about your racquet.</p>
+                    </>
                   )}
                 </div>
 
