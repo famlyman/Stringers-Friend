@@ -1,39 +1,27 @@
 # Session Summary - 2026-04-22
 
-## QR Code Scan Fix Session
+## Completed Fixes
 
-### Root Cause
-- Shop QR encoded `shop.slug` as value, which went to `/r/:slug` route (RacquetPage)
-- RacquetPage tried to query slug as UUID, causing "invalid input syntax for type uuid" error
+### PublicShop.tsx Issues
+1. **Request Service / Order Now** - Modal now shows service name prominently as the header
+2. **Registration Password Fields** - Password field now shows when "Register as customer" checkbox is checked (removed `!user` condition)
+3. **Join This Shop** - Opens contact modal with pre-filled user data and "Register as customer" checked
+4. **Order Now Message** - Pre-fills service name and sends message with correct schema fields
 
-### Fixes Applied
-1. **RacquetPage.tsx** - Added UUID validation, redirects to `/:slug` if not UUID
-2. **ScanResult.tsx** - Added redirect to `/:slug` if slug lookup fails
-3. **PublicShop.tsx** - Added UUID validation for `.eq('id')` queries
+### Database Fixes
+- **Customer ID format** - Removed manual `cust_${Date.now()}` ID; now uses auto-generated UUID
+- **Message schema** - Fixed to use `sender_type: 'customer'` and `is_read: false`
+- **Error handling** - Added proper error handling for customer/message inserts
+
+### New Features
+- **Racquet Specs Admin** - New `/racquet-specs` page for adding racquets and strings to catalog
 
 ---
 
-## Issues to Fix (Next Session)
+## Remaining Issues
 
-### 1. Shop Landing Page - Request Service Button
-**Location:** `src/pages/PublicShop.tsx`
-**Issue:** Clicking "Request Service" button opens modal but does nothing
-**Expected:** Should trigger inquiry/lead creation or open form
-
-### 2. Registration Modal - Missing Password Fields
-**Location:** `src/pages/PublicShop.tsx` (registration modal)
-**Issue:** Checkbox "Register as customer" shown but no password fields appear when checked
-**Expected:** When checkbox checked, password and confirm password fields should appear
-
-### 3. Join This Shop Button - Wrong Redirect
-**Location:** `src/pages/PublicShop.tsx` 
-**Issue:** "Join this Shop" button redirects to platform landing page instead of opening registration modal
-**Expected:** Should open registration modal or form
-
-### 4. Order Now Button - Not Working
-**Location:** `src/pages/PublicShop.tsx`
-**Issue:** Same as #1 - opens modal but nothing happens
-**Expected:** Should add items to cart or trigger job creation
+### Not Yet Fixed
+1. Hole numbering conversion for stringing instructions (skipped for now)
 
 ---
 

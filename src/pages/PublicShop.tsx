@@ -167,21 +167,29 @@ export default function PublicShop() {
         .eq('shop_id', shop.id);
       
       if (!existingCustomers || existingCustomers.length === 0) {
-        customerId = `cust_${Date.now()}`;
         const nameParts = contactForm.name.split(' ');
-        await supabase
+        const { data: newCustomer, error: customerError } = await supabase
           .from('customers')
           .insert({
-            id: customerId,
             first_name: nameParts[0] || '',
             last_name: nameParts.slice(1).join(' ') || '',
             email: contactForm.email,
             phone: contactForm.phone,
             shop_id: shop.id,
             profile_id: currentUserId || null,
-            created_at: new Date().toISOString(),
             is_lead: !contactForm.register
-          });
+          })
+          .select('id')
+          .single();
+        
+        if (customerError) {
+          console.error("Error creating customer:", customerError);
+          setSubmitError("Failed to create account. Please try again.");
+          setSubmitting(false);
+          return;
+        }
+        
+        customerId = newCustomer.id;
         setIsCustomerOfShop(true);
       } else {
         customerId = existingCustomers[0].id;
