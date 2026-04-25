@@ -51,13 +51,13 @@ export default function PublicShop() {
     try {
       const { data: existingCustomers } = await supabase
         .from('customers')
-        .select('id, user_id')
+        .select('id, profile_id')
         .eq('email', user.email || '')
         .eq('shop_id', shop.id);
       
       if (!existingCustomers || existingCustomers.length === 0) {
         const customerId = `cust_${Date.now()}`;
-        await supabase
+        const { error: insertError } = await supabase
           .from('customers')
           .insert({
             id: customerId,
@@ -69,13 +69,25 @@ export default function PublicShop() {
             profile_id: user.id,
             created_at: new Date().toISOString()
           });
+        
+        if (insertError) {
+          console.error("Error creating customer record:", insertError);
+          alert("Failed to join shop. Please try again.");
+          return;
+        }
       } else {
-        // Just update the user_id if it's missing
-        if (!existingCustomers[0].user_id) {
-          await supabase
+        // Just update the profile_id if it's missing
+        if (!existingCustomers[0].profile_id) {
+          const { error: updateError } = await supabase
             .from('customers')
-            .update({ user_id: user.id })
+            .update({ profile_id: user.id })
             .eq('id', existingCustomers[0].id);
+          
+          if (updateError) {
+            console.error("Error linking customer:", updateError);
+            alert("Failed to join shop. Please try again.");
+            return;
+          }
         }
       }
       setIsCustomerOfShop(true);

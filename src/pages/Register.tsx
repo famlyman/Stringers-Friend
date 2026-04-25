@@ -49,7 +49,7 @@ export default function Register() {
             .eq('shop_id', shopId);
 
           if (searchError) {
-            console.error("Error searching for customer:", searchError);
+            throw new Error("Failed to verify customer status. Please try again.");
           } else if (!existingCustomers || existingCustomers.length === 0) {
             const { error: insertError } = await supabase
               .from('customers')
@@ -64,6 +64,7 @@ export default function Register() {
 
             if (insertError) {
               console.error("Error creating customer record:", insertError);
+              throw new Error(insertError.message || "Failed to create customer record");
             }
           }
         }
@@ -76,12 +77,18 @@ export default function Register() {
 
         if (linkError) {
           console.error("Error finding customers to link:", linkError);
-        } else if (customersToLink) {
+          throw new Error("Failed to link existing customer record");
+        } else if (customersToLink && customersToLink.length > 0) {
           for (const customer of customersToLink) {
-            await supabase
+            const { error: updateError } = await supabase
               .from('customers')
               .update({ profile_id: userId })
               .eq('id', customer.id);
+            
+            if (updateError) {
+              console.error("Error linking customer:", updateError);
+              throw new Error("Failed to link customer account");
+            }
           }
         }
         
