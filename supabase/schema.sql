@@ -130,6 +130,12 @@ CREATE POLICY "Customers can view own records"
     )
   );
 
+DROP POLICY IF EXISTS "Anyone can insert customers" ON public.customers;
+CREATE POLICY "Anyone can insert customers"
+  ON public.customers FOR INSERT
+  TO anon, authenticated
+  WITH CHECK (true);
+
 -- ============================================
 -- 4. RACQUET SPECS CACHE TABLE
 -- ============================================
@@ -417,13 +423,10 @@ CREATE POLICY "Customers can view their own messages"
   );
 
 DROP POLICY IF EXISTS "Customers can send messages" ON public.messages;
-CREATE POLICY "Customers can send messages" 
-  ON public.messages FOR INSERT 
-  WITH CHECK (
-    customer_id IN (
-      SELECT id FROM public.customers WHERE profile_id = auth.uid()
-    )
-  );
+CREATE POLICY "Anyone can send messages"
+  ON public.messages FOR INSERT
+  TO anon, authenticated
+  WITH CHECK (true);
 
 -- ============================================
 -- 10. NOTIFICATIONS TABLE

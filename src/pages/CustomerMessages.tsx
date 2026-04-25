@@ -37,6 +37,33 @@ export default function CustomerMessages({ user }: { user: any }) {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  useEffect(() => {
+    let subscription: any = null;
+    
+    const setupSubscription = async () => {
+      if (!customerId || !shopId) return;
+      
+      // Clean up any existing subscription
+      if (subscription) {
+        supabase.removeChannel(subscription);
+      }
+      
+      subscription = supabase
+        .channel(`customer-messages:${customerId}`)
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `customer_id=eq.${customerId}` },
+          () => fetchMessages())
+        .subscribe();
+    };
+
+    setupSubscription();
+
+    return () => {
+      if (subscription) {
+        supabase.removeChannel(subscription);
+      }
+    };
+  }, [customerId, shopId]);
+
   const fetchCustomerShop = async () => {
     try {
       const { data: customerData, error: customerError } = await supabase
@@ -56,30 +83,31 @@ export default function CustomerMessages({ user }: { user: any }) {
       const shopData = customerData?.shops as unknown as { name: string }[] | null;
       setShopName(shopData?.[0]?.name || "Shop");
 
-      const { data: messagesData, error: messagesError } = await supabase
-        .from("messages")
-        .select("*")
-        .eq("shop_id", customerData.shop_id)
-        .eq("customer_id", customerData.id)
-        .order("created_at", { ascending: true });
-
-      if (messagesError) throw messagesError;
-      setMessages(messagesData || []);
-
-      const messagesSubscription = supabase
-        .channel(`customer-messages:${customerData.id}`)
-        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `customer_id=eq.${customerData.id}` },
-          () => fetchCustomerShop())
-        .subscribe();
-
-      return () => {
-        messagesSubscription.unsubscribe();
-      };
+      await fetchMessages(customerData.shop_id, customerData.id);
     } catch (err) {
-      console.error("Error fetching messages:", err);
+      console.error("Error fetching customer shop:", err);
     } finally {
       setLoading(false);
     }
+  };
+
+  const fetchMessages = async (sid?: string, cid?: string) => {
+    const shopIdToUse = sid || shopId;
+    const customerIdToUse = cid || customerId;
+    if (!shopIdToUse || !customerIdToUse) return;
+
+    const { data: messagesData, error: messagesError } = await supabase
+      .from("messages")
+      .select("*")
+      .eq("shop_id", shopIdToUse)
+      .eq("customer_id", customerIdToUse)
+      .order("created_at", { ascending: true });
+
+    if (messagesError) {
+      console.error("Error fetching messages:", messagesError);
+      return;
+    }
+    setMessages(messagesData || []);
   };
 
   const sendMessage = async (e: React.FormEvent) => {
@@ -108,7 +136,7 @@ export default function CustomerMessages({ user }: { user: any }) {
 
       if (error) throw error;
       setNewMessage("");
-      fetchCustomerShop();
+      fetchMessages();
     } catch (err) {
       console.error("Error sending message:", err);
     } finally {
