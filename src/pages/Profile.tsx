@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
-import { User, Mail, Phone, Lock, Store, Save, AlertCircle, CheckCircle2, Loader2, Bell } from "lucide-react";
+import { User, Mail, Phone, Lock, Store, Save, AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
 import { useAuth } from "../context/SupabaseAuthContext";
 
 interface ProfileProps {
@@ -451,49 +451,12 @@ export default function Profile({ user }: ProfileProps) {
                     Save Shop Info
                   </button>
                 </div>
-              </form>
-            </section>
-          )}
-        </div>
+</form>
+          </section>
+        )}
 
         {/* Security / Password */}
-        <div className="space-y-8">
-          <section className="bg-white dark:bg-neutral-900 rounded-3xl border border-neutral-200 dark:border-neutral-800 shadow-sm overflow-hidden">
-            <div className="p-6 border-b border-neutral-100 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-800/50 flex items-center gap-3">
-              <div className="p-2 bg-primary/10 rounded-lg">
-                <Bell className="w-5 h-5 text-primary" />
-              </div>
-              <h2 className="font-bold text-neutral-900 dark:text-white">Notifications</h2>
-            </div>
-            <div className="p-6 space-y-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-bold text-neutral-900 dark:text-white">Push Notifications</p>
-                  <p className="text-xs text-neutral-500 dark:text-neutral-400">Receive alerts on your device.</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={async () => {
-                    setSaving(true);
-                    try {
-                      // TODO: Re-enable push notifications after Supabase migration
-                      // This feature is temporarily disabled during migration
-                      setSuccess("Push notifications will be available after migration!");
-                    } catch (err: any) {
-                      setError(err.message || "Error enabling notifications.");
-                    } finally {
-                      setSaving(false);
-                    }
-                  }}
-                  className="px-4 py-2 bg-primary/10 text-primary rounded-xl text-xs font-bold hover:bg-primary hover:text-white transition-all"
-                >
-                  Enable / Refresh
-                </button>
-              </div>
-            </div>
-          </section>
-
-          <section className="bg-white dark:bg-neutral-900 rounded-3xl border border-neutral-200 dark:border-neutral-800 shadow-sm overflow-hidden">
+        <section className="bg-white dark:bg-neutral-900 rounded-3xl border border-neutral-200 dark:border-neutral-800 shadow-sm overflow-hidden">
             <div className="p-6 border-b border-neutral-100 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-800/50 flex items-center gap-3">
               <div className="p-2 bg-primary/10 rounded-lg">
                 <Lock className="w-5 h-5 text-primary" />
