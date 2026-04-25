@@ -74,10 +74,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         const { error: createError } = await supabase
           .from('profiles')
-          .insert({
+          .upsert({
             id: userId,
             email: userEmail || '',
             role: profileRole,
+          }, {
+            onConflict: 'id',
+            ignoreDuplicates: false
           });
 
         if (!createError || createError?.code === '23505') {
@@ -90,6 +93,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (newProfile) {
             return newProfile as UserProfile;
           }
+        } else {
+          console.error('Error creating profile:', createError);
         }
       }
 

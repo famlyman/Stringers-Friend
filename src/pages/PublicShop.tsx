@@ -188,8 +188,7 @@ export default function PublicShop() {
             email: contactForm.email,
             phone: contactForm.phone,
             shop_id: shop.id,
-            profile_id: currentUserId || null,
-            is_lead: !contactForm.register
+            profile_id: currentUserId || null
           })
           .select('id')
           .single();
