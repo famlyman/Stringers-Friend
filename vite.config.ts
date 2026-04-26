@@ -13,7 +13,7 @@ export default defineConfig(({mode}) => {
       VitePWA({
         registerType: 'autoUpdate',
         includeAssets: ['icon.svg'],
-        injectRegister: 'auto',
+        injectRegister: false,
         workbox: {
           navigateFallbackDenylist: [/^\/api/],
           maximumFileSizeToCacheInBytes: 3000000, // 3 MB
