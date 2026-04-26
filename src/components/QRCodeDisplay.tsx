@@ -13,6 +13,7 @@ export default function QRCodeDisplay({
   stringCross,
   tensionMain,
   tensionCross,
+  customerName,
   minimal = false
 }: { 
   value: string, 
@@ -24,6 +25,7 @@ export default function QRCodeDisplay({
   stringCross?: string,
   tensionMain?: string | number,
   tensionCross?: string | number,
+  customerName?: string,
   minimal?: boolean
 }) {
   const [qrUrl, setQrUrl] = useState("");
@@ -107,7 +109,7 @@ export default function QRCodeDisplay({
               height: 100%;
             }
             .label-text {
-              font-size: 7pt;
+              font-size: 6pt;
               font-weight: 900;
               margin: 0;
               line-height: 1.1;
@@ -116,11 +118,11 @@ export default function QRCodeDisplay({
               max-height: 14pt;
               overflow: hidden;
             }
-            .serial-text {
-              font-size: 6pt;
+            .string-text {
+              font-size: 5pt;
               font-weight: 700;
               color: #111;
-              margin-top: 0.3mm;
+              margin-top: 0.2mm;
               white-space: nowrap;
               overflow: hidden;
               text-overflow: ellipsis;
@@ -151,12 +153,10 @@ export default function QRCodeDisplay({
           <div class="container">
             <img src="${qrUrl}" />
             <div class="info">
-              ${label ? `<div class="label-text">${label}</div>` : ''}
-              ${stringMain ? `<div class="serial-text">${stringMain}</div>` : ''}
-              ${stringCross ? `<div class="serial-text">${stringCross}</div>` : ''}
-              ${(tensionMain || tensionCross) ? `<div class="serial-text">${tensionMain}/${tensionCross} lbs</div>` : ''}
-              ${shopName ? `<div class="shop-name">${shopName}</div>` : ''}
-              ${shopPhone ? `<div class="shop-phone">${shopPhone}</div>` : ''}
+              ${customerName ? `<div class="label-text">${customerName}</div>` : ''}
+              ${stringMain ? `<div class="string-text">${stringMain}${tensionMain ? ' '+tensionMain+' lbs' : ''}</div>` : ''}
+              ${stringCross ? `<div class="string-text">${stringCross}${tensionCross ? ' '+tensionCross+' lbs' : ''}</div>` : ''}
+              ${label ? `<div class="string-text">${label}</div>` : ''}
             </div>
           </div>
           <script>
@@ -270,12 +270,10 @@ export default function QRCodeDisplay({
           >
             {qrUrl && <img src={qrUrl} alt="QR Code" className="w-48 h-48 mr-4 flex-shrink-0" />}
             <div className="flex flex-col justify-center min-width-0 flex-1">
-              {label && <p className="text-3xl font-black text-black leading-tight mb-1 line-clamp-2">{label}</p>}
-              {stringMain && <p className="text-2xl font-bold text-neutral-900 mb-1 truncate">{stringMain}</p>}
-              {stringCross && <p className="text-2xl font-bold text-neutral-900 mb-1 truncate">{stringCross}</p>}
-              {(tensionMain || tensionCross) && <p className="text-2xl font-bold text-neutral-900 truncate">{tensionMain}/{tensionCross} lbs</p>}
-              {shopName && <p className="text-sm font-black text-black uppercase tracking-tight truncate">{shopName}</p>}
-              {shopPhone && <p className="text-xs font-bold text-neutral-800">{shopPhone}</p>}
+              {customerName && <p className="text-3xl font-black text-black leading-tight mb-1 line-clamp-2">{customerName}</p>}
+              {stringMain && <p className="text-2xl font-bold text-neutral-900 mb-1 truncate">{stringMain}{tensionMain ? ' '+tensionMain+' lbs' : ''}</p>}
+              {stringCross && <p className="text-2xl font-bold text-neutral-900 mb-1 truncate">{stringCross}{tensionCross ? ' '+tensionCross+' lbs' : ''}</p>}
+              {label && <p className="text-2xl font-bold text-neutral-900 truncate">{label}</p>}
             </div>
           </div>
         </div>

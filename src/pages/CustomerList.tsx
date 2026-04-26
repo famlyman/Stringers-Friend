@@ -48,7 +48,7 @@ export default function CustomerList({ user }: { user: any }) {
   const [editingRacquet, setEditingRacquet] = useState<any | null>(null);
   const [expandedRacquetId, setExpandedRacquetId] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<{ type: 'customer' | 'racquet', id: string, name?: string } | null>(null);
-  const [showRacquetQR, setShowRacquetQR] = useState<{ id: string, brand: string, model: string } | null>(null);
+  const [showRacquetQR, setShowRacquetQR] = useState<{ id: string, brand: string, model: string, customerName: string, stringMain: string, stringCross: string, tensionMain: number | string, tensionCross: number | string } | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [fetchingSpecs, setFetchingSpecs] = useState(false);
   const [searchingModels, setSearchingModels] = useState(false);
@@ -1448,7 +1448,7 @@ export default function CustomerList({ user }: { user: any }) {
                               Edit Details
                             </button>
                             <button 
-                              onClick={(e) => { e.stopPropagation(); setShowRacquetQR({ id: racquet.id, brand: racquet.brand, model: racquet.model }); }}
+                              onClick={(e) => { e.stopPropagation(); setShowRacquetQR({ id: racquet.id, brand: racquet.brand, model: racquet.model, customerName: selectedCustomer ? `${selectedCustomer.first_name} ${selectedCustomer.last_name}` : '', stringMain: racquet.current_string_main || '', stringCross: racquet.current_string_cross || '', tensionMain: racquet.current_tension_main || '', tensionCross: racquet.current_tension_cross || '' }); }}
                               className="px-4 py-2 bg-neutral-100 dark:bg-neutral-700 text-neutral-600 dark:text-neutral-300 rounded-lg font-medium text-sm hover:bg-neutral-200 dark:hover:bg-neutral-600 transition-colors"
                             >
                               QR Code
@@ -1498,6 +1498,11 @@ export default function CustomerList({ user }: { user: any }) {
               <p className="text-xs font-bold text-neutral-500 dark:text-neutral-400 mb-3 uppercase tracking-wide">Racquet QR Code</p>
               <QRCodeDisplay 
                 value={showRacquetQR.id} 
+                customerName={showRacquetQR.customerName}
+                stringMain={showRacquetQR.stringMain}
+                stringCross={showRacquetQR.stringCross}
+                tensionMain={showRacquetQR.tensionMain}
+                tensionCross={showRacquetQR.tensionCross}
                 label={`${showRacquetQR.brand} ${showRacquetQR.model}`}
               />
             </div>
