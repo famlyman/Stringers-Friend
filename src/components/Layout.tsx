@@ -212,19 +212,15 @@ function LayoutContent({ user, onLogout }: LayoutProps) {
                   onClick={async () => {
                     setShowPushPrompt(false);
                     localStorage.setItem('lastPushPrompt', Date.now().toString());
-                    // Trigger OneSignal if available
+                    // Trigger OneSignal slidedown if available
                     const win = window as any;
                     try {
                       if (win.OneSignalDeferred?.push) {
                         win.OneSignalDeferred.push(async (OneSignal: any) => {
-                          if (OneSignal.registerForPushNotifications) {
-                            await OneSignal.registerForPushNotifications();
-                          } else if (OneSignal.showSlidedownPermissionPrompt) {
+                          if (OneSignal.showSlidedownPermissionPrompt) {
                             await OneSignal.showSlidedownPermissionPrompt();
                           }
                         });
-                      } else if (win.OneSignal?.registerForPushNotifications) {
-                        await win.OneSignal.registerForPushNotifications();
                       }
                     } catch (e) {
                       console.log('OneSignal not ready');
