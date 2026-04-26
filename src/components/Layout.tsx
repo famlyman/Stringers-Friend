@@ -212,7 +212,10 @@ function LayoutContent({ user, onLogout }: LayoutProps) {
                   onClick={async () => {
                     setShowPushPrompt(false);
                     localStorage.setItem('lastPushPrompt', Date.now().toString());
-                    // Let OneSignal handle the prompt - just dismiss our UI
+                    // Request browser notification permission directly
+                    if ('Notification' in window && Notification.permission === 'default') {
+                      await Notification.requestPermission();
+                    }
                   }}
                   className="px-4 py-2 bg-white text-primary rounded-xl text-xs font-bold hover:bg-white/90 transition-all whitespace-nowrap"
                 >
