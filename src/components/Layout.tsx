@@ -212,19 +212,7 @@ function LayoutContent({ user, onLogout }: LayoutProps) {
                   onClick={async () => {
                     setShowPushPrompt(false);
                     localStorage.setItem('lastPushPrompt', Date.now().toString());
-                    // Trigger OneSignal slidedown if available
-                    const win = window as any;
-                    try {
-                      if (win.OneSignalDeferred?.push) {
-                        win.OneSignalDeferred.push(async (OneSignal: any) => {
-                          if (OneSignal.showSlidedownPermissionPrompt) {
-                            await OneSignal.showSlidedownPermissionPrompt();
-                          }
-                        });
-                      }
-                    } catch (e) {
-                      console.log('OneSignal not ready');
-                    }
+                    // Let OneSignal handle the prompt - just dismiss our UI
                   }}
                   className="px-4 py-2 bg-white text-primary rounded-xl text-xs font-bold hover:bg-white/90 transition-all whitespace-nowrap"
                 >
