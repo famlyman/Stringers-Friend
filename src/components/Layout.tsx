@@ -211,9 +211,38 @@ function LayoutContent({ user, onLogout }: LayoutProps) {
                   onClick={async () => {
                     setShowPushPrompt(false);
                     localStorage.setItem('lastPushPrompt', Date.now().toString());
-                    // Request browser notification permission directly
-                    if ('Notification' in window && Notification.permission === 'default') {
-                      await Notification.requestPermission();
+                    
+                    // Trigger OneSignal prompt if available
+                    const win = window as any;
+                    try {
+                      if (win.OneSignalDeferred) {
+                        win.OneSignalDeferred.push(async (OneSignal: any) => {
+                          // Try various OneSignal prompt methods
+                          if (OneSignal.showSlidedownPermissionPrompt) {
+                            await OneSignal.showSlidedownPermissionPrompt();
+                          } else if (OneSignal.showNativePrompt) {
+                            await OneSignal.showNativePrompt();
+                          } else if (OneSignal.requestPermission) {
+                            await OneSignal.requestPermission();
+                          } else {
+                            // Fallback to browser native prompt
+                            if ('Notification' in window && Notification.permission === 'default') {
+                              await Notification.requestPermission();
+                            }
+                          }
+                        });
+                      } else if (win.OneSignal) {
+                        // OneSignal already initialized
+                        if (win.OneSignal.showSlidedownPermissionPrompt) {
+                          await win.OneSignal.showSlidedownPermissionPrompt();
+                        }
+                      }
+                    } catch (e) {
+                      console.log('OneSignal prompt error:', e);
+                      // Fallback to native
+                      if ('Notification' in window && Notification.permission === 'default') {
+                        await Notification.requestPermission();
+                      }
                     }
                   }}
                   className="px-4 py-2 bg-white text-primary rounded-xl text-xs font-bold hover:bg-white/90 transition-all whitespace-nowrap"
