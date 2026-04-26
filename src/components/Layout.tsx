@@ -212,14 +212,22 @@ function LayoutContent({ user, onLogout }: LayoutProps) {
                   onClick={async () => {
                     setShowPushPrompt(false);
                     localStorage.setItem('lastPushPrompt', Date.now().toString());
-                    // Trigger OneSignal
+                    // Trigger OneSignal if available
                     const win = window as any;
-                    if (win.OneSignalDeferred) {
-                      win.OneSignalDeferred.push(async (OneSignal: any) => {
-                        await OneSignal.registerForPushNotifications();
-                      });
-                    } else if (win.OneSignal) {
-                      await win.OneSignal.registerForPushNotifications();
+                    try {
+                      if (win.OneSignalDeferred?.push) {
+                        win.OneSignalDeferred.push(async (OneSignal: any) => {
+                          if (OneSignal.registerForPushNotifications) {
+                            await OneSignal.registerForPushNotifications();
+                          } else if (OneSignal.showSlidedownPermissionPrompt) {
+                            await OneSignal.showSlidedownPermissionPrompt();
+                          }
+                        });
+                      } else if (win.OneSignal?.registerForPushNotifications) {
+                        await win.OneSignal.registerForPushNotifications();
+                      }
+                    } catch (e) {
+                      console.log('OneSignal not ready');
                     }
                   }}
                   className="px-4 py-2 bg-white text-primary rounded-xl text-xs font-bold hover:bg-white/90 transition-all whitespace-nowrap"
