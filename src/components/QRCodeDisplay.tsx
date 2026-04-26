@@ -266,14 +266,14 @@ export default function QRCodeDisplay({
           <div 
             ref={labelRef}
             className="bg-white p-2 flex flex-row items-center justify-start text-left"
-            style={{ width: '600px', height: '210px' }}
+            style={{ width: '600px', height: '280px' }}
           >
-            {qrUrl && <img src={qrUrl} alt="QR Code" className="w-48 h-48 mr-4 flex-shrink-0" />}
-            <div className="flex flex-col justify-center min-width-0 flex-1">
-              {customerName && <p className="text-3xl font-black text-black leading-tight mb-1 line-clamp-2">{customerName}</p>}
-              {stringMain && <p className="text-2xl font-bold text-neutral-900 mb-1 truncate">{stringMain}{tensionMain ? ' '+tensionMain+' lbs' : ''}</p>}
-              {stringCross && <p className="text-2xl font-bold text-neutral-900 mb-1 truncate">{stringCross}{tensionCross ? ' '+tensionCross+' lbs' : ''}</p>}
-              {label && <p className="text-2xl font-bold text-neutral-900 truncate">{label}</p>}
+            {qrUrl && <img src={qrUrl} alt="QR Code" className="w-[220px] h-[220px] mr-4 flex-shrink-0" />}
+            <div className="flex flex-col justify-center min-w-0 flex-1">
+              {customerName && <p className="text-5xl font-black text-black leading-tight mb-2 line-clamp-2">{customerName}</p>}
+              {stringMain && <p className="text-4xl font-bold text-black mb-2 truncate">{stringMain}{tensionMain ? ' '+tensionMain+' lbs' : ''}</p>}
+              {stringCross && <p className="text-4xl font-bold text-black mb-2 truncate">{stringCross}{tensionCross ? ' '+tensionCross+' lbs' : ''}</p>}
+              {label && <p className="text-4xl font-bold text-black truncate">{label}</p>}
             </div>
           </div>
         </div>
@@ -311,14 +311,14 @@ export default function QRCodeDisplay({
         <div 
           ref={labelRef}
           className="bg-white p-2 flex flex-row items-center justify-start text-left"
-          style={{ width: '600px', height: '210px' }}
+          style={{ width: '600px', height: '280px' }}
         >
-          {qrUrl && <img src={qrUrl} alt="QR Code" className="w-48 h-48 mr-4 flex-shrink-0" />}
-          <div className="flex flex-col justify-center min-width-0 flex-1">
-            {label && <p className="text-3xl font-black text-black leading-tight mb-1 line-clamp-2">{label}</p>}
-            {serialNumber && <p className="text-xl font-bold text-neutral-900 mb-1 truncate">S/N: {serialNumber}</p>}
-            {shopName && <p className="text-sm font-black text-black uppercase tracking-tight truncate">{shopName}</p>}
-            {shopPhone && <p className="text-xs font-bold text-neutral-800">{shopPhone}</p>}
+          {qrUrl && <img src={qrUrl} alt="QR Code" className="w-[220px] h-[220px] mr-4 flex-shrink-0" />}
+          <div className="flex flex-col justify-center min-w-0 flex-1">
+            {customerName && <p className="text-5xl font-black text-black leading-tight mb-2 line-clamp-2">{customerName}</p>}
+            {stringMain && <p className="text-4xl font-bold text-black mb-2 truncate">{stringMain}{tensionMain ? ' '+tensionMain+' lbs' : ''}</p>}
+            {stringCross && <p className="text-4xl font-bold text-black mb-2 truncate">{stringCross}{tensionCross ? ' '+tensionCross+' lbs' : ''}</p>}
+            {label && <p className="text-4xl font-bold text-black truncate">{label}</p>}
           </div>
         </div>
       </div>
