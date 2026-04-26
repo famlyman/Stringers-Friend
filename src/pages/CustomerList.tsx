@@ -48,6 +48,7 @@ export default function CustomerList({ user }: { user: any }) {
   const [editingRacquet, setEditingRacquet] = useState<any | null>(null);
   const [expandedRacquetId, setExpandedRacquetId] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<{ type: 'customer' | 'racquet', id: string, name?: string } | null>(null);
+  const [showRacquetQR, setShowRacquetQR] = useState<{ id: string, brand: string, model: string } | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [fetchingSpecs, setFetchingSpecs] = useState(false);
   const [searchingModels, setSearchingModels] = useState(false);
@@ -1447,6 +1448,12 @@ export default function CustomerList({ user }: { user: any }) {
                               Edit Details
                             </button>
                             <button 
+                              onClick={(e) => { e.stopPropagation(); setShowRacquetQR({ id: racquet.id, brand: racquet.brand, model: racquet.model }); }}
+                              className="px-4 py-2 bg-neutral-100 dark:bg-neutral-700 text-neutral-600 dark:text-neutral-300 rounded-lg font-medium text-sm hover:bg-neutral-200 dark:hover:bg-neutral-600 transition-colors"
+                            >
+                              QR Code
+                            </button>
+                            <button 
                               onClick={(e) => { e.stopPropagation(); setDeleteConfirm({ type: 'racquet', id: racquet.id, name: `${racquet.brand} ${racquet.model}` }); }}
                               className="px-4 py-2 bg-red-50 dark:bg-red-900/20 text-red-600 rounded-lg font-medium text-sm hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
                             >
@@ -1469,6 +1476,34 @@ export default function CustomerList({ user }: { user: any }) {
           )}
         </div>
       </div>
+
+      {/* Racquet QR Code Modal */}
+      {showRacquetQR && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
+          onClick={() => setShowRacquetQR(null)}
+        >
+          <div 
+            className="bg-white dark:bg-neutral-800 rounded-2xl p-6 max-w-sm w-full mx-4 relative"
+            onClick={e => e.stopPropagation()}
+          >
+            <button 
+              onClick={() => setShowRacquetQR(null)}
+              className="absolute top-3 right-3 p-2 bg-neutral-100 dark:bg-neutral-700 rounded-full hover:bg-neutral-200 dark:hover:bg-neutral-600"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            
+            <div className="flex flex-col items-center">
+              <p className="text-xs font-bold text-neutral-500 dark:text-neutral-400 mb-3 uppercase tracking-wide">Racquet QR Code</p>
+              <QRCodeDisplay 
+                value={showRacquetQR.id} 
+                label={`${showRacquetQR.brand} ${showRacquetQR.model}`}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
