@@ -29,12 +29,11 @@ function LayoutContent({ user, onLogout }: LayoutProps) {
 
     const checkPushStatus = async () => {
       if (typeof window !== 'undefined' && 'Notification' in window) {
-        if (Notification.permission === 'default') {
-          const lastPrompt = localStorage.getItem('lastPushPrompt');
-          const now = Date.now();
-          if (!lastPrompt || now - parseInt(lastPrompt) > 24 * 60 * 60 * 1000) {
-            setShowPushPrompt(true);
-          }
+        // Show prompt if permission not granted (default or denied)
+        const lastPrompt = localStorage.getItem('lastPushPrompt');
+        const now = Date.now();
+        if (Notification.permission !== 'granted' && (!lastPrompt || now - parseInt(lastPrompt) > 24 * 60 * 60 * 1000)) {
+          setShowPushPrompt(true);
         }
       }
     };

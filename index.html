@@ -40,6 +40,15 @@
         });
       });
     </script>
+    
+    <!-- Register OneSignal Service Worker manually if needed -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/push/onesignal/OneSignalSDKWorker.js')
+          .then(function(reg) { console.log('OneSignal SW registered'); })
+          .catch(function(err) { console.log('OneSignal SW failed:', err); });
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>
