@@ -495,15 +495,6 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
               className="w-full pl-10 pr-4 py-2.5 bg-bg-elevated border border-border-main rounded-xl text-text-main placeholder:text-text-muted/50 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none text-sm"
             />
           </div>
-          {activeTab === 'jobs' && (
-            <button
-              onClick={() => setShowNewJob(true)}
-              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-gradient-primary text-white rounded-xl font-bold text-sm hover:shadow-lg hover:shadow-primary/20 transition-all"
-            >
-              <Plus className="w-5 h-5" />
-              New Job
-            </button>
-          )}
         </div>
 
         {/* Jobs Tab */}
