@@ -33,21 +33,8 @@
       OneSignalDeferred.push(function(OneSignal) {
         OneSignal.init({
           appId: "133fd1be-b1e9-4664-a061-8a1a66e3e7f3",
-          serviceWorkerPath: "push/onesignal/OneSignalSDKWorker.js",
-          serviceWorkerParam: { scope: "/push/onesignal/" },
-          allowLocalhostAsSecureOrigin: true,
-          autoResend: true,
         });
       });
-    </script>
-    
-    <!-- Register OneSignal Service Worker manually if needed -->
-    <script>
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('/push/onesignal/OneSignalSDKWorker.js')
-          .then(function(reg) { console.log('OneSignal SW registered'); })
-          .catch(function(err) { console.log('OneSignal SW failed:', err); });
-      }
     </script>
   </head>
   <body>

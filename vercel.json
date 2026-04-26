@@ -4,20 +4,13 @@
     { "source": "/api/health", "destination": "/api/health.ts" },
     { "source": "/api/send-notification", "destination": "/api/send-notification.ts" },
     { "source": "/api/(.*)", "destination": "/api/index.ts" },
-    { "source": "/((?!api/|assets/|push/|sw\\.js|.*\\..*).*)", "destination": "/index.html" }
+    { "source": "/sw.js", "destination": "/sw.js" },
+    { "source": "/OneSignalSDKWorker.js", "destination": "/OneSignalSDKWorker.js" },
+    { "source": "/((?!api/|assets/|.*\\..*).*)", "destination": "/index.html" }
   ],
   "headers": [
     {
       "source": "/assets/(.*)",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=31536000, immutable"
-        }
-      ]
-    },
-    {
-      "source": "/push/(.*)",
       "headers": [
         {
           "key": "Cache-Control",
@@ -39,7 +32,7 @@
       "headers": [
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://cdn.onesignal.com https://api.onesignal.com; style-src 'self' 'unsafe-inline' https://onesignal.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.onesignal.com https://api.onesignal.com; img-src 'self' data: https:; font-src 'self' data:; worker-src 'self' https://cdn.onesignal.com blob:;"
+          "value": "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://*.supabase.co wss://*.supabase.co; img-src 'self' data: https:; font-src 'self' data:;"
         }
       ]
     }

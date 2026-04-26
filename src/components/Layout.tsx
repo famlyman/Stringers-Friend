@@ -212,26 +212,8 @@ function LayoutContent({ user, onLogout }: LayoutProps) {
                     setShowPushPrompt(false);
                     localStorage.setItem('lastPushPrompt', Date.now().toString());
                     
-                    // Try OneSignal first, then fallback to native
-                    const win = window as any;
-                    let prompted = false;
-                    
-                    try {
-                      if (win.OneSignalDeferred) {
-                        win.OneSignalDeferred.push(async (OneSignal: any) => {
-                          // v16 uses OneSignal.Slidedown.promptPush()
-                          if (OneSignal.Slidedown && OneSignal.Slidedown.promptPush) {
-                            await OneSignal.Slidedown.promptPush();
-                            prompted = true;
-                          }
-                        });
-                      }
-                    } catch (e) {
-                      console.log('OneSignal prompt error:', e);
-                    }
-                    
-                    // Also try native fallback
-                    if (!prompted && 'Notification' in window && Notification.permission === 'default') {
+                    // Just request native permission - let OneSignal handle its own prompt
+                    if ('Notification' in window && Notification.permission === 'default') {
                       await Notification.requestPermission();
                     }
                   }}
