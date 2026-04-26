@@ -212,26 +212,27 @@ function LayoutContent({ user, onLogout }: LayoutProps) {
                     setShowPushPrompt(false);
                     localStorage.setItem('lastPushPrompt', Date.now().toString());
                     
-                    // Trigger OneSignal slidedown using v16 API
+                    // Try OneSignal first, then fallback to native
                     const win = window as any;
+                    let prompted = false;
+                    
                     try {
                       if (win.OneSignalDeferred) {
                         win.OneSignalDeferred.push(async (OneSignal: any) => {
                           // v16 uses OneSignal.Slidedown.promptPush()
                           if (OneSignal.Slidedown && OneSignal.Slidedown.promptPush) {
                             await OneSignal.Slidedown.promptPush();
-                          } else if (OneSignal.showSlidedownPermissionPrompt) {
-                            // fallback for older SDK
-                            await OneSignal.showSlidedownPermissionPrompt();
+                            prompted = true;
                           }
                         });
-                      } else if (win.OneSignal) {
-                        if (win.OneSignal.Slidedown && win.OneSignal.Slidedown.promptPush) {
-                          await win.OneSignal.Slidedown.promptPush();
-                        }
                       }
                     } catch (e) {
                       console.log('OneSignal prompt error:', e);
+                    }
+                    
+                    // Also try native fallback
+                    if (!prompted && 'Notification' in window && Notification.permission === 'default') {
+                      await Notification.requestPermission();
                     }
                   }}
                   className="px-4 py-2 bg-white text-primary rounded-xl text-xs font-bold hover:bg-white/90 transition-all whitespace-nowrap"
