@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { supabase } from "../lib/supabase";
 import { Send, MessageSquare, ArrowLeft, Store } from "lucide-react";
 import { Link } from "react-router-dom";
+import { sendNotification } from "../lib/notifications";
 
 interface Message {
   id: string;
@@ -137,6 +138,30 @@ export default function CustomerMessages({ user }: { user: any }) {
       if (error) throw error;
       setNewMessage("");
       fetchMessages();
+
+      // Send push notification to shop owner
+      const { data: shop } = await supabase
+        .from('shops')
+        .select('owner_id, name')
+        .eq('id', shopId)
+        .single();
+
+      if (shop?.owner_id) {
+        const { data: ownerProfile } = await supabase
+          .from('profiles')
+          .select('onesignal_player_id')
+          .eq('id', shop.owner_id)
+          .single();
+
+        if (ownerProfile?.onesignal_player_id) {
+          await sendNotification(
+            ownerProfile.onesignal_player_id,
+            'New Message',
+            `New message from ${user.profile?.full_name || 'a customer'}: ${newMessage.trim().substring(0, 50)}...`,
+            { type: 'message', shop_id: shopId }
+          );
+        }
+      }
     } catch (err) {
       console.error("Error sending message:", err);
     } finally {

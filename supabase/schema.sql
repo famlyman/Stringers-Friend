@@ -28,6 +28,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   shop_id UUID,
   role TEXT DEFAULT 'customer' CHECK (role IN ('stringer', 'customer')),
   has_completed_onboarding BOOLEAN NOT NULL DEFAULT false,
+  onesignal_player_id TEXT,
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 

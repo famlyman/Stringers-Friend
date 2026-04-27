@@ -3,6 +3,7 @@ import { Link, Outlet, useNavigate, useLocation } from "react-router-dom";
 import { LayoutDashboard, Users, Package, LogOut, User, Sun, Moon, MessageSquare, Bell, X, Home, FileText, Settings } from "lucide-react";
 import { useTheme } from "../context/ThemeContext";
 import { supabase } from "../lib/supabase";
+import { getOneSignalPlayerId } from "../lib/notifications";
 
 interface LayoutProps {
   user: any;
@@ -39,6 +40,32 @@ function LayoutContent({ user, onLogout }: LayoutProps) {
     };
 
     checkPushStatus();
+  }, [user]);
+
+  // Save OneSignal player ID when user is logged in
+  useEffect(() => {
+    if (!user) return;
+
+    const savePlayerId = async () => {
+      const playerId = await getOneSignalPlayerId();
+      if (playerId) {
+        // Check if already saved
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('onesignal_player_id')
+          .eq('id', user.id)
+          .single();
+
+        if (profile?.onesignal_player_id !== playerId) {
+          await supabase
+            .from('profiles')
+            .update({ onesignal_player_id: playerId })
+            .eq('id', user.id);
+        }
+      }
+    };
+
+    savePlayerId();
   }, [user]);
 
   if (!user) return <Outlet />;

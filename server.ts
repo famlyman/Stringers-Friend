@@ -19,6 +19,49 @@ app.get("/api/health", (req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString(), vercel: !!process.env.VERCEL });
 });
 
+// OneSignal Push Notification endpoint
+app.post("/api/send-notification", async (req, res) => {
+  try {
+    const { playerId, title, message, data } = req.body;
+
+    if (!playerId || !title || !message) {
+      return res.status(400).json({ error: "Missing required fields: playerId, title, message" });
+    }
+
+    const apiKey = process.env.ONESIGNAL_REST_API_KEY;
+    if (!apiKey) {
+      return res.status(500).json({ error: "OneSignal API key not configured" });
+    }
+
+    const response = await fetch("https://onesignal.com/api/v1/notifications", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Basic ${apiKey}`,
+      },
+      body: JSON.stringify({
+        app_id: process.env.ONESIGNAL_APP_ID,
+        include_player_ids: [playerId],
+        headings: { en: title },
+        contents: { en: message },
+        data: data || {},
+      }),
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      console.error("OneSignal API error:", result);
+      return res.status(response.status).json({ error: result.errors || "OneSignal API error" });
+    }
+
+    res.json({ success: true, id: result.id });
+  } catch (error: any) {
+    console.error("Send notification error:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Global error handler for Express (MUST be after routes)
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
   console.error("Global Express Error Catch-all:", err);

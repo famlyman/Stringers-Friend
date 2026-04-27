@@ -7,6 +7,7 @@ import { QrScanner } from "../components/QrScanner";
 import { Link } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { safeFormatDate } from "../lib/utils";
+import { sendNotification } from "../lib/notifications";
 import { v4 as uuidv4 } from "uuid";
 
 export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, initialTab?: 'jobs' | 'customers' | 'messages' | 'inventory' }) {
@@ -552,12 +553,40 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
                       value={job.status}
                       onChange={async (e) => {
                         const newStatus = e.target.value;
+                        const oldStatus = job.status;
                         try {
                           await supabase
                             .from('jobs')
                             .update({ status: newStatus, updated_at: new Date().toISOString() })
                             .eq('id', job.id);
                           setJobs(jobs.map(j => j.id === job.id ? { ...j, status: newStatus } : j));
+
+                          // Send notification when job is marked completed
+                          if (newStatus === 'completed' && oldStatus !== 'completed') {
+                            // Get customer info and their push subscription
+                            const { data: jobData } = await supabase
+                              .from('jobs')
+                              .select('*, customers(profile_id)')
+                              .eq('id', job.id)
+                              .single();
+
+                            if (jobData?.customers?.profile_id) {
+                              const { data: profile } = await supabase
+                                .from('profiles')
+                                .select('onesignal_player_id')
+                                .eq('id', jobData.customers.profile_id)
+                                .single();
+
+                              if (profile?.onesignal_player_id) {
+                                await sendNotification(
+                                  profile.onesignal_player_id,
+                                  'Job Completed!',
+                                  `Your racquet is ready for pickup${job.racquets ? ` - ${job.racquets.brand} ${job.racquets.model}` : ''}`,
+                                  { type: 'job', job_id: job.id }
+                                );
+                              }
+                            }
+                          }
                         } catch (error) {
                           console.error('Error updating job status:', error);
                         }

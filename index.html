@@ -30,10 +30,11 @@
     <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
     <script>
       window.OneSignalDeferred = window.OneSignalDeferred || [];
-      OneSignalDeferred.push(function(OneSignal) {
-        OneSignal.init({
+      OneSignalDeferred.push(async function(OneSignal) {
+        await OneSignal.init({
           appId: "133fd1be-b1e9-4664-a061-8a1a66e3e7f3",
           serviceWorkerPath: "/OneSignalSDKWorker.js",
+          allowLocalhostAsSecureOrigin: true,
         });
       });
     </script>
