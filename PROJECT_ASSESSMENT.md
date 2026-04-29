@@ -2,22 +2,27 @@
 
 ### Current State
 
-**Stringers Friend** is a racquet stringing shop management PWA built with React 19, Vite 6, Supabase, and Workbox for offline support.
+**Stringers Friend** is a racquet stringing shop management PWA built with React 19, Vite 6, Supabase, and Workbox. It has recently undergone a major architectural refactor to modularize logic and improve codebase maintainability.
 
 ---
 
-### Recent Updates (2026-04-22)
+### Recent Updates (2026-04-30)
 
-1. **Messaging Feature** - Full implementation:
-   - `Messages.tsx` - Shop owner messaging with conversation list and chat UI
-   - `CustomerMessages.tsx` - Customer chat view
-   - Real-time subscriptions for new messages
-   - `/messages` route with role-based routing
-2. **APP_SUMMARY.md** - Updated from Expo mobile to PWA architecture
-3. **ScanResult.tsx** - Fixed UUID validation to prevent invalid UUID errors
-4. **Logo Update** - Enlarged icon elements for better recognition
+1. **Major Component Refactoring** - Extracted logic from massive page components into modular sub-components and custom hooks:
+   - `Dashboard.tsx` refactored with `useDashboardData` and `src/components/dashboard/`
+   - `PublicShop.tsx` refactored with `usePublicShopData` and `src/components/public-shop/`
+   - `Inventory.tsx` refactored with `useInventoryData` and `src/components/inventory/`
+   - `CustomerList.tsx` refactored with `useCustomerListData` and `src/components/customers/`
+2. **Directory Restructuring** - Introduced `src/hooks/` and feature-specific component folders for better organization.
+3. **PWA Optimization** - Service workers and manifest are active for offline performance.
 
-**Previous Updates (2026-04-20)**
+**Previous Updates (2026-04-25)**
+
+1. **Registration Logic Fixes** (Register.tsx) - Errors properly throw and display.
+2. **Public Shop Anonymous Submissions** - Fixed RLS policies to allow messaging without auth.
+3. **Dashboard UI Cleanup** - Removed redundant buttons and improved `CustomerList` inline actions.
+
+**Previous Updates (2026-04-22)**
 
 1. **Racquet QR Code System** - Simplified workflow:
    - QR encodes racquet UUID → `/r/{uuid}`
