@@ -276,31 +276,42 @@ export function NewJobModal({ user, customers, racquets = [], inventoryStrings =
             {isNewCustomer ? (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <input
+                  id="customer_name"
+                  name="customer_name"
                   type="text"
                   placeholder="Full Name"
                   value={newJob.customer_name}
                   onChange={(e) => setNewJob({...newJob, customer_name: e.target.value})}
                   className="px-4 py-2.5 bg-bg-elevated border border-border-main rounded-xl text-text-main placeholder:text-text-muted/50 focus:ring-2 focus:ring-primary/20 outline-none text-sm"
                   required
+                  autoComplete="name"
                 />
                 <input
+                  id="customer_email"
+                  name="customer_email"
                   type="email"
                   placeholder="Email"
                   value={newJob.customer_email}
                   onChange={(e) => setNewJob({...newJob, customer_email: e.target.value})}
                   className="px-4 py-2.5 bg-bg-elevated border border-border-main rounded-xl text-text-main placeholder:text-text-muted/50 focus:ring-2 focus:ring-primary/20 outline-none text-sm"
                   required
+                  autoComplete="email"
                 />
                 <input
+                  id="customer_phone"
+                  name="customer_phone"
                   type="tel"
                   placeholder="Phone"
                   value={newJob.customer_phone}
                   onChange={(e) => setNewJob({...newJob, customer_phone: e.target.value})}
                   className="px-4 py-2.5 bg-bg-elevated border border-border-main rounded-xl text-text-main placeholder:text-text-muted/50 focus:ring-2 focus:ring-primary/20 outline-none text-sm"
+                  autoComplete="tel"
                 />
               </div>
             ) : (
               <select
+                id="selected_customer"
+                name="selected_customer"
                 value={selectedCustomerId}
                 onChange={(e) => setSelectedCustomerId(e.target.value)}
                 className="w-full px-4 py-2.5 bg-bg-elevated border border-border-main rounded-xl text-text-main focus:ring-2 focus:ring-primary/20 outline-none text-sm"
@@ -359,6 +370,8 @@ export function NewJobModal({ user, customers, racquets = [], inventoryStrings =
                   />
                 </div>
                 <input
+                  id="racquet_serial"
+                  name="racquet_serial"
                   type="text"
                   placeholder="Serial Number (optional)"
                   value={newJob.racquet_serial}
@@ -368,6 +381,8 @@ export function NewJobModal({ user, customers, racquets = [], inventoryStrings =
               </div>
             ) : (
               <select
+                id="selected_racquet"
+                name="selected_racquet"
                 value={selectedRacquetId}
                 onChange={(e) => setSelectedRacquetId(e.target.value)}
                 className="w-full px-4 py-2.5 bg-bg-elevated border border-border-main rounded-xl text-text-main focus:ring-2 focus:ring-primary/20 outline-none text-sm"
@@ -431,6 +446,8 @@ export function NewJobModal({ user, customers, racquets = [], inventoryStrings =
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                   <input
+                    id="string_main_gauge"
+                    name="string_main_gauge"
                     type="text"
                     placeholder="Gauge"
                     value={newJob.string_main_gauge}
@@ -438,6 +455,8 @@ export function NewJobModal({ user, customers, racquets = [], inventoryStrings =
                     className="px-4 py-2.5 bg-bg-card border border-border-main rounded-xl text-sm"
                   />
                   <input
+                    id="tension_main"
+                    name="tension_main"
                     type="number"
                     placeholder="Tension (lbs)"
                     value={newJob.tension_main}
@@ -448,6 +467,8 @@ export function NewJobModal({ user, customers, racquets = [], inventoryStrings =
                   <div className="relative">
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted">$</span>
                     <input
+                      id="string_price_main"
+                      name="string_price_main"
                       type="number"
                       placeholder="String Price"
                       value={newJob.string_price_main || ''}
@@ -480,6 +501,8 @@ export function NewJobModal({ user, customers, racquets = [], inventoryStrings =
                   </div>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                     <input
+                      id="string_cross_gauge"
+                      name="string_cross_gauge"
                       type="text"
                       placeholder="Gauge"
                       value={newJob.string_cross_gauge}
@@ -487,6 +510,8 @@ export function NewJobModal({ user, customers, racquets = [], inventoryStrings =
                       className="px-4 py-2.5 bg-bg-card border border-border-main rounded-xl text-sm"
                     />
                     <input
+                      id="tension_cross"
+                      name="tension_cross"
                       type="number"
                       placeholder="Tension (lbs)"
                       value={newJob.tension_cross}
@@ -497,6 +522,8 @@ export function NewJobModal({ user, customers, racquets = [], inventoryStrings =
                     <div className="relative">
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted">$</span>
                       <input
+                        id="string_price_cross"
+                        name="string_price_cross"
                         type="number"
                         placeholder="String Price"
                         value={newJob.string_price_cross || ''}
@@ -511,10 +538,12 @@ export function NewJobModal({ user, customers, racquets = [], inventoryStrings =
               {/* Labor & Total */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
                 <div className="space-y-2">
-                  <label className="text-xs font-black uppercase tracking-widest text-text-muted px-1">Labor / Service Fee</label>
+                  <label htmlFor="labor_price" className="text-xs font-black uppercase tracking-widest text-text-muted px-1">Labor / Service Fee</label>
                   <div className="relative">
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted">$</span>
                     <input
+                      id="labor_price"
+                      name="labor_price"
                       type="number"
                       value={newJob.labor_price}
                       onChange={(e) => setNewJob({...newJob, labor_price: Number(e.target.value)})}
@@ -531,6 +560,8 @@ export function NewJobModal({ user, customers, racquets = [], inventoryStrings =
             </div>
 
             <textarea
+              id="job_notes"
+              name="job_notes"
               placeholder="Internal notes or customer requests..."
               value={newJob.notes}
               onChange={(e) => setNewJob({...newJob, notes: e.target.value})}

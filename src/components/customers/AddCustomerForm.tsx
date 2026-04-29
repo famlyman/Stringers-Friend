@@ -45,35 +45,47 @@ export function AddCustomerForm({ shopId, onSuccess, onCancel }: AddCustomerForm
   return (
     <form onSubmit={handleAddCustomer} className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-4 space-y-4 shadow-sm">
       <input 
+        id="first_name"
+        name="first_name"
         type="text" 
         placeholder="First Name" 
         required
         value={newCustomer.first_name}
         onChange={e => setNewCustomer({...newCustomer, first_name: e.target.value})}
         className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-lg outline-none focus:ring-2 focus:ring-primary"
+        autoComplete="given-name"
       />
       <input 
+        id="last_name"
+        name="last_name"
         type="text" 
         placeholder="Last Name" 
         required
         value={newCustomer.last_name}
         onChange={e => setNewCustomer({...newCustomer, last_name: e.target.value})}
         className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-lg outline-none focus:ring-2 focus:ring-primary"
+        autoComplete="family-name"
       />
       <input 
+        id="email"
+        name="email"
         type="email" 
         placeholder="Email" 
         required
         value={newCustomer.email}
         onChange={e => setNewCustomer({...newCustomer, email: e.target.value})}
         className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-lg outline-none focus:ring-2 focus:ring-primary"
+        autoComplete="email"
       />
       <input 
+        id="phone"
+        name="phone"
         type="tel" 
         placeholder="Phone" 
         value={newCustomer.phone}
         onChange={e => setNewCustomer({...newCustomer, phone: e.target.value})}
         className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-lg outline-none focus:ring-2 focus:ring-primary"
+        autoComplete="tel"
       />
       <div className="flex gap-2">
         <button type="submit" className="flex-1 bg-primary text-white py-2 rounded-lg text-sm font-bold hover:bg-primary/90 transition-colors">Save</button>
