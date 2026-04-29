@@ -1,3 +1,25 @@
+# Session Summary - 2026-04-29
+
+## Completed Fixes & Enhancements
+
+### Bug Fixes
+1. **Customers Tab Crash** - Fixed a `TypeError` in `EditRacquetModal.tsx` by adding a null check for `editingRacquet`. This was causing the dashboard to crash when navigating to the Customers tab.
+2. **OneSignal Service Worker Conflict** - Resolved the `[WM] No SW registration for postMessage` error by consolidating the PWA and OneSignal Service Workers.
+    - Moved PWA caching logic into `public/OneSignalSDKWorker.js`.
+    - Disabled redundant standalone SW registration in `src/main.tsx`.
+3. **ReferenceError: inventoryStrings** - Fixed a missing variable destructuring in `Dashboard.tsx` that was preventing the New Job modal from opening.
+
+### "Create New Job" Form Refactor (NewJobModal.tsx)
+4. **Existing Racquet Selection** - The form now supports selecting from a customer's existing racquets instead of always requiring a new one.
+5. **Hybrid Stringing Support** - Added a toggle to switch between "Full Bed" and "Hybrid" setups.
+6. **Detailed Service Section** - Expanded the service area with:
+    - Smart string selection (brand/model/gauge) for both Mains and Crosses.
+    - Individual pricing for labor, main strings, and cross strings.
+    - Real-time total job price calculation.
+7. **Accessibility & Autofill Improvements** - Added missing `id`, `name`, and `autoComplete` attributes to all form fields in `NewJobModal.tsx` and `AddCustomerForm.tsx` to resolve browser warnings and improve user experience.
+
+---
+
 # Session Summary - 2026-04-25
 
 ## Completed Fixes
