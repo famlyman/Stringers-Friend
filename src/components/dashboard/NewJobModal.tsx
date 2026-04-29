@@ -1,37 +1,82 @@
-import React, { useState } from "react";
-import { X, Users, Package, Briefcase, RefreshCw } from "lucide-react";
+import React, { useState, useMemo, useEffect } from "react";
+import { X, Users, Package, Briefcase, RefreshCw, Layers } from "lucide-react";
 import { SmartRacquetBrandSelect, SmartRacquetModelSelect } from "../SmartRacquetSelect";
+import { SmartStringBrandSelect, SmartStringModelSelect } from "../SmartStringSelect";
 import { supabase } from "../../lib/supabase";
 import { v4 as uuidv4 } from "uuid";
 
 interface NewJobModalProps {
   user: any;
   customers: any[];
+  racquets?: any[];
+  inventoryStrings?: any[];
   setShowNewJob: (show: boolean) => void;
   refreshData: () => Promise<void>;
 }
 
-export function NewJobModal({ user, customers, setShowNewJob, refreshData }: NewJobModalProps) {
+export function NewJobModal({ user, customers, racquets = [], inventoryStrings = [], setShowNewJob, refreshData }: NewJobModalProps) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // Customer State
   const [isNewCustomer, setIsNewCustomer] = useState(false);
   const [selectedCustomerId, setSelectedCustomerId] = useState("");
   
+  // Racquet State
+  const [isNewRacquet, setIsNewRacquet] = useState(true);
+  const [selectedRacquetId, setSelectedRacquetId] = useState("");
+  
   const [newJob, setNewJob] = useState({
+    // Customer info (if new)
     customer_name: "",
     customer_email: "",
     customer_phone: "",
+    // Racquet info (if new)
     racquet_brand: "",
     racquet_model: "",
     racquet_brand_custom: "",
     racquet_model_custom: "",
     racquet_serial: "",
-    tension_main: 0,
-    tension_cross: 0,
-    price: 25,
-    service_type: "string_full_bed",
+    // Service info
+    string_main_brand: "",
+    string_main_model: "",
+    string_main_gauge: "",
+    string_cross_brand: "",
+    string_cross_model: "",
+    string_cross_gauge: "",
+    is_hybrid: false,
+    tension_main: 55,
+    tension_cross: 55,
+    labor_price: 20,
+    string_price_main: 0,
+    string_price_cross: 0,
     notes: "",
   });
+
+  // Filter racquets for selected customer
+  const customerRacquets = useMemo(() => {
+    if (!selectedCustomerId || isNewCustomer) return [];
+    return racquets.filter(r => r.customer_id === selectedCustomerId);
+  }, [selectedCustomerId, isNewCustomer, racquets]);
+
+  // Reset racquet selection when customer changes
+  useEffect(() => {
+    setSelectedRacquetId("");
+    if (customerRacquets.length > 0) {
+      setIsNewRacquet(false);
+    } else {
+      setIsNewRacquet(true);
+    }
+  }, [selectedCustomerId, customerRacquets.length]);
+
+  const totalPrice = useMemo(() => {
+    let total = Number(newJob.labor_price) || 0;
+    total += Number(newJob.string_price_main) || 0;
+    if (newJob.is_hybrid) {
+      total += Number(newJob.string_price_cross) || 0;
+    }
+    return total;
+  }, [newJob.labor_price, newJob.string_price_main, newJob.string_price_cross, newJob.is_hybrid]);
 
   const handleCreateJob = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,6 +90,7 @@ export function NewJobModal({ user, customers, setShowNewJob, refreshData }: New
 
       let finalCustomerId = selectedCustomerId;
 
+      // 1. Handle Customer
       if (isNewCustomer) {
         if (!newJob.customer_name || !newJob.customer_email) {
           throw new Error("Customer name and email are required.");
@@ -82,50 +128,92 @@ export function NewJobModal({ user, customers, setShowNewJob, refreshData }: New
         throw new Error("Please select a customer or add a new one.");
       }
 
-      const racquetId = uuidv4();
-      const brand = newJob.racquet_brand === "Other" ? newJob.racquet_brand_custom : newJob.racquet_brand;
-      const model = newJob.racquet_model === "Other" ? newJob.racquet_model_custom : newJob.racquet_model;
-      
-      if (!brand || !model) throw new Error("Racquet brand and model are required.");
+      // 2. Handle Racquet
+      let finalRacquetId = selectedRacquetId;
+      if (isNewRacquet) {
+        const brand = newJob.racquet_brand === "Other" ? newJob.racquet_brand_custom : newJob.racquet_brand;
+        const model = newJob.racquet_model === "Other" ? newJob.racquet_model_custom : newJob.racquet_model;
+        
+        if (!brand || !model) throw new Error("Racquet brand and model are required.");
 
-      await supabase
-        .from('racquets')
-        .insert({
-          id: racquetId,
-          customer_id: finalCustomerId,
-          shop_id: shopId,
-          brand,
-          model,
-          serial_number: newJob.racquet_serial || `SN-${Date.now()}`,
-          qr_code_id: `racquet_${racquetId}`,
-          created_at: new Date().toISOString()
-        });
+        const racquetId = uuidv4();
+        const { error: racquetError } = await supabase
+          .from('racquets')
+          .insert({
+            id: racquetId,
+            customer_id: finalCustomerId,
+            shop_id: shopId,
+            brand,
+            model,
+            serial_number: newJob.racquet_serial || `SN-${Date.now()}`,
+            qr_code: `racquet_${racquetId}`,
+            created_at: new Date().toISOString()
+          });
+        
+        if (racquetError) throw racquetError;
+        finalRacquetId = racquetId;
+      } else if (!selectedRacquetId) {
+        throw new Error("Please select a racquet or add a new one.");
+      }
 
+      // 3. Create Job
       const jobId = uuidv4();
-      await supabase
+      const { error: jobError } = await supabase
         .from('jobs')
         .insert({
           id: jobId,
           customer_id: finalCustomerId,
-          racquet_id: racquetId,
+          racquet_id: finalRacquetId,
           shop_id: shopId,
           status: 'pending',
           payment_status: 'unpaid',
-          total_price: Number(newJob.price),
+          total_price: totalPrice,
           notes: newJob.notes,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         });
 
-      await supabase
-        .from('job_details')
-        .insert({
+      if (jobError) throw jobError;
+
+      // 4. Create Job Details
+      const details = [];
+      
+      // Labor/Service
+      details.push({
+        job_id: jobId,
+        item_type: 'service',
+        price: Number(newJob.labor_price) || 0,
+      });
+
+      // Main String
+      const mainStringName = `${newJob.string_main_brand} ${newJob.string_main_model} ${newJob.string_main_gauge}`.trim();
+      details.push({
+        job_id: jobId,
+        item_type: 'main_string',
+        tension: String(newJob.tension_main),
+        price: Number(newJob.string_price_main) || 0,
+        // We could link inventory_id here if we matched it
+      });
+
+      // Cross String (if hybrid)
+      if (newJob.is_hybrid) {
+        const crossStringName = `${newJob.string_cross_brand} ${newJob.string_cross_model} ${newJob.string_cross_gauge}`.trim();
+        details.push({
           job_id: jobId,
-          item_type: 'main_string',
-          tension: `${newJob.tension_main}/${newJob.tension_cross}`,
-          price: Number(newJob.price),
-          created_at: new Date().toISOString()
+          item_type: 'cross_string',
+          tension: String(newJob.tension_cross),
+          price: Number(newJob.string_price_cross) || 0,
         });
+      } else {
+        // Update main_string entry to show it's a full bed? 
+        // Or just let the tension be used for both if crosses is omitted.
+      }
+
+      const { error: detailsError } = await supabase
+        .from('job_details')
+        .insert(details);
+
+      if (detailsError) throw detailsError;
 
       await refreshData();
       setShowNewJob(false);
@@ -157,19 +245,19 @@ export function NewJobModal({ user, customers, setShowNewJob, refreshData }: New
           </div>
         )}
 
-        <form onSubmit={handleCreateJob} className="space-y-6">
+        <form onSubmit={handleCreateJob} className="space-y-8">
           {/* Customer Section */}
-          <div className="space-y-4">
+          <section className="space-y-4">
             <h4 className="font-bold text-text-main flex items-center gap-2">
               <Users className="w-5 h-5 text-primary" />
-              Customer
+              1. Customer
             </h4>
             <div className="flex gap-3">
               <button
                 type="button"
                 onClick={() => setIsNewCustomer(false)}
                 className={`flex-1 py-2.5 rounded-xl text-sm font-semibold border transition-all ${
-                  !isNewCustomer ? 'bg-primary text-white border-primary' : 'border-border-main text-text-muted hover:border-primary/30'
+                  !isNewCustomer ? 'bg-primary text-white border-primary shadow-lg shadow-primary/20' : 'border-border-main text-text-muted hover:border-primary/30'
                 }`}
               >
                 Existing
@@ -178,7 +266,7 @@ export function NewJobModal({ user, customers, setShowNewJob, refreshData }: New
                 type="button"
                 onClick={() => setIsNewCustomer(true)}
                 className={`flex-1 py-2.5 rounded-xl text-sm font-semibold border transition-all ${
-                  isNewCustomer ? 'bg-primary text-white border-primary' : 'border-border-main text-text-muted hover:border-primary/30'
+                  isNewCustomer ? 'bg-primary text-white border-primary shadow-lg shadow-primary/20' : 'border-border-main text-text-muted hover:border-primary/30'
                 }`}
               >
                 New
@@ -186,10 +274,10 @@ export function NewJobModal({ user, customers, setShowNewJob, refreshData }: New
             </div>
 
             {isNewCustomer ? (
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <input
                   type="text"
-                  placeholder="Customer Name"
+                  placeholder="Full Name"
                   value={newJob.customer_name}
                   onChange={(e) => setNewJob({...newJob, customer_name: e.target.value})}
                   className="px-4 py-2.5 bg-bg-elevated border border-border-main rounded-xl text-text-main placeholder:text-text-muted/50 focus:ring-2 focus:ring-primary/20 outline-none text-sm"
@@ -202,6 +290,13 @@ export function NewJobModal({ user, customers, setShowNewJob, refreshData }: New
                   onChange={(e) => setNewJob({...newJob, customer_email: e.target.value})}
                   className="px-4 py-2.5 bg-bg-elevated border border-border-main rounded-xl text-text-main placeholder:text-text-muted/50 focus:ring-2 focus:ring-primary/20 outline-none text-sm"
                   required
+                />
+                <input
+                  type="tel"
+                  placeholder="Phone"
+                  value={newJob.customer_phone}
+                  onChange={(e) => setNewJob({...newJob, customer_phone: e.target.value})}
+                  className="px-4 py-2.5 bg-bg-elevated border border-border-main rounded-xl text-text-main placeholder:text-text-muted/50 focus:ring-2 focus:ring-primary/20 outline-none text-sm"
                 />
               </div>
             ) : (
@@ -217,82 +312,248 @@ export function NewJobModal({ user, customers, setShowNewJob, refreshData }: New
                 ))}
               </select>
             )}
-          </div>
+          </section>
 
           {/* Racquet Section */}
-          <div className="space-y-4">
+          <section className="space-y-4">
             <h4 className="font-bold text-text-main flex items-center gap-2">
               <Package className="w-5 h-5 text-primary" />
-              Racquet
+              2. Racquet
             </h4>
-            <div className="grid grid-cols-2 gap-3">
-              <SmartRacquetBrandSelect
-                value={newJob.racquet_brand}
-                onChange={(val) => setNewJob({...newJob, racquet_brand: val, racquet_model: ""})}
-              />
-              <SmartRacquetModelSelect
-                brand={newJob.racquet_brand}
-                value={newJob.racquet_model}
-                onChange={(val) => setNewJob({...newJob, racquet_model: val})}
-              />
-            </div>
-          </div>
+            
+            {!isNewCustomer && selectedCustomerId && (
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsNewRacquet(false)}
+                  disabled={customerRacquets.length === 0}
+                  className={`flex-1 py-2.5 rounded-xl text-sm font-semibold border transition-all ${
+                    !isNewRacquet ? 'bg-primary text-white border-primary shadow-lg shadow-primary/20' : 'border-border-main text-text-muted hover:border-primary/30'
+                  } disabled:opacity-50`}
+                >
+                  Existing ({customerRacquets.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsNewRacquet(true)}
+                  className={`flex-1 py-2.5 rounded-xl text-sm font-semibold border transition-all ${
+                    isNewRacquet ? 'bg-primary text-white border-primary shadow-lg shadow-primary/20' : 'border-border-main text-text-muted hover:border-primary/30'
+                  }`}
+                >
+                  New
+                </button>
+              </div>
+            )}
+
+            {isNewRacquet ? (
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <SmartRacquetBrandSelect
+                    value={newJob.racquet_brand}
+                    onChange={(val) => setNewJob({...newJob, racquet_brand: val, racquet_model: ""})}
+                  />
+                  <SmartRacquetModelSelect
+                    brand={newJob.racquet_brand}
+                    value={newJob.racquet_model}
+                    onChange={(val) => setNewJob({...newJob, racquet_model: val})}
+                  />
+                </div>
+                <input
+                  type="text"
+                  placeholder="Serial Number (optional)"
+                  value={newJob.racquet_serial}
+                  onChange={(e) => setNewJob({...newJob, racquet_serial: e.target.value})}
+                  className="w-full px-4 py-2.5 bg-bg-elevated border border-border-main rounded-xl text-text-main placeholder:text-text-muted/50 focus:ring-2 focus:ring-primary/20 outline-none text-sm"
+                />
+              </div>
+            ) : (
+              <select
+                value={selectedRacquetId}
+                onChange={(e) => setSelectedRacquetId(e.target.value)}
+                className="w-full px-4 py-2.5 bg-bg-elevated border border-border-main rounded-xl text-text-main focus:ring-2 focus:ring-primary/20 outline-none text-sm"
+                required
+              >
+                <option value="">Select a racquet</option>
+                {customerRacquets.map((r) => (
+                  <option key={r.id} value={r.id}>{r.brand} {r.model} {r.serial_number ? `(${r.serial_number})` : ''}</option>
+                ))}
+              </select>
+            )}
+          </section>
 
           {/* Service Section */}
-          <div className="space-y-4">
+          <section className="space-y-4">
             <h4 className="font-bold text-text-main flex items-center gap-2">
               <Briefcase className="w-5 h-5 text-primary" />
-              Service
+              3. Service Details
             </h4>
-            <div className="grid grid-cols-3 gap-3">
-              <input
-                type="number"
-                placeholder="Main (lbs)"
-                value={newJob.tension_main || ''}
-                onChange={(e) => setNewJob({...newJob, tension_main: Number(e.target.value)})}
-                className="px-4 py-2.5 bg-bg-elevated border border-border-main rounded-xl text-text-main placeholder:text-text-muted/50 focus:ring-2 focus:ring-primary/20 outline-none text-sm"
-                required
-              />
-              <input
-                type="number"
-                placeholder="Cross (lbs)"
-                value={newJob.tension_cross || ''}
-                onChange={(e) => setNewJob({...newJob, tension_cross: Number(e.target.value)})}
-                className="px-4 py-2.5 bg-bg-elevated border border-border-main rounded-xl text-text-main placeholder:text-text-muted/50 focus:ring-2 focus:ring-primary/20 outline-none text-sm"
-              />
-              <input
-                type="number"
-                placeholder="Price $"
-                value={newJob.price || ''}
-                onChange={(e) => setNewJob({...newJob, price: Number(e.target.value)})}
-                className="px-4 py-2.5 bg-bg-elevated border border-border-main rounded-xl text-text-main placeholder:text-text-muted/50 focus:ring-2 focus:ring-primary/20 outline-none text-sm"
-                required
-              />
+            
+            <div className="flex items-center gap-3 mb-4">
+              <button
+                type="button"
+                onClick={() => setNewJob({...newJob, is_hybrid: false})}
+                className={`px-4 py-2 rounded-xl text-xs font-bold border transition-all ${
+                  !newJob.is_hybrid ? 'bg-primary text-white border-primary' : 'border-border-main text-text-muted'
+                }`}
+              >
+                Full Bed
+              </button>
+              <button
+                type="button"
+                onClick={() => setNewJob({...newJob, is_hybrid: true})}
+                className={`px-4 py-2 rounded-xl text-xs font-bold border transition-all ${
+                  newJob.is_hybrid ? 'bg-primary text-white border-primary' : 'border-border-main text-text-muted'
+                }`}
+              >
+                Hybrid
+              </button>
             </div>
+
+            <div className="space-y-6">
+              {/* Main String */}
+              <div className="p-4 bg-bg-elevated rounded-2xl border border-border-main space-y-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Layers className="w-3.5 h-3.5 text-primary" />
+                  </div>
+                  <span className="text-xs font-black uppercase tracking-widest text-text-muted">Mains</span>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <SmartStringBrandSelect
+                    value={newJob.string_main_brand}
+                    onChange={(val) => setNewJob({...newJob, string_main_brand: val, string_main_model: ""})}
+                  />
+                  <SmartStringModelSelect
+                    brand={newJob.string_main_brand}
+                    value={newJob.string_main_model}
+                    onChange={(val) => setNewJob({...newJob, string_main_model: val})}
+                  />
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  <input
+                    type="text"
+                    placeholder="Gauge"
+                    value={newJob.string_main_gauge}
+                    onChange={(e) => setNewJob({...newJob, string_main_gauge: e.target.value})}
+                    className="px-4 py-2.5 bg-bg-card border border-border-main rounded-xl text-sm"
+                  />
+                  <input
+                    type="number"
+                    placeholder="Tension (lbs)"
+                    value={newJob.tension_main}
+                    onChange={(e) => setNewJob({...newJob, tension_main: Number(e.target.value)})}
+                    className="px-4 py-2.5 bg-bg-card border border-border-main rounded-xl text-sm"
+                    required
+                  />
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted">$</span>
+                    <input
+                      type="number"
+                      placeholder="String Price"
+                      value={newJob.string_price_main || ''}
+                      onChange={(e) => setNewJob({...newJob, string_price_main: Number(e.target.value)})}
+                      className="w-full pl-7 pr-4 py-2.5 bg-bg-card border border-border-main rounded-xl text-sm"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Cross String (if hybrid) */}
+              {newJob.is_hybrid && (
+                <div className="p-4 bg-bg-elevated rounded-2xl border border-border-main space-y-4 animate-in slide-in-from-top-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-6 h-6 rounded-full bg-secondary/10 flex items-center justify-center">
+                      <Layers className="w-3.5 h-3.5 text-secondary" />
+                    </div>
+                    <span className="text-xs font-black uppercase tracking-widest text-text-muted">Crosses</span>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <SmartStringBrandSelect
+                      value={newJob.string_cross_brand}
+                      onChange={(val) => setNewJob({...newJob, string_cross_brand: val, string_cross_model: ""})}
+                    />
+                    <SmartStringModelSelect
+                      brand={newJob.string_cross_brand}
+                      value={newJob.string_cross_model}
+                      onChange={(val) => setNewJob({...newJob, string_cross_model: val})}
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    <input
+                      type="text"
+                      placeholder="Gauge"
+                      value={newJob.string_cross_gauge}
+                      onChange={(e) => setNewJob({...newJob, string_cross_gauge: e.target.value})}
+                      className="px-4 py-2.5 bg-bg-card border border-border-main rounded-xl text-sm"
+                    />
+                    <input
+                      type="number"
+                      placeholder="Tension (lbs)"
+                      value={newJob.tension_cross}
+                      onChange={(e) => setNewJob({...newJob, tension_cross: Number(e.target.value)})}
+                      className="px-4 py-2.5 bg-bg-card border border-border-main rounded-xl text-sm"
+                      required
+                    />
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted">$</span>
+                      <input
+                        type="number"
+                        placeholder="String Price"
+                        value={newJob.string_price_cross || ''}
+                        onChange={(e) => setNewJob({...newJob, string_price_cross: Number(e.target.value)})}
+                        className="w-full pl-7 pr-4 py-2.5 bg-bg-card border border-border-main rounded-xl text-sm"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Labor & Total */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
+                <div className="space-y-2">
+                  <label className="text-xs font-black uppercase tracking-widest text-text-muted px-1">Labor / Service Fee</label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted">$</span>
+                    <input
+                      type="number"
+                      value={newJob.labor_price}
+                      onChange={(e) => setNewJob({...newJob, labor_price: Number(e.target.value)})}
+                      className="w-full pl-7 pr-4 py-2.5 bg-bg-elevated border border-border-main rounded-xl text-sm font-bold"
+                    />
+                  </div>
+                </div>
+                
+                <div className="p-4 bg-primary/5 rounded-2xl border border-primary/20 flex justify-between items-center">
+                  <span className="font-bold text-text-main">Total Job Price</span>
+                  <span className="text-2xl font-black text-primary">${totalPrice}</span>
+                </div>
+              </div>
+            </div>
+
             <textarea
-              placeholder="Notes (optional)"
+              placeholder="Internal notes or customer requests..."
               value={newJob.notes}
               onChange={(e) => setNewJob({...newJob, notes: e.target.value})}
-              className="w-full px-4 py-2.5 bg-bg-elevated border border-border-main rounded-xl text-text-main placeholder:text-text-muted/50 focus:ring-2 focus:ring-primary/20 outline-none text-sm h-20 resize-none"
+              className="w-full px-4 py-3 bg-bg-elevated border border-border-main rounded-xl text-text-main placeholder:text-text-muted/50 focus:ring-2 focus:ring-primary/20 outline-none text-sm h-24 resize-none"
             />
-          </div>
+          </section>
 
-          <div className="flex gap-3 pt-2">
+          <div className="flex gap-3 pt-4 border-t border-border-main">
             <button
               type="button"
               onClick={() => setShowNewJob(false)}
-              className="flex-1 py-3 border border-border-main rounded-xl font-semibold text-text-muted hover:bg-bg-elevated transition-all"
+              className="flex-1 py-4 border border-border-main rounded-2xl font-bold text-text-muted hover:bg-bg-elevated transition-all"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={submitting}
-              className="flex-1 py-3 bg-gradient-primary text-white rounded-xl font-bold hover:shadow-lg hover:shadow-primary/20 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+              className="flex-2 py-4 bg-gradient-primary text-white rounded-2xl font-black hover:shadow-xl hover:shadow-primary/30 transition-all disabled:opacity-50 flex items-center justify-center gap-2 text-lg"
             >
               {submitting ? (
                 <>
-                  <RefreshCw className="w-4 h-4 animate-spin" />
+                  <RefreshCw className="w-5 h-5 animate-spin" />
                   Creating...
                 </>
               ) : (

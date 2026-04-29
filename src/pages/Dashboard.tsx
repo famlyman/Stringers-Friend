@@ -109,6 +109,8 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
         <NewJobModal 
           user={user} 
           customers={customers} 
+          racquets={racquets}
+          inventoryStrings={inventoryStrings}
           setShowNewJob={setShowNewJob} 
           refreshData={refreshData}
         />
