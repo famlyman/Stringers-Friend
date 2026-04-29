@@ -17,6 +17,8 @@ export function EditRacquetModal({ editingRacquet, setEditingRacquet, onUpdate, 
   const [showModelSuggestions, setShowModelSuggestions] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  if (!editingRacquet) return null;
+
   const handleFetchSpecs = async () => {
     if (!editingRacquet.brand || !editingRacquet.model) return;
     setFetchingSpecs(true);
