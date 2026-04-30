@@ -3,14 +3,14 @@
 This roadmap outlines the prioritized tasks following the major architectural refactor completed in April 2026.
 
 ## Phase 1: Technical Debt & Type Safety (High Priority)
-- [ ] **Strict Typing Migration**: Replace `any` types in `useDashboardData`, `useInventoryData`, and all extracted components with proper TypeScript interfaces.
+- [x] **Strict Typing Migration**: Replace `any` types in `useDashboardData`, `useInventoryData`, and all extracted components with proper TypeScript interfaces.
 - [ ] **Global Error Boundary**: Implement a more robust error handling strategy for custom hooks to prevent UI crashes on network/Supabase errors.
-- [ ] **Code Cleanup**: Remove unused imports and legacy code in `src/pages/` that was replaced by modular components.
+- [x] **Code Cleanup**: Removed unused imports and legacy code in `src/pages/` that was replaced by modular components.
 
 ## Phase 2: Inventory Automation (Feature Priority)
-- [ ] **Job Completion Trigger**: Create a Supabase Edge Function or a frontend hook to automatically deduct string length/sets from inventory when a job status is updated to `completed`.
+- [x] **Job Completion Trigger**: Automatically deduct string length/sets from inventory when a job status is updated to `completed`. (Implemented in `JobsTab.tsx`)
 - [ ] **Low Stock Notifications**: Implement real-time alerts or emails when inventory falls below the `low_stock_threshold`.
-- [ ] **Hybrid String Tracking**: Correctly track two different strings in inventory for "Hybrid" jobs.
+- [x] **Hybrid String Tracking**: Correctly track and deduct two different strings in inventory for "Hybrid" jobs.
 
 ## Phase 3: Notifications & Communication
 - [ ] **Push Notification Engine**: Complete the integration with OneSignal/Supabase Edge Functions to send real-time browser notifications to customers when their racquet is ready.
@@ -30,4 +30,4 @@ This roadmap outlines the prioritized tasks following the major architectural re
 - [ ] **QR Scanner UX**: Improve the scanner interface to handle low-light conditions and multiple racquet tags.
 
 ---
-*Created: 2026-04-30*
+*Last Updated: 2026-04-30*
