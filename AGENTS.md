@@ -122,6 +122,14 @@ CREATE POLICY "Anyone can view customers"
   - Supabase query hangs due to network issues
   - Profile fetch times out
 
+### Dashboard Fixes (Apr 2026)
+- Restored "Create Job" button beside search bar in Jobs tab (was removed during cleanup)
+- Fixed revenue card not pulling data:
+  - Changed from counting only `payment_status === 'paid'` to all non-cancelled jobs
+  - Jobs created start as `unpaid` with no UI to mark paid, so revenue now shows total of all active jobs
+- Fixed `shop_id` vs `shopId` mismatch in data fetching (Dashboard.tsx:262-300)
+  - Now uses `user?.shop_id || user?.shopId` consistently
+
 ## Quirks
 - PWA plugin includes `icon.svg` - update manifest in `vite.config.ts` if needed
 - tsconfig excludes `supabase/functions` (Deno code, not TS)
