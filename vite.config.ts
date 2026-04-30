@@ -13,7 +13,7 @@ export default defineConfig(({mode}) => {
       VitePWA({
         strategies: 'injectManifest',
         srcDir: 'src',
-        filename: 'sw.ts',
+        filename: 'OneSignalSDKWorker.ts',
         registerType: 'autoUpdate',
         injectRegister: false,
         manifest: {
@@ -43,7 +43,6 @@ export default defineConfig(({mode}) => {
           ]
         },
         injectManifest: {
-          swDest: 'OneSignalSDKWorker.js',
           maximumFileSizeToCacheInBytes: 3000000,
         }
       })
