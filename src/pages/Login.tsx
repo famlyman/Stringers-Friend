@@ -175,10 +175,12 @@ export default function Login() {
 
             <form onSubmit={handleSubmit} className="space-y-5">
               <div className="space-y-2">
-                <label className="text-sm font-semibold text-text-main ml-1">Email Address</label>
+                <label htmlFor="login-email" className="text-sm font-semibold text-text-main ml-1">Email Address</label>
                 <div className="relative">
                   <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-text-muted" />
                   <input
+                    id="login-email"
+                    name="email"
                     type="email"
                     required
                     value={email}
@@ -186,13 +188,14 @@ export default function Login() {
                     className="w-full pl-12 pr-4 py-3.5 bg-bg-elevated border border-border-main rounded-2xl text-text-main placeholder:text-text-muted/50 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none"
                     placeholder="you@example.com"
                     disabled={loading}
+                    autoComplete="email"
                   />
                 </div>
               </div>
 
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <label className="text-sm font-semibold text-text-main ml-1">Password</label>
+                  <label htmlFor="login-password" title="Password" className="text-sm font-semibold text-text-main ml-1">Password</label>
                   <button
                     type="button"
                     onClick={handleForgotPassword}
@@ -205,6 +208,8 @@ export default function Login() {
                 <div className="relative">
                   <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-text-muted" />
                   <input
+                    id="login-password"
+                    name="password"
                     type={showPassword ? "text" : "password"}
                     required
                     value={password}
@@ -212,6 +217,7 @@ export default function Login() {
                     className="w-full pl-12 pr-12 py-3.5 bg-bg-elevated border border-border-main rounded-2xl text-text-main placeholder:text-text-muted/50 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none"
                     placeholder="Enter your password"
                     disabled={loading}
+                    autoComplete="current-password"
                   />
                   <button
                     type="button"

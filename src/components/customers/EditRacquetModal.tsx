@@ -79,8 +79,10 @@ export function EditRacquetModal({ editingRacquet, setEditingRacquet, onUpdate, 
           {/* Form fields go here - similar to the original inline form */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1">
-              <label className="text-xs font-bold text-neutral-500 uppercase tracking-wider">Brand</label>
+              <label htmlFor="edit-racquet-brand" className="text-xs font-bold text-neutral-500 uppercase tracking-wider">Brand</label>
               <select 
+                id="edit-racquet-brand"
+                name="brand"
                 value={RACQUET_BRANDS.includes(editingRacquet.brand) ? editingRacquet.brand : "Other"}
                 onChange={e => setEditingRacquet({...editingRacquet, brand: e.target.value === "Other" ? "" : e.target.value})}
                 className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 rounded-xl outline-none"
@@ -91,9 +93,11 @@ export function EditRacquetModal({ editingRacquet, setEditingRacquet, onUpdate, 
               </select>
             </div>
             <div className="space-y-1">
-              <label className="text-xs font-bold text-neutral-500 uppercase tracking-wider">Model</label>
+              <label htmlFor="edit-racquet-model" className="text-xs font-bold text-neutral-500 uppercase tracking-wider">Model</label>
               <div className="relative">
                 <input 
+                  id="edit-racquet-model"
+                  name="model"
                   type="text" 
                   value={editingRacquet.model}
                   onChange={e => {
@@ -109,26 +113,26 @@ export function EditRacquetModal({ editingRacquet, setEditingRacquet, onUpdate, 
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="space-y-1">
-              <label className="text-xs font-bold text-neutral-500 uppercase tracking-wider">Head Size</label>
-              <input type="number" value={editingRacquet.head_size || ""} onChange={e => setEditingRacquet({...editingRacquet, head_size: e.target.value})} className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 rounded-xl outline-none" />
+              <label htmlFor="edit-racquet-head-size" className="text-xs font-bold text-neutral-500 uppercase tracking-wider">Head Size</label>
+              <input id="edit-racquet-head-size" name="head_size" type="number" value={editingRacquet.head_size || ""} onChange={e => setEditingRacquet({...editingRacquet, head_size: e.target.value})} className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 rounded-xl outline-none" />
             </div>
             <div className="space-y-1">
-              <label className="text-xs font-bold text-neutral-500 uppercase tracking-wider">Mains</label>
-              <input type="number" value={editingRacquet.string_pattern_mains || ""} onChange={e => setEditingRacquet({...editingRacquet, string_pattern_mains: e.target.value})} className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 rounded-xl outline-none" />
+              <label htmlFor="edit-racquet-mains" className="text-xs font-bold text-neutral-500 uppercase tracking-wider">Mains</label>
+              <input id="edit-racquet-mains" name="string_pattern_mains" type="number" value={editingRacquet.string_pattern_mains || ""} onChange={e => setEditingRacquet({...editingRacquet, string_pattern_mains: e.target.value})} className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 rounded-xl outline-none" />
             </div>
             <div className="space-y-1">
-              <label className="text-xs font-bold text-neutral-500 uppercase tracking-wider">Crosses</label>
-              <input type="number" value={editingRacquet.string_pattern_crosses || ""} onChange={e => setEditingRacquet({...editingRacquet, string_pattern_crosses: e.target.value})} className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 rounded-xl outline-none" />
+              <label htmlFor="edit-racquet-crosses" className="text-xs font-bold text-neutral-500 uppercase tracking-wider">Crosses</label>
+              <input id="edit-racquet-crosses" name="string_pattern_crosses" type="number" value={editingRacquet.string_pattern_crosses || ""} onChange={e => setEditingRacquet({...editingRacquet, string_pattern_crosses: e.target.value})} className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 rounded-xl outline-none" />
             </div>
             <div className="space-y-1">
-              <label className="text-xs font-bold text-neutral-500 uppercase tracking-wider">Serial</label>
-              <input type="text" value={editingRacquet.serial_number || ""} onChange={e => setEditingRacquet({...editingRacquet, serial_number: e.target.value})} className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 rounded-xl outline-none" />
+              <label htmlFor="edit-racquet-serial" className="text-xs font-bold text-neutral-500 uppercase tracking-wider">Serial</label>
+              <input id="edit-racquet-serial" name="serial_number" type="text" value={editingRacquet.serial_number || ""} onChange={e => setEditingRacquet({...editingRacquet, serial_number: e.target.value})} className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 rounded-xl outline-none" />
             </div>
           </div>
 
           <div className="space-y-2">
-            <label className="text-xs font-bold text-neutral-500 uppercase tracking-wider">Instructions</label>
-            <textarea value={editingRacquet.stringing_instructions || ""} onChange={e => setEditingRacquet({...editingRacquet, stringing_instructions: e.target.value})} className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 rounded-xl outline-none min-h-[100px]" />
+            <label htmlFor="edit-racquet-instructions" className="text-xs font-bold text-neutral-500 uppercase tracking-wider">Instructions</label>
+            <textarea id="edit-racquet-instructions" name="stringing_instructions" value={editingRacquet.stringing_instructions || ""} onChange={e => setEditingRacquet({...editingRacquet, stringing_instructions: e.target.value})} className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 rounded-xl outline-none min-h-[100px]" />
           </div>
 
           <div className="flex gap-4 pt-4">

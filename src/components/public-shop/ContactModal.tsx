@@ -84,41 +84,52 @@ export function ContactModal({
             <form onSubmit={handleContactSubmit} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest ml-1">Your Name</label>
+                  <label htmlFor="contact-name" className="text-[10px] font-black text-neutral-400 uppercase tracking-widest ml-1">Your Name</label>
                   <input 
+                    id="contact-name"
+                    name="name"
                     type="text" 
                     required
                     value={contactForm.name}
                     onChange={e => setContactForm({...contactForm, name: e.target.value})}
                     className="w-full px-5 py-3 bg-neutral-50 dark:bg-neutral-800 border-none rounded-2xl text-neutral-900 dark:text-white focus:ring-2 focus:ring-primary outline-none transition-all"
                     placeholder="John Doe"
+                    autoComplete="name"
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest ml-1">Email Address</label>
+                  <label htmlFor="contact-email" className="text-[10px] font-black text-neutral-400 uppercase tracking-widest ml-1">Email Address</label>
                   <input 
+                    id="contact-email"
+                    name="email"
                     type="email" 
                     required
                     value={contactForm.email}
                     onChange={e => setContactForm({...contactForm, email: e.target.value})}
                     className="w-full px-5 py-3 bg-neutral-50 dark:bg-neutral-800 border-none rounded-2xl text-neutral-900 dark:text-white focus:ring-2 focus:ring-primary outline-none transition-all"
                     placeholder="john@example.com"
+                    autoComplete="email"
                   />
                 </div>
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest ml-1">Phone (Optional)</label>
+                <label htmlFor="contact-phone" className="text-[10px] font-black text-neutral-400 uppercase tracking-widest ml-1">Phone (Optional)</label>
                 <input 
+                  id="contact-phone"
+                  name="phone"
                   type="tel" 
                   value={contactForm.phone}
                   onChange={e => setContactForm({...contactForm, phone: e.target.value})}
                   className="w-full px-5 py-3 bg-neutral-50 dark:bg-neutral-800 border-none rounded-2xl text-neutral-900 dark:text-white focus:ring-2 focus:ring-primary outline-none transition-all"
                   placeholder="(555) 000-0000"
+                  autoComplete="tel"
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest ml-1">Message / Racquet Details</label>
+                <label htmlFor="contact-content" className="text-[10px] font-black text-neutral-400 uppercase tracking-widest ml-1">Message / Racquet Details</label>
                 <textarea 
+                  id="contact-content"
+                  name="content"
                   required
                   value={contactForm.content}
                   onChange={e => setContactForm({...contactForm, content: e.target.value})}
@@ -131,6 +142,8 @@ export function ContactModal({
                 <div className="space-y-4">
                   <label className="flex items-center gap-3 p-4 bg-primary/5 rounded-2xl border border-primary/10 cursor-pointer group hover:bg-primary/10 transition-all">
                     <input 
+                      id="contact-register"
+                      name="register"
                       type="checkbox"
                       checked={contactForm.register}
                       onChange={e => setContactForm({...contactForm, register: e.target.checked})}
@@ -144,8 +157,10 @@ export function ContactModal({
 
                   {contactForm.register && (
                     <div className="space-y-1 animate-in slide-in-from-top-2 duration-200">
-                      <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest ml-1">Create Password</label>
+                      <label htmlFor="contact-password" title="Create Password" className="text-[10px] font-black text-neutral-400 uppercase tracking-widest ml-1">Create Password</label>
                       <input 
+                        id="contact-password"
+                        name="password"
                         type="password" 
                         required
                         value={contactForm.password}
@@ -153,6 +168,7 @@ export function ContactModal({
                         className="w-full px-5 py-3 bg-neutral-50 dark:bg-neutral-800 border-none rounded-2xl text-neutral-900 dark:text-white focus:ring-2 focus:ring-primary outline-none transition-all"
                         placeholder="Minimum 6 characters"
                         minLength={6}
+                        autoComplete="new-password"
                       />
                       <p className="text-[10px] text-neutral-400 ml-1">This will be your password to log in later.</p>
                     </div>

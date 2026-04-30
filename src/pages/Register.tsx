@@ -147,10 +147,11 @@ export default function Register() {
               {/* Account Type Selector */}
               {!shopId && (
                 <div className="space-y-3">
-                  <label className="text-sm font-semibold text-text-main ml-1">I am a...</label>
-                  <div className="grid grid-cols-2 gap-3">
+                  <label htmlFor="role-selection" className="text-sm font-semibold text-text-main ml-1">I am a...</label>
+                  <div id="role-selection" className="grid grid-cols-2 gap-3">
                     <button
                       type="button"
+                      id="role-stringer"
                       onClick={() => setRole("stringer")}
                       disabled={loading}
                       className={`relative p-4 rounded-2xl border-2 transition-all ${
@@ -172,6 +173,7 @@ export default function Register() {
                     </button>
                     <button
                       type="button"
+                      id="role-customer"
                       onClick={() => setRole("customer")}
                       disabled={loading}
                       className={`relative p-4 rounded-2xl border-2 transition-all ${
@@ -196,10 +198,12 @@ export default function Register() {
               )}
 
               <div className="space-y-2">
-                <label className="text-sm font-semibold text-text-main ml-1">Email Address</label>
+                <label htmlFor="register-email" className="text-sm font-semibold text-text-main ml-1">Email Address</label>
                 <div className="relative">
                   <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-text-muted" />
                   <input
+                    id="register-email"
+                    name="email"
                     type="email"
                     required
                     value={email}
@@ -207,15 +211,18 @@ export default function Register() {
                     className="w-full pl-12 pr-4 py-3.5 bg-bg-elevated border border-border-main rounded-2xl text-text-main placeholder:text-text-muted/50 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none"
                     placeholder="you@example.com"
                     disabled={loading}
+                    autoComplete="email"
                   />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-semibold text-text-main ml-1">Password</label>
+                <label htmlFor="register-password" title="Password" className="text-sm font-semibold text-text-main ml-1">Password</label>
                 <div className="relative">
                   <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-text-muted" />
                   <input
+                    id="register-password"
+                    name="password"
                     type={showPassword ? "text" : "password"}
                     required
                     value={password}
@@ -224,6 +231,7 @@ export default function Register() {
                     placeholder="Create a strong password"
                     disabled={loading}
                     minLength={6}
+                    autoComplete="new-password"
                   />
                   <button
                     type="button"

@@ -141,8 +141,10 @@ export function AddRacquetForm({ customerId, shopId, onSuccess, onCancel }: AddR
       <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Basic Info */}
         <div className="space-y-2">
-          <label className="block text-xs font-medium text-neutral-500 uppercase tracking-wider">Brand</label>
+          <label htmlFor="racquet-brand" className="block text-xs font-medium text-neutral-500 uppercase tracking-wider">Brand</label>
           <select 
+            id="racquet-brand"
+            name="brand"
             required
             value={newRacquet.brand}
             onChange={e => setNewRacquet({...newRacquet, brand: e.target.value, model: ""})}
@@ -156,6 +158,8 @@ export function AddRacquetForm({ customerId, shopId, onSuccess, onCancel }: AddR
           </select>
           {newRacquet.brand === "Other" && (
             <input 
+              id="racquet-brand-custom"
+              name="brand_custom"
               type="text" 
               placeholder="Enter Brand" 
               required
@@ -165,10 +169,12 @@ export function AddRacquetForm({ customerId, shopId, onSuccess, onCancel }: AddR
           )}
         </div>
         <div className="space-y-2 relative">
-          <label className="block text-xs font-medium text-neutral-500 uppercase tracking-wider">Model</label>
+          <label htmlFor="racquet-model" className="block text-xs font-medium text-neutral-500 uppercase tracking-wider">Model</label>
           <div className="flex gap-2">
             <div className="relative flex-1">
               <input 
+                id="racquet-model"
+                name="model"
                 type="text" 
                 placeholder="Search or Enter Model" 
                 required
@@ -225,6 +231,8 @@ export function AddRacquetForm({ customerId, shopId, onSuccess, onCancel }: AddR
         
         {/* Pattern & Specs */}
         <input 
+          id="racquet-serial"
+          name="serial_number"
           type="text" 
           placeholder="Serial Number" 
           value={newRacquet.serial_number}
@@ -232,6 +240,8 @@ export function AddRacquetForm({ customerId, shopId, onSuccess, onCancel }: AddR
           className="px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white rounded-xl outline-none focus:ring-2 focus:ring-primary"
         />
         <input 
+          id="racquet-head-size"
+          name="head_size"
           type="number" 
           placeholder="Head Size (sq in)" 
           value={newRacquet.head_size}
@@ -239,6 +249,8 @@ export function AddRacquetForm({ customerId, shopId, onSuccess, onCancel }: AddR
           className="px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white rounded-xl outline-none focus:ring-2 focus:ring-primary"
         />
         <input 
+          id="racquet-mains-count"
+          name="string_pattern_mains"
           type="number" 
           placeholder="Mains (e.g. 16)" 
           value={newRacquet.string_pattern_mains}
@@ -246,6 +258,8 @@ export function AddRacquetForm({ customerId, shopId, onSuccess, onCancel }: AddR
           className="px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white rounded-xl outline-none focus:ring-2 focus:ring-primary"
         />
         <input 
+          id="racquet-crosses-count"
+          name="string_pattern_crosses"
           type="number" 
           placeholder="Crosses (e.g. 19)" 
           value={newRacquet.string_pattern_crosses}
@@ -258,6 +272,8 @@ export function AddRacquetForm({ customerId, shopId, onSuccess, onCancel }: AddR
           <h4 className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Stringing Pattern & Specs</h4>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <input 
+              id="racquet-mains-skip"
+              name="mains_skip"
               type="text" 
               placeholder="Mains Skip" 
               value={newRacquet.mains_skip}
@@ -265,6 +281,8 @@ export function AddRacquetForm({ customerId, shopId, onSuccess, onCancel }: AddR
               className="w-full px-3 py-1.5 text-sm border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 rounded-lg outline-none"
             />
             <input 
+              id="racquet-mains-tie-off"
+              name="mains_tie_off"
               type="text" 
               placeholder="Mains Tie-off" 
               value={newRacquet.mains_tie_off}
@@ -272,6 +290,8 @@ export function AddRacquetForm({ customerId, shopId, onSuccess, onCancel }: AddR
               className="w-full px-3 py-1.5 text-sm border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 rounded-lg outline-none"
             />
             <input 
+              id="racquet-crosses-start"
+              name="crosses_start"
               type="text" 
               placeholder="Crosses Start" 
               value={newRacquet.crosses_start}
@@ -279,6 +299,8 @@ export function AddRacquetForm({ customerId, shopId, onSuccess, onCancel }: AddR
               className="w-full px-3 py-1.5 text-sm border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 rounded-lg outline-none"
             />
             <input 
+              id="racquet-crosses-tie-off"
+              name="crosses_tie_off"
               type="text" 
               placeholder="Crosses Tie-off" 
               value={newRacquet.crosses_tie_off}
@@ -303,6 +325,8 @@ export function AddRacquetForm({ customerId, shopId, onSuccess, onCancel }: AddR
           </div>
           <div className="grid grid-cols-2 gap-4">
             <input 
+              id="racquet-tension-main"
+              name="current_tension_main"
               type="number" 
               placeholder="Mains Tension (lbs)" 
               value={newRacquet.current_tension_main}
@@ -310,6 +334,8 @@ export function AddRacquetForm({ customerId, shopId, onSuccess, onCancel }: AddR
               className="px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white rounded-xl outline-none"
             />
             <input 
+              id="racquet-tension-cross"
+              name="current_tension_cross"
               type="number" 
               placeholder="Crosses Tension (lbs)" 
               value={newRacquet.current_tension_cross}

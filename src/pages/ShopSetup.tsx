@@ -131,8 +131,10 @@ export default function ShopSetup({ user }: { user: any }) {
             </div>
           )}
           <div>
-            <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">Shop Name</label>
+            <label htmlFor="shop-name" className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">Shop Name</label>
             <input
+              id="shop-name"
+              name="shop_name"
               type="text"
               required
               value={name}
@@ -140,13 +142,16 @@ export default function ShopSetup({ user }: { user: any }) {
               className="w-full px-4 py-3 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent transition-all outline-none"
               placeholder="e.g. Ace Racquet Services"
               disabled={loading}
+              autoComplete="organization"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">Custom URL Handle (Slug)</label>
+            <label htmlFor="shop-slug" className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">Custom URL Handle (Slug)</label>
             <div className="relative">
               <span className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400 text-sm">stringersfriend.com/</span>
               <input
+                id="shop-slug"
+                name="slug"
                 type="text"
                 required
                 value={slug}
@@ -159,19 +164,24 @@ export default function ShopSetup({ user }: { user: any }) {
             <p className="text-[10px] text-neutral-400 mt-1 ml-1">This will be your unique handle for customers to find you.</p>
           </div>
           <div>
-            <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">Business Address</label>
+            <label htmlFor="shop-address" className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">Business Address</label>
             <textarea
+              id="shop-address"
+              name="address"
               required
               value={address}
               onChange={(e) => setAddress(e.target.value)}
               className="w-full px-4 py-3 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent transition-all outline-none h-24 resize-none"
               placeholder="Where can customers find you?"
               disabled={loading}
+              autoComplete="street-address"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">Phone Number</label>
+            <label htmlFor="shop-phone" className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">Phone Number</label>
             <input
+              id="shop-phone"
+              name="phone"
               type="tel"
               required
               value={phone}
@@ -179,6 +189,7 @@ export default function ShopSetup({ user }: { user: any }) {
               className="w-full px-4 py-3 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent transition-all outline-none"
               placeholder="(555) 000-0000"
               disabled={loading}
+              autoComplete="tel"
             />
           </div>
 

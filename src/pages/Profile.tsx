@@ -333,42 +333,51 @@ export default function Profile({ user }: ProfileProps) {
             <form onSubmit={handleUpdateProfile} className="p-6 space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <label className="text-sm font-bold text-neutral-700 dark:text-neutral-300 ml-1">Full Name</label>
+                  <label htmlFor="profile-name" className="text-sm font-bold text-neutral-700 dark:text-neutral-300 ml-1">Full Name</label>
                   <div className="relative">
                     <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
                     <input
+                      id="profile-name"
+                      name="full_name"
                       type="text"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       className="w-full pl-11 pr-4 py-3 bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl outline-none focus:ring-2 focus:ring-primary/20 transition-all"
                       placeholder="Your name"
+                      autoComplete="name"
                     />
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-bold text-neutral-700 dark:text-neutral-300 ml-1">Phone Number</label>
+                  <label htmlFor="profile-phone" className="text-sm font-bold text-neutral-700 dark:text-neutral-300 ml-1">Phone Number</label>
                   <div className="relative">
                     <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
                     <input
+                      id="profile-phone"
+                      name="phone"
                       type="tel"
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
                       className="w-full pl-11 pr-4 py-3 bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl outline-none focus:ring-2 focus:ring-primary/20 transition-all"
                       placeholder="Your phone"
+                      autoComplete="tel"
                     />
                   </div>
                 </div>
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-bold text-neutral-700 dark:text-neutral-300 ml-1">Email Address</label>
+                <label htmlFor="profile-email" className="text-sm font-bold text-neutral-700 dark:text-neutral-300 ml-1">Email Address</label>
                 <div className="relative">
                   <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
                   <input
+                    id="profile-email"
+                    name="email"
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="w-full pl-11 pr-4 py-3 bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl outline-none focus:ring-2 focus:ring-primary/20 transition-all"
                     placeholder="Your email"
+                    autoComplete="email"
                   />
                 </div>
                 <p className="text-[10px] text-neutral-400 ml-1 italic">Changing your email will update your login credentials.</p>
@@ -398,33 +407,42 @@ export default function Profile({ user }: ProfileProps) {
               <form onSubmit={handleUpdateShop} className="p-6 space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <label className="text-sm font-bold text-neutral-700 dark:text-neutral-300 ml-1">Shop Name</label>
+                    <label htmlFor="shop-name" className="text-sm font-bold text-neutral-700 dark:text-neutral-300 ml-1">Shop Name</label>
                     <input
+                      id="shop-name"
+                      name="shop_name"
                       type="text"
                       value={shopName}
                       onChange={(e) => setShopName(e.target.value)}
                       className="w-full px-4 py-3 bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl outline-none focus:ring-2 focus:ring-primary/20 transition-all"
                       placeholder="Shop name"
+                      autoComplete="organization"
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-bold text-neutral-700 dark:text-neutral-300 ml-1">Shop Phone</label>
+                    <label htmlFor="shop-phone" className="text-sm font-bold text-neutral-700 dark:text-neutral-300 ml-1">Shop Phone</label>
                     <input
+                      id="shop-phone"
+                      name="shop_phone"
                       type="tel"
                       value={shopPhone}
                       onChange={(e) => setShopPhone(e.target.value)}
                       className="w-full px-4 py-3 bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl outline-none focus:ring-2 focus:ring-primary/20 transition-all"
                       placeholder="Shop phone"
+                      autoComplete="tel"
                     />
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-bold text-neutral-700 dark:text-neutral-300 ml-1">Shop Address</label>
+                  <label htmlFor="shop-address" className="text-sm font-bold text-neutral-700 dark:text-neutral-300 ml-1">Shop Address</label>
                   <textarea
+                    id="shop-address"
+                    name="shop_address"
                     value={shopAddress}
                     onChange={(e) => setShopAddress(e.target.value)}
                     className="w-full px-4 py-3 bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl outline-none focus:ring-2 focus:ring-primary/20 transition-all h-24 resize-none"
                     placeholder="Shop address"
+                    autoComplete="street-address"
                   />
                 </div>
                 <div className="space-y-2">
@@ -479,33 +497,42 @@ export default function Profile({ user }: ProfileProps) {
               ) : (
                 <form onSubmit={handleChangePassword} className="space-y-4">
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-neutral-400 uppercase tracking-wider ml-1">Current Password</label>
+                    <label htmlFor="current-password" title="Current Password" className="text-xs font-bold text-neutral-400 uppercase tracking-wider ml-1">Current Password</label>
                     <input
+                      id="current-password"
+                      name="current_password"
                       type="password"
                       required
                       value={currentPassword}
                       onChange={(e) => setCurrentPassword(e.target.value)}
                       className="w-full px-4 py-3 bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                      autoComplete="current-password"
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-neutral-400 uppercase tracking-wider ml-1">New Password</label>
+                    <label htmlFor="new-password" title="New Password" className="text-xs font-bold text-neutral-400 uppercase tracking-wider ml-1">New Password</label>
                     <input
+                      id="new-password"
+                      name="new_password"
                       type="password"
                       required
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
                       className="w-full px-4 py-3 bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                      autoComplete="new-password"
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-neutral-400 uppercase tracking-wider ml-1">Confirm New Password</label>
+                    <label htmlFor="confirm-password" title="Confirm New Password" className="text-xs font-bold text-neutral-400 uppercase tracking-wider ml-1">Confirm New Password</label>
                     <input
+                      id="confirm-password"
+                      name="confirm_password"
                       type="password"
                       required
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       className="w-full px-4 py-3 bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                      autoComplete="new-password"
                     />
                   </div>
                   <div className="flex gap-3 pt-2">
@@ -560,16 +587,19 @@ export default function Profile({ user }: ProfileProps) {
 
             <form onSubmit={handleDeleteAccount} className="space-y-4">
               <div className="space-y-2">
-                <label className="text-sm font-bold text-neutral-700 dark:text-neutral-300 ml-1">
+                <label htmlFor="delete-confirm-password" title="Enter your password to confirm" className="text-sm font-bold text-neutral-700 dark:text-neutral-300 ml-1">
                   Enter your password to confirm
                 </label>
                 <input
+                  id="delete-confirm-password"
+                  name="delete_password"
                   type="password"
                   required
                   value={deletePassword}
                   onChange={(e) => setDeletePassword(e.target.value)}
                   className="w-full px-4 py-3 bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl outline-none focus:ring-2 focus:ring-red-500/20 transition-all"
                   placeholder="Your password"
+                  autoComplete="current-password"
                 />
               </div>
 
