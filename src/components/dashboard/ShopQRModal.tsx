@@ -1,9 +1,10 @@
 import React from "react";
 import { X } from "lucide-react";
 import QRCodeDisplay from "../QRCodeDisplay";
+import { Shop } from "../../types/database";
 
 interface ShopQRModalProps {
-  shop: any;
+  shop: Shop | null;
   setShowShopQR: (show: boolean) => void;
 }
 

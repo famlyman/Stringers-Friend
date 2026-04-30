@@ -1,13 +1,14 @@
 import React, { useState } from "react";
 import { InventoryForm } from "./InventoryForm";
+import { InventoryItem } from "../../types/database";
 
 interface AddInventoryModalProps {
-  onAdd: (item: any) => Promise<void>;
+  onAdd: (item: Partial<InventoryItem>) => Promise<void>;
   onCancel: () => void;
 }
 
 export function AddInventoryModal({ onAdd, onCancel }: AddInventoryModalProps) {
-  const [newItem, setNewItem] = useState<any>({ 
+  const [newItem, setNewItem] = useState<Partial<InventoryItem>>({ 
     category: "string",
     brand: "", 
     model: "",

@@ -1,14 +1,15 @@
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "../lib/supabase";
+import { Job, Customer, Racquet, Message, InventoryItem, Shop } from "../types/database";
 
 export interface DashboardData {
-  jobs: any[];
-  customers: any[];
-  racquets: any[];
-  messages: any[];
-  inventoryItems: any[];
-  inventoryStrings: any[];
-  shop: any;
+  jobs: Job[];
+  customers: Customer[];
+  racquets: Racquet[];
+  messages: Message[];
+  inventoryItems: InventoryItem[];
+  inventoryStrings: InventoryItem[];
+  shop: Shop | null;
   loading: boolean;
   stats: {
     pendingJobs: number;
@@ -19,18 +20,18 @@ export interface DashboardData {
     totalCustomers: number;
   };
   refreshData: () => Promise<void>;
-  setJobs: React.Dispatch<React.SetStateAction<any[]>>;
+  setJobs: React.Dispatch<React.SetStateAction<Job[]>>;
 }
 
-export function useDashboardData(shopId: string | undefined) {
-  const [jobs, setJobs] = useState<any[]>([]);
-  const [shop, setShop] = useState<any>(null);
+export function useDashboardData(shopId: string | undefined): DashboardData {
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [shop, setShop] = useState<Shop | null>(null);
   const [loading, setLoading] = useState(true);
-  const [customers, setCustomers] = useState<any[]>([]);
-  const [racquets, setRacquets] = useState<any[]>([]);
-  const [inventoryItems, setInventoryItems] = useState<any[]>([]);
-  const [inventoryStrings, setInventoryStrings] = useState<any[]>([]);
-  const [messages, setMessages] = useState<any[]>([]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [racquets, setRacquets] = useState<Racquet[]>([]);
+  const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
+  const [inventoryStrings, setInventoryStrings] = useState<InventoryItem[]>([]);
+  const [messages, setMessages] = useState<Message[]>([]);
 
   const fetchData = async () => {
     if (!shopId) {
@@ -64,8 +65,8 @@ export function useDashboardData(shopId: string | undefined) {
       setMessages(messagesData || []);
       
       if (inventoryData) {
-        setInventoryItems(inventoryData);
-        setInventoryStrings(inventoryData.filter((i: any) => i.category === 'string'));
+        setInventoryItems(inventoryData as InventoryItem[]);
+        setInventoryStrings((inventoryData as InventoryItem[]).filter((i: InventoryItem) => i.category === 'string'));
       }
     } catch (err) {
       console.error('Error fetching dashboard data:', err);

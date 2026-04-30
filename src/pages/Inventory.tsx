@@ -6,17 +6,18 @@ import { InventoryTable } from "../components/inventory/InventoryTable";
 import { AddInventoryModal } from "../components/inventory/AddInventoryModal";
 import { EditInventoryModal } from "../components/inventory/EditInventoryModal";
 import { InventoryQRModal } from "../components/inventory/InventoryQRModal";
+import { Profile, InventoryItem } from "../types/database";
 
-export default function Inventory({ user }: { user: any }) {
-  const { items, loading, addItem, updateItem, deleteItem } = useInventoryData(user?.shop_id || user?.shopId);
+export default function Inventory({ user }: { user: Profile }) {
+  const { items, loading, addItem, updateItem, deleteItem } = useInventoryData(user?.shop_id || undefined);
 
   const [showAdd, setShowAdd] = useState(false);
-  const [editingItem, setEditingItem] = useState<any>(null);
+  const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
   const [filterType, setFilterType] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [showQRCodeModal, setShowQRCodeModal] = useState<{ value: string, label: string } | null>(null);
 
-  const handleAddItem = async (newItem: any) => {
+  const handleAddItem = async (newItem: Partial<InventoryItem>) => {
     try {
       await addItem(newItem);
       setShowAdd(false);

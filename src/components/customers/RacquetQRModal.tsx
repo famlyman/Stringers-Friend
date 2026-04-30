@@ -1,13 +1,15 @@
 import React from "react";
 import { X } from "lucide-react";
 import QRCodeDisplay from "../QRCodeDisplay";
+import { Racquet } from "../../types/database";
 
 interface RacquetQRModalProps {
-  showRacquetQR: any;
-  setShowRacquetQR: (data: any) => void;
+  showRacquetQR: Racquet | null;
+  setShowRacquetQR: (data: Racquet | null) => void;
+  customerName?: string;
 }
 
-export function RacquetQRModal({ showRacquetQR, setShowRacquetQR }: RacquetQRModalProps) {
+export function RacquetQRModal({ showRacquetQR, setShowRacquetQR, customerName }: RacquetQRModalProps) {
   if (!showRacquetQR) return null;
 
   return (
@@ -30,11 +32,11 @@ export function RacquetQRModal({ showRacquetQR, setShowRacquetQR }: RacquetQRMod
           <p className="text-xs font-bold text-neutral-500 dark:text-neutral-400 mb-3 uppercase tracking-wide">Racquet QR Code</p>
           <QRCodeDisplay 
             value={showRacquetQR.id} 
-            customerName={showRacquetQR.customerName}
-            stringMain={showRacquetQR.stringMain}
-            stringCross={showRacquetQR.stringCross}
-            tensionMain={showRacquetQR.tensionMain}
-            tensionCross={showRacquetQR.tensionCross}
+            customerName={customerName || (showRacquetQR as any).customerName}
+            stringMain={showRacquetQR.current_string_main}
+            stringCross={showRacquetQR.current_string_cross}
+            tensionMain={showRacquetQR.current_tension_main}
+            tensionCross={showRacquetQR.current_tension_cross}
             label={`${showRacquetQR.brand} ${showRacquetQR.model}`}
           />
         </div>

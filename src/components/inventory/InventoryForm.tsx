@@ -1,8 +1,9 @@
 import React from "react";
 import { GAUGES } from "../../constants";
+import { InventoryItem } from "../../types/database";
 
 interface InventoryFormProps {
-  item: any;
+  item: Partial<InventoryItem>;
   setItem: (item: any) => void;
   onSubmit: (e: React.FormEvent) => void;
   onCancel: () => void;

@@ -3,15 +3,16 @@ import { Clock, CheckCircle2, CreditCard, Package, MessageSquare, FileText, Plus
 import { safeFormatDate } from "../lib/utils";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "../lib/supabase";
+import { Profile, Customer, Job, Racquet } from "../types/database";
 
-export default function CustomerDashboard({ user, initialTab = 'jobs' }: { user: any, initialTab?: 'jobs' | 'racquets' | 'messages' }) {
+export default function CustomerDashboard({ user, initialTab = 'jobs' }: { user: Profile, initialTab?: 'jobs' | 'racquets' | 'messages' }) {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [jobs, setJobs] = useState<any[]>([]);
-  const [racquets, setRacquets] = useState<any[]>([]);
-  const [customerInfo, setCustomerInfo] = useState<any>(null);
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [racquets, setRacquets] = useState<Racquet[]>([]);
+  const [customerInfo, setCustomerInfo] = useState<Customer | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'jobs' | 'racquets' | 'messages'>(
-    (searchParams.get('tab') as any) || initialTab
+    (searchParams.get('tab') as 'jobs' | 'racquets' | 'messages') || initialTab
   );
 
   useEffect(() => {
@@ -28,19 +29,20 @@ export default function CustomerDashboard({ user, initialTab = 'jobs' }: { user:
           .single();
         
         if (customerData) {
-          setCustomerInfo(customerData);
+          const cData = customerData as Customer;
+          setCustomerInfo(cData);
 
           // Parallelize jobs and racquets fetching since they both depend on customerData.id
           const [
             { data: jobsData },
             { data: racquetsData }
           ] = await Promise.all([
-            supabase.from('jobs').select('*').eq('customer_id', customerData.id).order('created_at', { ascending: false }),
-            supabase.from('racquets').select('*').eq('customer_id', customerData.id).order('created_at', { ascending: false })
+            supabase.from('jobs').select('*').eq('customer_id', cData.id).order('created_at', { ascending: false }),
+            supabase.from('racquets').select('*').eq('customer_id', cData.id).order('created_at', { ascending: false })
           ]);
           
-          if (jobsData) setJobs(jobsData);
-          if (racquetsData) setRacquets(racquetsData);
+          if (jobsData) setJobs(jobsData as Job[]);
+          if (racquetsData) setRacquets(racquetsData as Racquet[]);
         }
       } catch (err) {
         console.error("Error fetching customer dashboard data:", err);
@@ -63,7 +65,7 @@ export default function CustomerDashboard({ user, initialTab = 'jobs' }: { user:
   }, [user]);
 
   useEffect(() => {
-    const tab = searchParams.get('tab') as any;
+    const tab = searchParams.get('tab') as 'jobs' | 'racquets' | 'messages';
     if (tab && ['jobs', 'racquets', 'messages'].includes(tab)) {
       setActiveTab(tab);
     }

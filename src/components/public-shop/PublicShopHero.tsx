@@ -1,9 +1,10 @@
 import React from "react";
 import { Award, Zap, ChevronRight, MapPin, Phone } from "lucide-react";
 import { ShopStats } from "./ShopStats";
+import { Shop } from "../../types/database";
 
 interface PublicShopHeroProps {
-  shop: any;
+  shop: Shop;
   servicesCount: number;
   openContactModal: () => void;
 }

@@ -3,38 +3,17 @@ import { supabase } from "../lib/supabase";
 import { Send, Search, User, MessageSquare, ArrowLeft } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
 import { sendNotification } from "../lib/notifications";
+import { Profile, Message, Customer as DatabaseCustomer } from "../types/database";
 
-interface Message {
-  id: string;
-  shop_id: string;
-  customer_id: string;
-  sender_type: "shop" | "customer";
-  content: string;
-  is_read: boolean;
-  created_at: string;
-  customers: {
-    id: string;
-    first_name: string;
-    last_name: string;
-    email: string;
-    phone: string;
-  } | null;
-}
-
-interface Customer {
-  id: string;
-  first_name: string;
-  last_name: string;
-  email: string;
-  phone: string;
+interface ExtendedCustomer extends DatabaseCustomer {
   lastMessage?: Message;
   unreadCount: number;
 }
 
-export default function Messages({ user }: { user: any }) {
+export default function Messages({ user }: { user: Profile }) {
   const [loading, setLoading] = useState(true);
-  const [conversations, setConversations] = useState<Customer[]>([]);
-  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [conversations, setConversations] = useState<ExtendedCustomer[]>([]);
+  const [selectedCustomer, setSelectedCustomer] = useState<ExtendedCustomer | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [sending, setSending] = useState(false);

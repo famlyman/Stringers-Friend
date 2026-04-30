@@ -2,8 +2,9 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../context/SupabaseAuthContext"; // Import useAuth hook
+import { Profile } from "../types/database";
 
-export default function ShopSetup({ user }: { user: any }) {
+export default function ShopSetup({ user }: { user: Profile }) {
   const { fetchProfile } = useAuth(); // Get fetchProfile from useAuth hook
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");

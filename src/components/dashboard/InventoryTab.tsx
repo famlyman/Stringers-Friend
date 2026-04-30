@@ -1,8 +1,9 @@
 import React from "react";
 import { Package } from "lucide-react";
+import { InventoryItem } from "../../types/database";
 
 interface InventoryTabProps {
-  inventoryItems: any[];
+  inventoryItems: InventoryItem[];
 }
 
 export function InventoryTab({ inventoryItems }: InventoryTabProps) {

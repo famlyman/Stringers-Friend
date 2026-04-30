@@ -1,9 +1,10 @@
 import React from "react";
 import { Mail, Phone, Trash2, Plus } from "lucide-react";
+import { Customer } from "../../types/database";
 
 interface CustomerDetailsCardProps {
-  customer: any;
-  setDeleteConfirm: (confirm: any) => void;
+  customer: Customer;
+  setDeleteConfirm: (confirm: { type: 'customer', id: string, name: string }) => void;
   setShowAddRacquet: (show: boolean) => void;
 }
 

@@ -1,18 +1,19 @@
 import { ReactNode, useState, useEffect } from "react";
 import { Link, Outlet, useNavigate, useLocation } from "react-router-dom";
-import { LayoutDashboard, Users, Package, LogOut, User, Sun, Moon, MessageSquare, Bell, X, Home, FileText, Settings } from "lucide-react";
+import { LayoutDashboard, Users, Package, LogOut, User, Sun, Moon, MessageSquare, Bell, X, Home, FileText, Settings, LucideIcon } from "lucide-react";
 import { useTheme } from "../context/ThemeContext";
 import { supabase } from "../lib/supabase";
 import { getOneSignalPlayerId } from "../lib/notifications";
+import { Profile } from "../types/database";
 
 interface LayoutProps {
-  user: any;
+  user: Profile | null;
   onLogout: () => void;
 }
 
 interface NavItem {
   path: string;
-  icon: any;
+  icon: LucideIcon;
   label: string;
   badge?: number;
 }

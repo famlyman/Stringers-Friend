@@ -1,9 +1,10 @@
 import React from "react";
 import { QrCode, ArrowUpRight } from "lucide-react";
 import { Link } from "react-router-dom";
+import { Shop } from "../../types/database";
 
 interface DashboardHeaderProps {
-  shop: any;
+  shop: Shop | null;
   setShowShopQR: (show: boolean) => void;
 }
 

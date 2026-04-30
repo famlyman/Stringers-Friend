@@ -2,8 +2,9 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../context/SupabaseAuthContext";
+import { Profile } from "../types/database";
 
-export default function RacquetSpecsAdmin({ user }: { user: any }) {
+export default function RacquetSpecsAdmin({ user }: { user: Profile }) {
   const { fetchProfile } = useAuth();
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);

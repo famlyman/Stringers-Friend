@@ -1,14 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
-
-export interface Shop {
-  id: string;
-  name: string;
-  slug: string;
-  address?: string;
-  phone?: string;
-  owner_id: string;
-}
+import { Shop, InventoryItem } from "../types/database";
 
 export interface Service {
   id: string;
@@ -45,10 +37,10 @@ export function usePublicShopData(slug: string | undefined, user: any) {
             .eq('shop_id', shopData.id)
             .eq('category', 'string'); // Assuming category is the right column
             
-          const servicesData = inventory?.map(item => ({
+          const servicesData = (inventory as InventoryItem[])?.map(item => ({
             id: item.id,
             name: `${item.brand} ${item.model}`,
-            price: item.unit_price,
+            price: item.unit_price || 0,
             description: item.gauge ? `${item.gauge} gauge` : ''
           })) || [];
           setServices(servicesData);

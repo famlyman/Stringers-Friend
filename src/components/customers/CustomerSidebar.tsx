@@ -1,12 +1,13 @@
 import React from "react";
-import { Search, UserPlus, ChevronRight } from "lucide-react";
+import { Plus, Search, User } from "lucide-react";
+import { Customer } from "../../types/database";
 
 interface CustomerSidebarProps {
   searchTerm: string;
   setSearchTerm: (term: string) => void;
-  filteredCustomers: any[];
+  filteredCustomers: Customer[];
   selectedCustomerId: string | undefined;
-  setSelectedCustomer: (customer: any) => void;
+  setSelectedCustomer: (customer: Customer) => void;
   setShowAdd: (show: boolean) => void;
 }
 

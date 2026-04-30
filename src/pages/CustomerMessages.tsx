@@ -3,21 +3,9 @@ import { supabase } from "../lib/supabase";
 import { Send, MessageSquare, ArrowLeft, Store } from "lucide-react";
 import { Link } from "react-router-dom";
 import { sendNotification } from "../lib/notifications";
+import { Profile, Message } from "../types/database";
 
-interface Message {
-  id: string;
-  shop_id: string;
-  customer_id: string;
-  sender_type: "shop" | "customer";
-  content: string;
-  is_read: boolean;
-  created_at: string;
-  shops?: {
-    name: string;
-  };
-}
-
-export default function CustomerMessages({ user }: { user: any }) {
+export default function CustomerMessages({ user }: { user: Profile }) {
   const [loading, setLoading] = useState(true);
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");

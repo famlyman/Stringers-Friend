@@ -8,6 +8,7 @@ interface StatsGridProps {
     completedJobs: number;
     totalRevenue: number;
     thisWeekJobs: number;
+    totalCustomers: number;
   };
 }
 

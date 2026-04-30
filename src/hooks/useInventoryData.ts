@@ -1,24 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
-
-export interface InventoryItem {
-  id: string;
-  shop_id: string;
-  category: string;
-  brand: string;
-  model: string;
-  name: string;
-  type: string;
-  gauge: string;
-  packaging?: string;
-  total_length?: number;
-  remaining_length?: number;
-  quantity: number;
-  low_stock_threshold: number;
-  unit_price: number;
-  color?: string;
-  qr_code?: string;
-}
+import { InventoryItem } from "../types/database";
 
 export function useInventoryData(shopId: string | undefined) {
   const [items, setItems] = useState<InventoryItem[]>([]);

@@ -1,12 +1,13 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { CheckCircle2, UserPlus, ChevronRight } from "lucide-react";
+import { Shop, Profile } from "../../types/database";
 
 interface CustomerCTAProps {
   user: any;
-  shop: any;
+  shop: Shop;
   isCustomerOfShop: boolean;
-  profile: any;
+  profile: Profile | null;
   openContactModal: (serviceName?: string, register?: boolean) => void;
 }
 

@@ -1,8 +1,9 @@
 import React from "react";
 import { MapPin, Phone } from "lucide-react";
+import { Shop } from "../../types/database";
 
 interface ShopInfoSidebarProps {
-  shop: any;
+  shop: Shop;
 }
 
 export function ShopInfoSidebar({ shop }: ShopInfoSidebarProps) {

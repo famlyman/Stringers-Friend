@@ -3,15 +3,16 @@ import { Ticket, Calendar, DollarSign, Plus } from "lucide-react";
 import { safeFormatDate } from "../../lib/utils";
 import { supabase } from "../../lib/supabase";
 import { sendNotification } from "../../lib/notifications";
+import { Job } from "../../types/database";
 
 interface JobsTabProps {
-  filteredJobs: any[];
-  setJobs: React.Dispatch<React.SetStateAction<any[]>>;
+  filteredJobs: Job[];
+  setJobs: React.Dispatch<React.SetStateAction<Job[]>>;
   setShowNewJob: (show: boolean) => void;
 }
 
 export function JobsTab({ filteredJobs, setJobs, setShowNewJob }: JobsTabProps) {
-  const handleStatusChange = async (job: any, newStatus: string) => {
+  const handleStatusChange = async (job: Job, newStatus: string) => {
     const oldStatus = job.status;
     try {
       await supabase
@@ -19,10 +20,60 @@ export function JobsTab({ filteredJobs, setJobs, setShowNewJob }: JobsTabProps) 
         .update({ status: newStatus, updated_at: new Date().toISOString() })
         .eq('id', job.id);
       
-      setJobs(prevJobs => prevJobs.map(j => j.id === job.id ? { ...j, status: newStatus } : j));
+      setJobs(prevJobs => prevJobs.map(j => j.id === job.id ? { ...j, status: newStatus as any } : j));
 
-      // Send notification when job is marked completed
+      // Inventory Deduction logic
       if (newStatus === 'completed' && oldStatus !== 'completed') {
+        // 1. Fetch job details that have inventory_id linked
+        const { data: jobDetails } = await supabase
+          .from('job_details')
+          .select('*, inventory(*)')
+          .eq('job_id', job.id);
+        
+        if (jobDetails && jobDetails.length > 0) {
+          for (const detail of jobDetails) {
+            if (detail.inventory_id && detail.inventory) {
+              const inv = detail.inventory;
+              
+              if (inv.type === 'set' || inv.type === 'unit') {
+                // Deduct 1 from quantity
+                await supabase
+                  .from('inventory')
+                  .update({ 
+                    quantity: Math.max(0, inv.quantity - 1),
+                    updated_at: new Date().toISOString()
+                  })
+                  .eq('id', inv.id);
+              } else if (inv.type === 'reel') {
+                // Deduct 6 meters (typical for half-bed or hybrid piece)
+                // If it's a full bed of the same string, NewJobModal creates two details? 
+                // Wait, NewJobModal currently creates ONE detail for full bed and TWO for hybrid.
+                // If it's full bed, we should deduct 12m. If hybrid, 6m each.
+                const deduction = jobDetails.length === 2 && (detail.item_type === 'main_string' || detail.item_type === 'cross_string') ? 6 : 12;
+                
+                let newRemaining = (inv.remaining_length || 0) - deduction;
+                let newQuantity = inv.quantity;
+                
+                if (newRemaining <= 0) {
+                  // Use another reel if available
+                  newQuantity = Math.max(0, inv.quantity - 1);
+                  newRemaining = newQuantity > 0 ? (inv.total_length || 200) + newRemaining : 0;
+                }
+                
+                await supabase
+                  .from('inventory')
+                  .update({ 
+                    remaining_length: newRemaining,
+                    quantity: newQuantity,
+                    updated_at: new Date().toISOString()
+                  })
+                  .eq('id', inv.id);
+              }
+            }
+          }
+        }
+
+        // Send notification
         const { data: jobData } = await supabase
           .from('jobs')
           .select('*, customers(profile_id)')

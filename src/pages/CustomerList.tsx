@@ -11,21 +11,22 @@ import { RacquetCard } from "../components/customers/RacquetCard";
 import { EditRacquetModal } from "../components/customers/EditRacquetModal";
 import { RacquetQRModal } from "../components/customers/RacquetQRModal";
 import { DeleteConfirmModal } from "../components/customers/DeleteConfirmModal";
+import { Profile, Customer, Racquet } from "../types/database";
 
-export default function CustomerList({ user }: { user: any }) {
-  const shopId = user?.shop_id || user?.shopId;
+export default function CustomerList({ user }: { user: Profile }) {
+  const shopId = user?.shop_id || undefined;
   const { customers, loading: customersLoading, refreshData } = useCustomerListData(shopId);
   
-  const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const { racquets, refreshRacquets } = useCustomerRacquets(selectedCustomer?.id);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [showAdd, setShowAdd] = useState(false);
   const [showAddRacquet, setShowAddRacquet] = useState(false);
-  const [editingRacquet, setEditingRacquet] = useState<any | null>(null);
+  const [editingRacquet, setEditingRacquet] = useState<Racquet | null>(null);
   const [expandedRacquetId, setExpandedRacquetId] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<{ type: 'customer' | 'racquet', id: string, name?: string } | null>(null);
-  const [showRacquetQR, setShowRacquetQR] = useState<any>(null);
+  const [showRacquetQR, setShowRacquetQR] = useState<Racquet | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   const filteredCustomers = useMemo(() => {

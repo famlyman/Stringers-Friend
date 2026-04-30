@@ -1,25 +1,17 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { User as SupabaseUser } from '@supabase/supabase-js';
+import { User as SupabaseUser, AuthResponse } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
-
-interface UserProfile {
-  id: string;
-  email: string;
-  role: 'stringer' | 'customer';
-  shop_id?: string;
-  full_name?: string;
-  phone?: string;
-}
+import { Profile } from '../types/database';
 
 interface AuthContextType {
   user: SupabaseUser | null;
-  profile: UserProfile | null;
+  profile: Profile | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
-  signUp: (email: string, password: string, profileData?: Partial<UserProfile>) => Promise<{ error: Error | null; data: any }>;
+  signUp: (email: string, password: string, profileData?: Partial<Profile>) => Promise<{ error: Error | null; data: AuthResponse['data'] }>;
   signOut: () => Promise<void>;
-  updateProfile: (updates: Partial<UserProfile>) => Promise<{ error: Error | null }>;
-  fetchProfile: (userId: string, userEmail?: string, role?: 'stringer' | 'customer') => Promise<UserProfile | null>;
+  updateProfile: (updates: Partial<Profile>) => Promise<{ error: Error | null }>;
+  fetchProfile: (userId: string, userEmail?: string, role?: 'stringer' | 'customer') => Promise<Profile | null>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -27,7 +19,7 @@ const AuthContext = createContext<AuthContextType>({
   profile: null,
   loading: true,
   signIn: async () => ({ error: new Error('AuthContext not initialized') }),
-  signUp: async () => ({ error: new Error('AuthContext not initialized'), data: null }),
+  signUp: async () => ({ error: new Error('AuthContext not initialized'), data: { user: null, session: null } }),
   signOut: async () => {},
   updateProfile: async () => ({ error: new Error('AuthContext not initialized') }),
   fetchProfile: async () => null,
@@ -37,14 +29,14 @@ export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<SupabaseUser | null>(null);
-  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   
   // Temporary storage for role during signup to prevent race condition
   const [pendingRole, setPendingRole] = useState<'stringer' | 'customer' | null>(null);
 
   // Fetch profile from Supabase, create if missing
-  const fetchProfile = async (userId: string, userEmail?: string, role?: 'stringer' | 'customer') => {
+  const fetchProfile = async (userId: string, userEmail?: string, role?: 'stringer' | 'customer'): Promise<Profile | null> => {
     try {
       // Race between query and timeout (5 seconds)
       const fetchPromise = supabase
@@ -53,11 +45,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .eq('id', userId)
         .single();
       
-      const timeoutPromise = new Promise<{ data: null, error: Error }>((resolve) => {
-        setTimeout(() => resolve({ data: null, error: new Error('timeout') }), 5000);
+      const timeoutPromise = new Promise<{ data: null, error: { message: string } }>((resolve) => {
+        setTimeout(() => resolve({ data: null, error: { message: 'timeout' } }), 5000);
       });
       
-      const { data, error } = await Promise.race([fetchPromise, timeoutPromise]) as any;
+      const response = await Promise.race([fetchPromise, timeoutPromise]);
+      const data = response.data;
+      const error = response.error as any;
 
       // Handle timeout - return null to show retry UI
       if (error?.message === 'timeout') {
@@ -65,7 +59,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       if (!error && data) {
-        return data as UserProfile;
+        return data as Profile;
       }
 
       // Check if profile not found - create it
@@ -91,7 +85,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             .single();
           
           if (newProfile) {
-            return newProfile as UserProfile;
+            return newProfile as Profile;
           }
         } else {
           console.error('Error creating profile:', createError);

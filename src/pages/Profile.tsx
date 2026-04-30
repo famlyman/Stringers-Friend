@@ -2,9 +2,10 @@ import React, { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
 import { User, Mail, Phone, Lock, Store, Save, AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
 import { useAuth } from "../context/SupabaseAuthContext";
+import { Profile as UserProfile, Shop } from "../types/database";
 
 interface ProfileProps {
-  user: any;
+  user: UserProfile;
 }
 
 export default function Profile({ user }: ProfileProps) {
@@ -26,7 +27,7 @@ export default function Profile({ user }: ProfileProps) {
   const [showPasswordForm, setShowPasswordForm] = useState(false);
 
   // Shop State (for stringers)
-  const [shopData, setShopData] = useState<any>(null);
+  const [shopData, setShopData] = useState<Shop | null>(null);
   const [shopName, setShopName] = useState("");
   const [shopAddress, setShopAddress] = useState("");
   const [shopPhone, setShopPhone] = useState("");

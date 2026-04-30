@@ -1,9 +1,10 @@
 import React from "react";
 import { Users } from "lucide-react";
+import { Customer, Racquet } from "../../types/database";
 
 interface CustomersTabProps {
-  filteredCustomers: any[];
-  racquets: any[];
+  filteredCustomers: Customer[];
+  racquets: Racquet[];
 }
 
 export function CustomersTab({ filteredCustomers, racquets }: CustomersTabProps) {

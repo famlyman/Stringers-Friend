@@ -1,13 +1,14 @@
 import React from "react";
 import { ChevronRight } from "lucide-react";
+import { Racquet } from "../../types/database";
 
 interface RacquetCardProps {
-  racquet: any;
+  racquet: Racquet;
   expandedRacquetId: string | null;
   setExpandedRacquetId: (id: string | null) => void;
-  setEditingRacquet: (racquet: any) => void;
-  setShowRacquetQR: (data: any) => void;
-  setDeleteConfirm: (confirm: any) => void;
+  setEditingRacquet: (racquet: Racquet) => void;
+  setShowRacquetQR: (racquet: Racquet) => void;
+  setDeleteConfirm: (confirm: { type: 'racquet', id: string, name: string }) => void;
   customerName: string;
 }
 
@@ -81,16 +82,7 @@ export function RacquetCard({
               Edit Details
             </button>
             <button 
-              onClick={(e) => { e.stopPropagation(); setShowRacquetQR({ 
-                id: racquet.id, 
-                brand: racquet.brand, 
-                model: racquet.model, 
-                customerName,
-                stringMain: racquet.current_string_main || '', 
-                stringCross: racquet.current_string_cross || '', 
-                tensionMain: racquet.current_tension_main || '', 
-                tensionCross: racquet.current_tension_cross || '' 
-              }); }}
+              onClick={(e) => { e.stopPropagation(); setShowRacquetQR(racquet); }}
               className="px-4 py-2 bg-neutral-100 dark:bg-neutral-700 text-neutral-600 dark:text-neutral-300 rounded-lg font-medium text-sm hover:bg-neutral-200 dark:hover:bg-neutral-600 transition-colors"
             >
               QR Code

@@ -8,8 +8,9 @@ import { supabase } from "../lib/supabase";
 import { v4 as uuidv4 } from "uuid";
 import { SmartRacquetBrandSelect, SmartRacquetModelSelect } from "../components/SmartRacquetSelect";
 import QRCodeDisplay from "../components/QRCodeDisplay";
+import { Profile, Customer, Job } from "../types/database";
 
-export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, initialTab?: 'jobs' | 'customers' | 'messages' | 'inventory' }) {
+export default function Dashboard({ user, initialTab = 'jobs' }: { user: Profile, initialTab?: 'jobs' | 'customers' | 'messages' | 'inventory' }) {
   const {
     jobs,
     setJobs,
@@ -21,7 +22,7 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
     messages,
     stats,
     refreshData
-  } = useDashboardData(user?.shop_id || user?.shopId);
+  } = useDashboardData(user?.shop_id || undefined);
 
   const [showNewJob, setShowNewJob] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -131,7 +132,7 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
     }
   };
 
-  const filteredJobs = useMemo(() => jobs.filter(job => {
+  const filteredJobs = useMemo(() => jobs.filter((job: Job) => {
     if (!searchQuery) return true;
     const search = searchQuery.toLowerCase();
     return (
@@ -141,7 +142,7 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
     );
   }), [jobs, searchQuery]);
 
-  const filteredCustomers = useMemo(() => customers.filter(customer => {
+  const filteredCustomers = useMemo(() => customers.filter((customer: Customer) => {
     if (!searchQuery) return true;
     const search = searchQuery.toLowerCase();
     return (

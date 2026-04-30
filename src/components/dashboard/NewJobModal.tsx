@@ -4,12 +4,13 @@ import { SmartRacquetBrandSelect, SmartRacquetModelSelect } from "../SmartRacque
 import { SmartStringBrandSelect, SmartStringModelSelect } from "../SmartStringSelect";
 import { supabase } from "../../lib/supabase";
 import { v4 as uuidv4 } from "uuid";
+import { Profile, Customer, Racquet, InventoryItem } from "../../types/database";
 
 interface NewJobModalProps {
-  user: any;
-  customers: any[];
-  racquets?: any[];
-  inventoryStrings?: any[];
+  user: Profile;
+  customers: Customer[];
+  racquets?: Racquet[];
+  inventoryStrings?: InventoryItem[];
   setShowNewJob: (show: boolean) => void;
   refreshData: () => Promise<void>;
 }
@@ -185,28 +186,34 @@ export function NewJobModal({ user, customers, racquets = [], inventoryStrings =
         price: Number(newJob.labor_price) || 0,
       });
 
+      // Find matching inventory items
+      const findInventoryId = (brand: string, model: string) => {
+        if (!brand || !model || !inventoryStrings) return null;
+        const match = inventoryStrings.find(i => 
+          i.brand.toLowerCase() === brand.toLowerCase() && 
+          i.model.toLowerCase() === model.toLowerCase()
+        );
+        return match?.id || null;
+      };
+
       // Main String
-      const mainStringName = `${newJob.string_main_brand} ${newJob.string_main_model} ${newJob.string_main_gauge}`.trim();
       details.push({
         job_id: jobId,
         item_type: 'main_string',
         tension: String(newJob.tension_main),
         price: Number(newJob.string_price_main) || 0,
-        // We could link inventory_id here if we matched it
+        inventory_id: findInventoryId(newJob.string_main_brand, newJob.string_main_model)
       });
 
       // Cross String (if hybrid)
       if (newJob.is_hybrid) {
-        const crossStringName = `${newJob.string_cross_brand} ${newJob.string_cross_model} ${newJob.string_cross_gauge}`.trim();
         details.push({
           job_id: jobId,
           item_type: 'cross_string',
           tension: String(newJob.tension_cross),
           price: Number(newJob.string_price_cross) || 0,
+          inventory_id: findInventoryId(newJob.string_cross_brand, newJob.string_cross_model)
         });
-      } else {
-        // Update main_string entry to show it's a full bed? 
-        // Or just let the tension be used for both if crosses is omitted.
       }
 
       const { error: detailsError } = await supabase

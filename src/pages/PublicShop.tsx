@@ -12,6 +12,7 @@ import { CustomerCTA } from "../components/public-shop/CustomerCTA";
 import { FinalCTA } from "../components/public-shop/FinalCTA";
 import { PublicShopFooter } from "../components/public-shop/PublicShopFooter";
 import { ContactModal } from "../components/public-shop/ContactModal";
+import { Profile, Shop } from "../types/database";
 
 export default function PublicShop() {
   const { slug } = useParams<{ slug: string }>();

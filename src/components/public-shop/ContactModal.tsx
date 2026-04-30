@@ -1,8 +1,9 @@
 import React from "react";
 import { X, CheckCircle2, Zap, AlertTriangle } from "lucide-react";
+import { Shop } from "../../types/database";
 
 interface ContactModalProps {
-  shop: any;
+  shop: Shop;
   showContactModal: boolean;
   setShowContactModal: (show: boolean) => void;
   selectedService: string | null;

@@ -1,11 +1,12 @@
 import React from "react";
-import { AlertCircle, QrCode, Edit2, Trash2 } from "lucide-react";
+import { QrCode, Edit2, Trash2, AlertCircle } from "lucide-react";
+import { InventoryItem } from "../../types/database";
 
 interface InventoryTableProps {
-  items: any[];
+  items: InventoryItem[];
   loading: boolean;
   setShowQRCodeModal: (data: { value: string, label: string }) => void;
-  setEditingItem: (item: any) => void;
+  setEditingItem: (item: InventoryItem) => void;
   handleDelete: (id: string) => void;
 }
 

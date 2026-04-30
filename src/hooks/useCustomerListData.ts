@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
+import { Customer, Racquet } from "../types/database";
 
 export function useCustomerListData(shopId: string | undefined) {
-  const [customers, setCustomers] = useState<any[]>([]);
-  const [allRacquets, setAllRacquets] = useState<any[]>([]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [allRacquets, setAllRacquets] = useState<Racquet[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchData = async () => {
@@ -19,8 +20,8 @@ export function useCustomerListData(shopId: string | undefined) {
         supabase.from('racquets').select('*').eq('shop_id', shopId)
       ]);
       
-      setCustomers(customersData || []);
-      setAllRacquets(racquetsData || []);
+      setCustomers((customersData || []) as Customer[]);
+      setAllRacquets((racquetsData || []) as Racquet[]);
     } catch (err) {
       console.error("Error fetching customer list data:", err);
     } finally {

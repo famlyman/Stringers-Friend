@@ -1,8 +1,9 @@
 import React from "react";
-import { MapPin, Phone } from "lucide-react";
+import { MessageSquare, Heart } from "lucide-react";
+import { Shop } from "../../types/database";
 
 interface PublicShopFooterProps {
-  shop: any;
+  shop: Shop;
   openContactModal: () => void;
 }
 
