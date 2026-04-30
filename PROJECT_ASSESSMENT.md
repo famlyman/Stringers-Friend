@@ -14,7 +14,9 @@
    - `Inventory.tsx` refactored with `useInventoryData` and `src/components/inventory/`
    - `CustomerList.tsx` refactored with `useCustomerListData` and `src/components/customers/`
 2. **Directory Restructuring** - Introduced `src/hooks/` and feature-specific component folders for better organization.
-3. **PWA Optimization** - Service workers and manifest are active for offline performance.
+3. **PWA & Service Worker Unification** - Unified redundant service worker files into a single Vite-generated `OneSignalSDKWorker.js`, resolving initial evaluation errors and correcting `Cache-Control` headers for better update delivery.
+4. **Performance Optimization** - Implemented **Code Splitting** (React.lazy) for all major routes and **Parallel Data Fetching** (Promise.all) in all dashboard hooks to significantly reduce load times.
+5. **Form UX & Accessibility** - Added missing `id`, `name`, and `autoComplete` attributes to all app forms to ensure proper browser autofill and screen reader compatibility.
 
 **Previous Updates (2026-04-25)**
 

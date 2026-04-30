@@ -1,3 +1,20 @@
+# Session Summary - 2026-04-30
+
+## Completed Fixes & Enhancements
+
+### Bug Fixes
+1.  **Service Worker Conflict Resolved** - Unified multiple service worker files (`sw.js`, `OneSignalSDKWorker.js`) into a single Vite-generated `OneSignalSDKWorker.js`. This fixed the "Event handler of 'message' event must be added on initial evaluation" error.
+2.  **Form Autofill & Accessibility** - Added missing `id`, `name`, and `autoComplete` attributes to form fields in `InventoryForm`, `ContactModal`, `AddRacquetForm`, `EditRacquetModal`, `ShopSetup`, `Login`, `Register`, and `Profile`.
+3.  **Service Worker Caching** - Corrected `vercel.json` headers for the service worker to use `max-age=0, must-revalidate` instead of `immutable`, ensuring users receive app updates promptly.
+
+### Performance Optimizations
+1.  **Code Splitting** - Implemented `React.lazy` and `Suspense` in `App.tsx` to split the bundle by route. This reduces the initial download size and speeds up the first-page load.
+2.  **Parallel Data Fetching** - Refactored `useDashboardData`, `useCustomerListData`, and `CustomerDashboard` to use `Promise.all` for fetching independent data sets (Jobs, Customers, Racquets, etc.) concurrently.
+3.  **Dashboard Refactor** - Consolidated `Dashboard.tsx` to use the optimized `useDashboardData` hook, removing redundant state and background subscriptions.
+4.  **Database Indexing** - Created `supabase/performance_indexes.sql` containing recommended indexes for high-traffic foreign key columns (`shop_id`, `customer_id`, etc.) to optimize query performance.
+
+---
+
 # Session Summary - 2026-04-29
 
 ## Completed Fixes & Enhancements

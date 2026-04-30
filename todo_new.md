@@ -18,11 +18,14 @@ This roadmap outlines the prioritized tasks following the major architectural re
 - [ ] **Automated Email Intake**: Send an automated "Thank You/Order Received" email when a customer submits a public service request.
 
 ## Phase 4: Polish & Performance
+- [x] **Code Splitting**: Implemented `React.lazy` for all major routes to reduce initial bundle size.
+- [x] **Parallel Data Fetching**: Optimized all dashboard hooks to fetch data concurrently using `Promise.all`.
 - [ ] **Loading Skeletons**: Replace full-page spinners with skeleton loaders for `StatsGrid` and `InventoryTable`.
 - [ ] **Search Optimization**: Implement debouncing on the search inputs in `CustomerList` and `Inventory` to improve performance on large datasets.
 - [ ] **Unit Testing**: Add Vitest/Testing Library tests for the new custom hooks (`useInventoryData`, etc.) and core utility functions.
 
 ## Phase 5: Mobile & Offline
+- [x] **Service Worker Unification**: Consolidated Workbox and OneSignal into a single robust worker.
 - [ ] **Offline Job Creation**: Queue job creation requests when offline and sync with Supabase when connectivity returns.
 - [ ] **QR Scanner UX**: Improve the scanner interface to handle low-light conditions and multiple racquet tags.
 
