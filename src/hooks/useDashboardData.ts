@@ -110,7 +110,7 @@ export function useDashboardData(shopId: string | undefined) {
     const pendingJobs = jobs.filter(j => j.status === 'pending').length;
     const inProgressJobs = jobs.filter(j => j.status === 'in_progress').length;
     const completedJobs = jobs.filter(j => j.status === 'completed').length;
-    const totalRevenue = jobs.filter(j => j.payment_status === 'paid').reduce((sum, j) => sum + (j.total_price || 0), 0);
+    const totalRevenue = jobs.filter(j => j.status !== 'cancelled').reduce((sum, j) => sum + (j.total_price || 0), 0);
     const thisWeekJobs = jobs.filter(j => {
       const jobDate = new Date(j.created_at);
       const weekAgo = new Date();
