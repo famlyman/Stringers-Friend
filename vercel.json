@@ -4,7 +4,6 @@
     { "source": "/api/health", "destination": "/api/health.ts" },
     { "source": "/api/send-notification", "destination": "/api/send-notification.ts" },
     { "source": "/api/(.*)", "destination": "/api/index.ts" },
-    { "source": "/sw.js", "destination": "/sw.js" },
     { "source": "/OneSignalSDKWorker.js", "destination": "/OneSignalSDKWorker.js" },
     { "source": "/icon.svg", "destination": "/icon.svg" },
     { "source": "/manifest.json", "destination": "/manifest.json" },
@@ -22,20 +21,11 @@
       ]
     },
     {
-      "source": "/sw.js",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=0, must-revalidate"
-        }
-      ]
-    },
-    {
       "source": "/OneSignalSDKWorker.js",
       "headers": [
         {
           "key": "Cache-Control",
-          "value": "public, max-age=31536000, immutable"
+          "value": "public, max-age=0, must-revalidate"
         },
         {
           "key": "Content-Type",
