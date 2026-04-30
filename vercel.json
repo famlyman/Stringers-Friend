@@ -38,7 +38,7 @@
       "headers": [
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://cdn.onesignal.com https://api.onesignal.com https://onesignal.com; style-src 'self' 'unsafe-inline' https://cdn.onesignal.com https://onesignal.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.onesignal.com https://api.onesignal.com; img-src 'self' data: https:; font-src 'self' data:; worker-src 'self' https://cdn.onesignal.com https://onesignal.com blob:;"
+          "value": "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://cdn.onesignal.com https://api.onesignal.com https://onesignal.com; style-src 'self' 'unsafe-inline' https://cdn.onesignal.com https://onesignal.com https://fonts.googleapis.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.onesignal.com https://api.onesignal.com https://onesignal.com; img-src 'self' data: https:; font-src 'self' data: https://fonts.gstatic.com; worker-src 'self' https://cdn.onesignal.com https://onesignal.com blob:;"
         }
       ]
     }
