@@ -1,29 +1,32 @@
-import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
-import { RACQUET_BRANDS, RACQUET_MODELS, STRINGS, GAUGES } from "../constants";
-import { SmartRacquetBrandSelect, SmartRacquetModelSelect } from "../components/SmartRacquetSelect";
-import { Plus, Search, Filter, CheckCircle2, Clock, PlayCircle, CreditCard, X, Trash2, Users, Briefcase, Edit2, ChevronRight, Printer, Package, MessageSquare, Mail, Phone, Send, Scan, AlertTriangle, History, RefreshCw, DollarSign, Calendar, ArrowUpRight, ArrowDownRight, Ticket, QrCode } from "lucide-react";
-import QRCodeDisplay from "../components/QRCodeDisplay";
-import { QrScanner } from "../components/QrScanner";
+import React, { useState, useEffect, useMemo } from "react";
+import { Plus, Search, CheckCircle2, Clock, PlayCircle, X, Briefcase, MessageSquare, DollarSign, Calendar, ArrowUpRight, Ticket, QrCode, Package, Users } from "lucide-react";
 import { Link } from "react-router-dom";
-import { supabase } from "../lib/supabase";
+import { useDashboardData } from "../hooks/useDashboardData";
 import { safeFormatDate } from "../lib/utils";
 import { sendNotification } from "../lib/notifications";
+import { supabase } from "../lib/supabase";
 import { v4 as uuidv4 } from "uuid";
+import { SmartRacquetBrandSelect, SmartRacquetModelSelect } from "../components/SmartRacquetSelect";
+import QRCodeDisplay from "../components/QRCodeDisplay";
 
 export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, initialTab?: 'jobs' | 'customers' | 'messages' | 'inventory' }) {
-  const [jobs, setJobs] = useState<any[]>([]);
-  const [shop, setShop] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const {
+    jobs,
+    setJobs,
+    shop,
+    loading,
+    customers,
+    racquets,
+    inventoryItems,
+    messages,
+    stats,
+    refreshData
+  } = useDashboardData(user?.shop_id || user?.shopId);
+
   const [showNewJob, setShowNewJob] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'jobs' | 'customers' | 'messages' | 'inventory'>(initialTab);
-  const [customers, setCustomers] = useState<any[]>([]);
-  const [racquets, setRacquets] = useState<any[]>([]);
-  const [inventoryItems, setInventoryItems] = useState<any[]>([]);
-  const [inventoryStrings, setInventoryStrings] = useState<any[]>([]);
-  const [messages, setMessages] = useState<any[]>([]);
-  const [newMessage, setNewMessage] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [showShopQR, setShowShopQR] = useState(false);
   
@@ -37,44 +40,21 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
     racquet_brand_custom: "",
     racquet_model_custom: "",
     racquet_serial: "",
-    racquet_head_size: "",
-    racquet_mains: "",
-    racquet_crosses: "",
-    racquet_mains_skip: "",
-    racquet_mains_tie_off: "",
-    racquet_crosses_start: "",
-    racquet_crosses_tie_off: "",
-    racquet_one_piece_length: "",
-    racquet_two_piece_length: "",
-    racquet_stringing_instructions: "",
-    string_main_brand: "",
-    string_main_model: "",
-    string_main_brand_custom: "",
-    string_main_model_custom: "",
-    string_main_gauge: "",
-    string_cross_brand: "Same as Mains",
-    string_cross_model: "Same as Mains",
-    string_cross_brand_custom: "",
-    string_cross_model_custom: "",
-    string_cross_gauge: "",
     tension_main: 0,
     tension_cross: 0,
     price: 25,
-    service_type: "string_full_bed",
-    custom_service_category: "string",
-    additional_service_request: "",
     notes: "",
-    keep_same_string: false,
-    string_main: "",
-    string_cross: ""
+    service_type: "string_full_bed"
   });
   
   const [selectedCustomerId, setSelectedCustomerId] = useState("");
   const [selectedRacquetId, setSelectedRacquetId] = useState("");
   const [isNewCustomer, setIsNewCustomer] = useState(false);
   const [isNewRacquet, setIsNewRacquet] = useState(false);
-  const [selectedInventoryId, setSelectedInventoryId] = useState("");
-  const [selectedCrossInventoryId, setSelectedCrossInventoryId] = useState("");
+
+  useEffect(() => {
+    setActiveTab(initialTab);
+  }, [initialTab]);
 
   const handleCreateJob = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -82,61 +62,28 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
     setError(null);
     
     try {
-      console.log('handleCreateJob - user:', user);
-      console.log('handleCreateJob - user.shop_id:', user?.shop_id);
-      
-      if (!user) throw new Error("User not authenticated.");
       const shopId = user.shop_id || user.shopId;
-      if (!shopId) throw new Error("Shop ID is missing. Please check your profile and complete shop setup.");
+      if (!shopId) throw new Error("Shop ID is missing.");
 
       let finalCustomerId = selectedCustomerId;
       let finalRacquetId = selectedRacquetId;
-      let finalCustomerEmail = newJob.customer_email;
-      let finalCustomerName = newJob.customer_name;
 
       if (isNewCustomer) {
-        if (!newJob.customer_name || !newJob.customer_email) {
-          throw new Error("Customer name and email are required.");
-        }
-        
         const nameParts = newJob.customer_name.trim().split(' ');
-        const firstName = nameParts[0];
-        const lastName = nameParts.slice(1).join(' ') || '';
-        
-        const { data: existingCustomers } = await supabase
+        const { data: newCustomerData, error: customerError } = await supabase
           .from('customers')
-          .select('id')
-          .eq('email', newJob.customer_email)
-          .eq('shop_id', user.shop_id);
+          .insert({
+            shop_id: shopId,
+            first_name: nameParts[0],
+            last_name: nameParts.slice(1).join(' ') || '',
+            email: newJob.customer_email,
+            phone: newJob.customer_phone,
+          })
+          .select()
+          .single();
         
-        if (existingCustomers && existingCustomers.length > 0) {
-          finalCustomerId = existingCustomers[0].id;
-        } else {
-          const { data: newCustomerData, error: customerError } = await supabase
-            .from('customers')
-            .insert({
-              shop_id: (user.shop_id || (user as any).shopId),
-              first_name: firstName,
-              last_name: lastName,
-              email: newJob.customer_email,
-              phone: newJob.customer_phone,
-            })
-            .select()
-            .single();
-          
-          if (customerError) throw customerError;
-          finalCustomerId = newCustomerData.id;
-        }
-        finalCustomerEmail = newJob.customer_email;
-        finalCustomerName = newJob.customer_name;
-      } else if (selectedCustomerId) {
-        const customer = customers.find(c => c.id === selectedCustomerId);
-        if (customer) {
-          finalCustomerEmail = customer.email;
-          finalCustomerName = `${customer.first_name} ${customer.last_name}`;
-        }
-      } else {
-        throw new Error("Please select a customer or add a new one.");
+        if (customerError) throw customerError;
+        finalCustomerId = newCustomerData.id;
       }
 
       if (isNewRacquet || !selectedRacquetId) {
@@ -144,23 +91,18 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
         const brand = newJob.racquet_brand === "Other" ? newJob.racquet_brand_custom : newJob.racquet_brand;
         const model = newJob.racquet_model === "Other" ? newJob.racquet_model_custom : newJob.racquet_model;
         
-        if (!brand || !model) throw new Error("Racquet brand and model are required.");
-
         await supabase
           .from('racquets')
           .insert({
             id: finalRacquetId,
             customer_id: finalCustomerId,
-            shop_id: (user.shop_id || (user as any).shopId),
+            shop_id: shopId,
             brand,
             model,
             serial_number: newJob.racquet_serial,
             qr_code_id: `racquet_${finalRacquetId}`,
-            notes: '',
             created_at: new Date().toISOString()
           });
-      } else {
-        finalRacquetId = selectedRacquetId;
       }
 
       const jobId = uuidv4();
@@ -170,7 +112,7 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
           id: jobId,
           customer_id: finalCustomerId,
           racquet_id: finalRacquetId,
-          shop_id: (user.shop_id || (user as any).shopId),
+          shop_id: shopId,
           status: 'pending',
           payment_status: 'unpaid',
           total_price: Number(newJob.price),
@@ -179,48 +121,8 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
           updated_at: new Date().toISOString()
         });
 
-      const { data: inventoryItem } = await supabase
-        .from('inventory')
-        .select('id')
-        .eq('shop_id', user.shop_id)
-        .eq('brand', newJob.string_main_brand)
-        .eq('model', newJob.string_main_model)
-        .eq('gauge', newJob.string_main_gauge)
-        .eq('category', 'string')
-        .single();
-
-      await supabase
-        .from('job_details')
-        .insert({
-          job_id: jobId,
-          item_type: newJob.service_type === 'string_full_bed' ? 'main_string' : 
-                    newJob.service_type === 'string_mains_only' ? 'main_string' :
-                    newJob.service_type === 'string_crosses_only' ? 'cross_string' : 'service',
-          inventory_id: inventoryItem?.id || null,
-          tension: `${newJob.tension_main}/${newJob.tension_cross}`,
-          price: Number(newJob.price),
-          created_at: new Date().toISOString()
-        });
-
       setShowNewJob(false);
-      setNewJob({
-        customer_name: "", customer_email: "", customer_phone: "", racquet_brand: "", racquet_model: "",
-        racquet_brand_custom: "", racquet_model_custom: "", racquet_serial: "", racquet_head_size: "",
-        racquet_mains: "", racquet_crosses: "", racquet_mains_skip: "", racquet_mains_tie_off: "",
-        racquet_crosses_start: "", racquet_crosses_tie_off: "", racquet_one_piece_length: "",
-        racquet_two_piece_length: "", racquet_stringing_instructions: "", string_main_brand: "",
-        string_main_model: "", string_main_brand_custom: "", string_main_model_custom: "",
-        string_main_gauge: "", string_cross_brand: "Same as Mains", string_cross_model: "Same as Mains",
-        string_cross_brand_custom: "", string_cross_model_custom: "", string_cross_gauge: "",
-        tension_main: 0, tension_cross: 0, price: 25, service_type: "string_full_bed",
-        custom_service_category: "string", additional_service_request: "", notes: "",
-        keep_same_string: false, string_main: "", string_cross: ""
-      });
-      setSelectedCustomerId("");
-      setSelectedRacquetId("");
-      setIsNewCustomer(false);
-      setIsNewRacquet(false);
-      
+      refreshData();
     } catch (err: any) {
       console.error("Error creating job:", err);
       setError(err.message || "Failed to create job");
@@ -229,120 +131,7 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
     }
   };
 
-  useEffect(() => {
-    if (!user.shop_id) return;
-
-    const fetchInventory = async () => {
-      const { data, error } = await supabase
-        .from('inventory')
-        .select('*')
-        .eq('shop_id', user.shop_id)
-        .order('created_at', { ascending: false });
-
-      if (error) console.error("Error fetching inventory:", error);
-      else {
-        setInventoryItems(data || []);
-        setInventoryStrings((data || []).filter((i: any) => i.category === 'string'));
-      }
-    };
-
-    fetchInventory();
-
-    const subscription = supabase
-      .channel(`inventory:${user.shop_id}`)
-      .on('postgres_changes', 
-        { event: '*', schema: 'public', table: 'inventory', filter: `shop_id=eq.${user.shop_id}` },
-        () => fetchInventory()
-      )
-      .subscribe();
-
-    return () => { subscription.unsubscribe(); };
-  }, [user.shop_id]);
-
-  useEffect(() => {
-    const shopId = user?.shop_id || user?.shopId;
-    if (!user || !shopId) {
-      setLoading(false);
-      return;
-    }
-
-    const fetchData = async () => {
-      setLoading(true);
-      
-      try {
-        const { data: shopData } = await supabase.from('shops').select('*').eq('id', shopId).single();
-        if (shopData) setShop(shopData);
-
-        const { data: jobsData } = await supabase
-          .from('jobs')
-          .select('*, customers!inner(first_name, last_name, email)')
-          .eq('shop_id', shopId)
-          .order('created_at', { ascending: false });
-        if (jobsData) setJobs(jobsData);
-
-        const { data: customersData } = await supabase.from('customers').select('*').eq('shop_id', shopId);
-        if (customersData) setCustomers(customersData);
-
-        const { data: racquetsData } = await supabase
-          .from('racquets')
-          .select('*, customers!inner(shop_id)')
-          .eq('customers.shop_id', shopId);
-        if (racquetsData) setRacquets(racquetsData);
-
-        const { data: messagesData } = await supabase
-          .from('messages')
-          .select('*, customers!inner(first_name, last_name)')
-          .eq('shop_id', shopId)
-          .order('created_at', { ascending: false });
-        if (messagesData) setMessages(messagesData);
-      } catch (err) {
-        console.error('Error fetching dashboard data:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-
-    const jobsSubscription = supabase
-      .channel(`jobs:${user.shop_id}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'jobs', filter: `shop_id=eq.${user.shop_id}` },
-        () => fetchData())
-      .subscribe();
-
-    const customersSubscription = supabase
-      .channel(`customers:${user.shop_id}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'customers', filter: `shop_id=eq.${user.shop_id}` },
-        () => fetchData())
-      .subscribe();
-
-    return () => {
-      jobsSubscription.unsubscribe();
-      customersSubscription.unsubscribe();
-    };
-  }, [user.shop_id]);
-
-  useEffect(() => {
-    setActiveTab(initialTab);
-  }, [initialTab]);
-
-  // Calculate stats
-  const stats = useMemo(() => {
-    const pendingJobs = jobs.filter(j => j.status === 'pending').length;
-    const inProgressJobs = jobs.filter(j => j.status === 'in_progress').length;
-    const completedJobs = jobs.filter(j => j.status === 'completed').length;
-    const totalRevenue = jobs.filter(j => j.status !== 'cancelled').reduce((sum, j) => sum + (j.total_price || 0), 0);
-    const thisWeekJobs = jobs.filter(j => {
-      const jobDate = new Date(j.created_at);
-      const weekAgo = new Date();
-      weekAgo.setDate(weekAgo.getDate() - 7);
-      return jobDate >= weekAgo;
-    }).length;
-    
-    return { pendingJobs, inProgressJobs, completedJobs, totalRevenue, thisWeekJobs, totalCustomers: customers.length };
-  }, [jobs, customers]);
-
-  const filteredJobs = jobs.filter(job => {
+  const filteredJobs = useMemo(() => jobs.filter(job => {
     if (!searchQuery) return true;
     const search = searchQuery.toLowerCase();
     return (
@@ -350,9 +139,9 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
       job.customers?.last_name?.toLowerCase().includes(search) ||
       job.customers?.email?.toLowerCase().includes(search)
     );
-  });
+  }), [jobs, searchQuery]);
 
-  const filteredCustomers = customers.filter(customer => {
+  const filteredCustomers = useMemo(() => customers.filter(customer => {
     if (!searchQuery) return true;
     const search = searchQuery.toLowerCase();
     return (
@@ -360,7 +149,7 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
       customer.last_name?.toLowerCase().includes(search) ||
       customer.email?.toLowerCase().includes(search)
     );
-  });
+  }), [customers, searchQuery]);
 
   if (loading) {
     return (

@@ -40,37 +40,28 @@ export function useDashboardData(shopId: string | undefined) {
     
     setLoading(true);
     try {
-      const { data: shopData } = await supabase.from('shops').select('*').eq('id', shopId).single();
+      // Parallelize all initial data fetches to reduce total load time
+      const [
+        { data: shopData },
+        { data: jobsData },
+        { data: customersData },
+        { data: racquetsData },
+        { data: messagesData },
+        { data: inventoryData }
+      ] = await Promise.all([
+        supabase.from('shops').select('*').eq('id', shopId).single(),
+        supabase.from('jobs').select('*, customers!inner(first_name, last_name, email)').eq('shop_id', shopId).order('created_at', { ascending: false }),
+        supabase.from('customers').select('*').eq('shop_id', shopId),
+        supabase.from('racquets').select('*, customers!inner(shop_id)').eq('customers.shop_id', shopId),
+        supabase.from('messages').select('*, customers!inner(first_name, last_name)').eq('shop_id', shopId).order('created_at', { ascending: false }),
+        supabase.from('inventory').select('*').eq('shop_id', shopId).order('created_at', { ascending: false })
+      ]);
+
       if (shopData) setShop(shopData);
-
-      const { data: jobsData } = await supabase
-        .from('jobs')
-        .select('*, customers!inner(first_name, last_name, email)')
-        .eq('shop_id', shopId)
-        .order('created_at', { ascending: false });
-      if (jobsData) setJobs(jobsData || []);
-
-      const { data: customersData } = await supabase.from('customers').select('*').eq('shop_id', shopId);
-      if (customersData) setCustomers(customersData || []);
-
-      const { data: racquetsData } = await supabase
-        .from('racquets')
-        .select('*, customers!inner(shop_id)')
-        .eq('customers.shop_id', shopId);
-      if (racquetsData) setRacquets(racquetsData || []);
-
-      const { data: messagesData } = await supabase
-        .from('messages')
-        .select('*, customers!inner(first_name, last_name)')
-        .eq('shop_id', shopId)
-        .order('created_at', { ascending: false });
-      if (messagesData) setMessages(messagesData || []);
-
-      const { data: inventoryData } = await supabase
-        .from('inventory')
-        .select('*')
-        .eq('shop_id', shopId)
-        .order('created_at', { ascending: false });
+      setJobs(jobsData || []);
+      setCustomers(customersData || []);
+      setRacquets(racquetsData || []);
+      setMessages(messagesData || []);
       
       if (inventoryData) {
         setInventoryItems(inventoryData);

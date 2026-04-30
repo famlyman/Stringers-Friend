@@ -10,16 +10,16 @@ export function useCustomerListData(shopId: string | undefined) {
     if (!shopId) return;
     setLoading(true);
     try {
-      const { data: customersData } = await supabase
-        .from('customers')
-        .select('*')
-        .eq('shop_id', shopId);
+      // Parallelize fetches for better performance
+      const [
+        { data: customersData },
+        { data: racquetsData }
+      ] = await Promise.all([
+        supabase.from('customers').select('*').eq('shop_id', shopId),
+        supabase.from('racquets').select('*').eq('shop_id', shopId)
+      ]);
+      
       setCustomers(customersData || []);
-
-      const { data: racquetsData } = await supabase
-        .from('racquets')
-        .select('*')
-        .eq('shop_id', shopId);
       setAllRacquets(racquetsData || []);
     } catch (err) {
       console.error("Error fetching customer list data:", err);

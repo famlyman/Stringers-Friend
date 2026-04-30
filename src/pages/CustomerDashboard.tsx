@@ -20,33 +20,33 @@ export default function CustomerDashboard({ user, initialTab = 'jobs' }: { user:
     const fetchData = async () => {
       setLoading(true);
       
-      const { data: customerData } = await supabase
-        .from('customers')
-        .select('*')
-        .eq('profile_id', user.id)
-        .single();
-      
-      if (customerData) {
-        setCustomerInfo(customerData);
-
-        const { data: jobsData } = await supabase
-          .from('jobs')
+      try {
+        const { data: customerData } = await supabase
+          .from('customers')
           .select('*')
-          .eq('customer_id', customerData.id)
-          .order('created_at', { ascending: false });
+          .eq('profile_id', user.id)
+          .single();
         
-        if (jobsData) setJobs(jobsData);
+        if (customerData) {
+          setCustomerInfo(customerData);
 
-        const { data: racquetsData } = await supabase
-          .from('racquets')
-          .select('*')
-          .eq('customer_id', customerData.id)
-          .order('created_at', { ascending: false });
-        
-        if (racquetsData) setRacquets(racquetsData);
+          // Parallelize jobs and racquets fetching since they both depend on customerData.id
+          const [
+            { data: jobsData },
+            { data: racquetsData }
+          ] = await Promise.all([
+            supabase.from('jobs').select('*').eq('customer_id', customerData.id).order('created_at', { ascending: false }),
+            supabase.from('racquets').select('*').eq('customer_id', customerData.id).order('created_at', { ascending: false })
+          ]);
+          
+          if (jobsData) setJobs(jobsData);
+          if (racquetsData) setRacquets(racquetsData);
+        }
+      } catch (err) {
+        console.error("Error fetching customer dashboard data:", err);
+      } finally {
+        setLoading(false);
       }
-
-      setLoading(false);
     };
 
     fetchData();
