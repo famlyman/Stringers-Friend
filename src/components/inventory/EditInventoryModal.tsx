@@ -11,6 +11,7 @@ interface EditInventoryModalProps {
 }
 
 export function EditInventoryModal({ editingItem, setEditingItem, onUpdate, onCancel }: EditInventoryModalProps) {
+  return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className="bg-white dark:bg-neutral-900 rounded-2xl p-8 max-w-2xl w-full shadow-2xl animate-in zoom-in duration-200 border border-neutral-200 dark:border-neutral-800">
         <h2 className="text-2xl font-bold mb-6 text-primary">Edit Inventory Item</h2>
