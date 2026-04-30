@@ -260,7 +260,8 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
   }, [user.shop_id]);
 
   useEffect(() => {
-    if (!user || !user.shop_id) {
+    const shopId = user?.shop_id || user?.shopId;
+    if (!user || !shopId) {
       setLoading(false);
       return;
     }
@@ -269,29 +270,29 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
       setLoading(true);
       
       try {
-        const { data: shopData } = await supabase.from('shops').select('*').eq('id', user.shop_id).single();
+        const { data: shopData } = await supabase.from('shops').select('*').eq('id', shopId).single();
         if (shopData) setShop(shopData);
 
         const { data: jobsData } = await supabase
           .from('jobs')
           .select('*, customers!inner(first_name, last_name, email)')
-          .eq('shop_id', user.shop_id)
+          .eq('shop_id', shopId)
           .order('created_at', { ascending: false });
         if (jobsData) setJobs(jobsData);
 
-        const { data: customersData } = await supabase.from('customers').select('*').eq('shop_id', user.shop_id);
+        const { data: customersData } = await supabase.from('customers').select('*').eq('shop_id', shopId);
         if (customersData) setCustomers(customersData);
 
         const { data: racquetsData } = await supabase
           .from('racquets')
           .select('*, customers!inner(shop_id)')
-          .eq('customers.shop_id', user.shop_id);
+          .eq('customers.shop_id', shopId);
         if (racquetsData) setRacquets(racquetsData);
 
         const { data: messagesData } = await supabase
           .from('messages')
           .select('*, customers!inner(first_name, last_name)')
-          .eq('shop_id', user.shop_id)
+          .eq('shop_id', shopId)
           .order('created_at', { ascending: false });
         if (messagesData) setMessages(messagesData);
       } catch (err) {
@@ -330,7 +331,7 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: any, in
     const pendingJobs = jobs.filter(j => j.status === 'pending').length;
     const inProgressJobs = jobs.filter(j => j.status === 'in_progress').length;
     const completedJobs = jobs.filter(j => j.status === 'completed').length;
-    const totalRevenue = jobs.filter(j => j.payment_status === 'paid').reduce((sum, j) => sum + (j.total_price || 0), 0);
+    const totalRevenue = jobs.filter(j => j.status !== 'cancelled').reduce((sum, j) => sum + (j.total_price || 0), 0);
     const thisWeekJobs = jobs.filter(j => {
       const jobDate = new Date(j.created_at);
       const weekAgo = new Date();
