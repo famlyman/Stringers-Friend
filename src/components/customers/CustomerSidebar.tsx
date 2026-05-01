@@ -1,5 +1,5 @@
 import React from "react";
-import { Plus, Search, User } from "lucide-react";
+import { Search, UserPlus, ChevronRight } from "lucide-react";
 import { Customer } from "../../types/database";
 
 interface CustomerSidebarProps {
