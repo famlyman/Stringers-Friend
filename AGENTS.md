@@ -129,6 +129,8 @@ CREATE POLICY "Anyone can view customers"
   - Jobs created start as `unpaid` with no UI to mark paid, so revenue now shows total of all active jobs
 - Fixed `shop_id` vs `shopId` mismatch in data fetching (Dashboard.tsx:262-300)
   - Now uses `user?.shop_id || user?.shopId` consistently
+- Fixed Customers tab crash (ReferenceError: UserPlus is not defined):
+  - Added missing `UserPlus` and `ChevronRight` imports to `src/components/customers/CustomerSidebar.tsx:2`
 
 ## Quirks
 - PWA plugin includes `icon.svg` - update manifest in `vite.config.ts` if needed
