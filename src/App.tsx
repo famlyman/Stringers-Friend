@@ -35,13 +35,15 @@ const PageLoader = () => (
 function AppRoutes() {
   const { user, profile, loading, signOut } = useAuth();
 
+  // STABLE LOADING STATE
+  // Do not perform any redirect logic while loading is true.
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-bg-main transition-colors duration-300">
-        <div className="text-center animate-fade-in">
-          <img src="/logo.png" alt="Stringer's Friend" className="h-20 w-20 object-contain mx-auto mb-6 animate-bounce-subtle" />
+      <div className="min-h-screen flex items-center justify-center bg-bg-main">
+        <div className="text-center">
+          <img src="/logo.png" alt="Stringer's Friend" className="h-20 w-20 object-contain mx-auto mb-6 animate-pulse" />
           <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-text-muted font-semibold">Loading...</p>
+          <p className="text-text-muted font-semibold tracking-tight">Syncing your session...</p>
         </div>
       </div>
     );
@@ -53,10 +55,7 @@ function AppRoutes() {
     } catch (error) {
       console.error("Logout failed:", error);
     }
-    // Force clear auth regardless
-    localStorage.clear();
-    sessionStorage.clear();
-    window.location.href = "/";
+    window.location.href = "/login";
   };
 
   return (
@@ -70,16 +69,19 @@ function AppRoutes() {
         <Route path="/scan/:qrCode" element={<ScanResult />} />
         
         {/* Protected Routes Wrapper */}
-        <Route element={user ? <Layout user={profile || user} onLogout={handleLogout} /> : (loading ? <PageLoader /> : <Navigate to="/" replace />)}>
+        <Route element={user ? <Layout user={profile || user} onLogout={handleLogout} /> : <Navigate to="/login" replace />}>
           <Route path="/dashboard" element={
-            loading ? (
-              <PageLoader />
-            ) : profile ? (
+            profile ? (
               profile.role === 'stringer' ? (
                 profile.shop_id ? <Dashboard user={profile} /> : <Navigate to="/setup" replace />
               ) : <CustomerDashboard user={profile} />
             ) : (
-              <Navigate to="/login" replace />
+              <div className="min-h-screen flex items-center justify-center bg-bg-main p-6">
+                <div className="text-center">
+                  <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin mx-auto mb-4"></div>
+                  <p className="text-text-muted">Finalizing workspace...</p>
+                </div>
+              </div>
             )
           } />
           <Route path="/setup" element={profile?.role === 'stringer' ? <ShopSetup user={profile} /> : <Navigate to="/" replace />} />
@@ -88,19 +90,14 @@ function AppRoutes() {
           <Route path="/messages" element={
             profile?.role === 'stringer' ? <Messages user={profile} /> : <CustomerMessages user={profile} />
           } />
-          <Route path="/racquets" element={
-            profile ? (
-              profile.role === 'stringer' ? <Dashboard user={profile} initialTab="customers" /> : <CustomerDashboard user={profile} initialTab="racquets" />
-            ) : <Navigate to="/" replace />
-          } />
           <Route path="/profile" element={profile ? <Profile user={profile} /> : <Navigate to="/" replace />} />
           <Route path="/racquet-specs" element={profile?.role === 'stringer' ? <RacquetSpecsAdmin user={profile} /> : <Navigate to="/" replace />} />
         </Route>
 
-        {/* Public Shop Slug - Should be last */}
+        {/* Public Shop Slug */}
         <Route path="/:slug" element={<PublicShop />} />
         
-        {/* Fallback */}
+        {/* Simple Fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Suspense>
