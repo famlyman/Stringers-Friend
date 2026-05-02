@@ -3,7 +3,7 @@ import { Link, Outlet, useNavigate, useLocation } from "react-router-dom";
 import { LayoutDashboard, Users, Package, LogOut, User, Sun, Moon, MessageSquare, Bell, X, Home, FileText, Settings, LucideIcon } from "lucide-react";
 import { useTheme } from "../context/ThemeContext";
 import { supabase } from "../lib/supabase";
-import { getOneSignalPlayerId } from "../lib/notifications";
+import { getOneSignalPlayerId, requestPushSubscription } from "../lib/notifications";
 import { Profile } from "../types/database";
 
 interface LayoutProps {
@@ -240,10 +240,8 @@ function LayoutContent({ user, onLogout }: LayoutProps) {
                     setShowPushPrompt(false);
                     localStorage.setItem('lastPushPrompt', Date.now().toString());
                     
-                    // Just request native permission - let OneSignal handle its own prompt
-                    if ('Notification' in window && Notification.permission === 'default') {
-                      await Notification.requestPermission();
-                    }
+                    // Trigger OneSignal subscription flow (shows native prompt + registers with OneSignal)
+                    await requestPushSubscription();
                   }}
                   className="px-4 py-2 bg-white text-primary rounded-xl text-xs font-bold hover:bg-white/90 transition-all whitespace-nowrap"
                 >
