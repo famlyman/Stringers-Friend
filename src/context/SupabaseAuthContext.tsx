@@ -38,7 +38,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Fetch profile from Supabase, create if missing
   const fetchProfile = async (userId: string, userEmail?: string, role?: 'stringer' | 'customer'): Promise<Profile | null> => {
     try {
-      // Race between query and timeout (5 seconds)
+      // Race between query and timeout (15 seconds - increased for stability)
       const fetchPromise = supabase
         .from('profiles')
         .select('*')
@@ -46,7 +46,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .single();
       
       const timeoutPromise = new Promise<{ data: null, error: { message: string } }>((resolve) => {
-        setTimeout(() => resolve({ data: null, error: { message: 'timeout' } }), 5000);
+        setTimeout(() => resolve({ data: null, error: { message: 'timeout' } }), 15000);
       });
       
       const response = await Promise.race([fetchPromise, timeoutPromise]);
@@ -55,6 +55,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       // Handle timeout - return null to show retry UI
       if (error?.message === 'timeout') {
+        console.warn('[Auth] Profile fetch timed out after 15s');
         return null;
       }
 
@@ -64,6 +65,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       // Check if profile not found - create it
       if (error?.code === 'PGRST116' || error?.message?.includes('No rows')) {
+        console.log('[Auth] Profile not found, creating new profile...');
         const profileRole = role || pendingRole || 'customer';
         
         const { error: createError } = await supabase

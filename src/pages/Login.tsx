@@ -70,7 +70,7 @@ export default function Login() {
         await ensureCustomerRecord(user.id, user.email || email, user.user_metadata?.name || '');
       }
       
-      navigate("/");
+      navigate("/dashboard");
     } catch (err: any) {
       setError(err.message || "Failed to sign in");
     } finally {

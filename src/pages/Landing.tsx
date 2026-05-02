@@ -1,13 +1,24 @@
 import { useState, useEffect } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useSearchParams, useNavigate } from "react-router-dom";
 import { useTheme } from "../context/ThemeContext";
 import { Zap, Users, Package, QrCode, ArrowRight, CheckCircle2, Clock, Shield, Sparkles, Trophy, X, Loader2 } from "lucide-react";
 import { supabase } from "../lib/supabase";
+import { useAuth } from "../context/SupabaseAuthContext";
 
 export default function Landing() {
   const { darkMode } = useTheme();
+  const navigate = useNavigate();
+  const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const racquetId = searchParams.get('r') || window.location.pathname.split('/r/')[1];
+  
+  // Auto-redirect logged in users to dashboard
+  useEffect(() => {
+    if (user && !racquetId) {
+      navigate('/dashboard');
+    }
+  }, [user, racquetId, navigate]);
+
   console.log('Landing - racquetId:', racquetId, 'path:', window.location.pathname);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");

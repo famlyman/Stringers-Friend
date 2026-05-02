@@ -33,13 +33,17 @@ export function useDashboardData(shopId: string | undefined): DashboardData {
   const [inventoryStrings, setInventoryStrings] = useState<InventoryItem[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
 
-  const fetchData = async () => {
+  const fetchData = async (isBackground = false) => {
     if (!shopId) {
       setLoading(false);
       return;
     }
     
-    setLoading(true);
+    // Only show full loading spinner on initial load, not background refreshes
+    if (!isBackground) {
+      setLoading(true);
+    }
+
     try {
       // Parallelize all initial data fetches to reduce total load time
       const [
@@ -71,7 +75,9 @@ export function useDashboardData(shopId: string | undefined): DashboardData {
     } catch (err) {
       console.error('Error fetching dashboard data:', err);
     } finally {
-      setLoading(false);
+      if (!isBackground) {
+        setLoading(false);
+      }
     }
   };
 
@@ -80,27 +86,35 @@ export function useDashboardData(shopId: string | undefined): DashboardData {
 
     if (!shopId) return;
 
+    // Use debounced refetch to handle rapid updates
+    let timeoutId: NodeJS.Timeout;
+    const debouncedRefetch = () => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => fetchData(true), 1000);
+    };
+
     const jobsSubscription = supabase
       .channel(`jobs:${shopId}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'jobs', filter: `shop_id=eq.${shopId}` },
-        () => fetchData())
+        () => debouncedRefetch())
       .subscribe();
 
     const customersSubscription = supabase
       .channel(`customers:${shopId}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'customers', filter: `shop_id=eq.${shopId}` },
-        () => fetchData())
+        () => debouncedRefetch())
       .subscribe();
 
     const inventorySubscription = supabase
       .channel(`inventory:${shopId}`)
       .on('postgres_changes', 
         { event: '*', schema: 'public', table: 'inventory', filter: `shop_id=eq.${shopId}` },
-        () => fetchData()
+        () => debouncedRefetch()
       )
       .subscribe();
 
     return () => {
+      clearTimeout(timeoutId);
       jobsSubscription.unsubscribe();
       customersSubscription.unsubscribe();
       inventorySubscription.unsubscribe();
