@@ -5,7 +5,7 @@ import { Link } from "react-router-dom";
 import { sendNotification } from "../lib/notifications";
 import { Profile, Message } from "../types/database";
 
-export default function CustomerMessages({ user }: { user: Profile }) {
+export default function CustomerMessages({ user }: { user: Profile | null }) {
   const [loading, setLoading] = useState(true);
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
@@ -16,6 +16,7 @@ export default function CustomerMessages({ user }: { user: Profile }) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    if (!user) return;
     async function init() {
       await fetchCustomerShop();
     }
@@ -54,6 +55,7 @@ export default function CustomerMessages({ user }: { user: Profile }) {
   }, [customerId, shopId]);
 
   const fetchCustomerShop = async () => {
+    if (!user) return;
     try {
       const { data: customerData, error: customerError } = await supabase
         .from("customers")
@@ -101,7 +103,7 @@ export default function CustomerMessages({ user }: { user: Profile }) {
 
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newMessage.trim() || !shopId || sending) return;
+    if (!newMessage.trim() || !shopId || sending || !user) return;
 
     setSending(true);
     try {
@@ -168,6 +170,16 @@ export default function CustomerMessages({ user }: { user: Profile }) {
     if (days < 7) return date.toLocaleDateString([], { weekday: "short" });
     return date.toLocaleDateString([], { month: "short", day: "numeric" });
   };
+
+  if (!user) {
+    return (
+      <div className="p-12 text-center">
+        <MessageSquare className="w-12 h-12 text-text-muted mx-auto mb-4" />
+        <h3 className="font-bold text-text-main mb-1">Please log in</h3>
+        <p className="text-sm text-text-muted">You need to be logged in to view messages</p>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
