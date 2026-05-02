@@ -12,13 +12,13 @@ export default async function handler(req: any, res: any) {
     return res.status(400).json({ error: "Missing required fields: playerId, title, message" });
   }
 
-  const apiKey = process.env.ONESIGNAL_REST_API_KEY;
+  const apiKey = process.env.ONESIGNAL_API_AUTHENTICATION_KEY || process.env.ONESIGNAL_REST_API_KEY;
   const appId = process.env.ONESIGNAL_APP_ID || process.env.VITE_ONESIGNAL_APP_ID;
 
   console.log('[OneSignal] Sending notification debug:', { 
     playerId, 
     appId: appId?.substring(0, 8) + '...',
-    apiKeyExists: !!apiKey,
+    apiKeySource: process.env.ONESIGNAL_API_AUTHENTICATION_KEY ? 'AUTHENTICATION_KEY' : (process.env.ONESIGNAL_REST_API_KEY ? 'REST_API_KEY' : 'None'),
     apiKeyLength: apiKey?.length,
     apiKeyPrefix: apiKey ? (apiKey.startsWith('os_v2_') ? 'os_v2_...' : 'Legacy/Other') : 'None'
   });
@@ -36,6 +36,13 @@ export default async function handler(req: any, res: any) {
   try {
     // OneSignal documentation specifies 'Key <key>' (or 'key <key>') for the REST API
     const authHeader = `Key ${apiKey}`;
+    
+    console.log('[OneSignal] Request Details:', {
+      url: "https://api.onesignal.com/notifications",
+      authHeaderPrefix: authHeader.substring(0, 8) + '...',
+      appId: appId,
+      playerId: playerId
+    });
     
     const response = await fetch("https://api.onesignal.com/notifications", {
       method: "POST",

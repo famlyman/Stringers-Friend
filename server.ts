@@ -31,14 +31,14 @@ app.post("/api/send-notification", async (req, res) => {
       return res.status(400).json({ error: "Missing required fields: playerId, title, message" });
     }
 
-    const apiKey = process.env.ONESIGNAL_REST_API_KEY;
+    const apiKey = process.env.ONESIGNAL_API_AUTHENTICATION_KEY || process.env.ONESIGNAL_REST_API_KEY;
     const appId = process.env.ONESIGNAL_APP_ID || process.env.VITE_ONESIGNAL_APP_ID;
 
     console.log('[OneSignal] Sending notification:', { 
       playerId, 
       title, 
       appId: appId?.substring(0, 8) + '...',
-      hasApiKey: !!apiKey
+      apiKeySource: process.env.ONESIGNAL_API_AUTHENTICATION_KEY ? 'AUTHENTICATION_KEY' : (process.env.ONESIGNAL_REST_API_KEY ? 'REST_API_KEY' : 'None')
     });
 
     if (!apiKey) {
