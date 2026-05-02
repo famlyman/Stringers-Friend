@@ -56,7 +56,19 @@ function LayoutContent({ user, onLogout }: LayoutProps) {
       if (!playerId || !user) return;
       
       try {
-        // 1. Register this device in the user_devices table
+        console.log('[OneSignal] Checking device registration for ID:', playerId);
+
+        // 1. Ensure this device ID belongs ONLY to this user
+        // Delete this device ID from ANY other profile's devices
+        const { error: cleanupError } = await supabase
+          .from('user_devices')
+          .delete()
+          .eq('onesignal_subscription_id', playerId)
+          .neq('profile_id', user.id);
+
+        if (cleanupError) console.error('[OneSignal] Error cleaning up device ID:', cleanupError);
+
+        // 2. Register/Update this device for the current user
         const { error: deviceError } = await supabase
           .from('user_devices')
           .upsert({ 
@@ -70,24 +82,24 @@ function LayoutContent({ user, onLogout }: LayoutProps) {
         if (deviceError) {
           console.error('[OneSignal] Error saving device to user_devices:', deviceError);
         } else {
-          console.log('[OneSignal] Device registered successfully');
+          console.log('[OneSignal] Device registered to current user successfully');
         }
 
-        // 2. Keep the main profiles table updated for backward compatibility
-        const { data: profile } = await supabase
+        // 3. Sync legacy field in profiles table
+        const { data: profileData } = await supabase
           .from('profiles')
           .select('onesignal_player_id')
           .eq('id', user.id)
           .single();
 
-        if (profile?.onesignal_player_id !== playerId) {
+        if (profileData?.onesignal_player_id !== playerId) {
           await supabase
             .from('profiles')
             .update({ onesignal_player_id: playerId })
             .eq('id', user.id);
         }
       } catch (error) {
-        console.error('[OneSignal] Error saving player ID:', error);
+        console.error('[OneSignal] Error in device registration flow:', error);
       }
     };
 
