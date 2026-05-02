@@ -35,70 +35,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Temporary storage for role during signup to prevent race condition
   const [pendingRole, setPendingRole] = useState<'stringer' | 'customer' | null>(null);
 
-  // Fetch profile from Supabase, create if missing
-  const fetchProfile = async (userId: string, userEmail?: string, role?: 'stringer' | 'customer', retryCount = 0): Promise<Profile | null> => {
+  // Fetch profile from Supabase
+  const fetchProfile = async (userId: string, userEmail?: string, role?: 'stringer' | 'customer'): Promise<Profile | null> => {
     try {
-      const MAX_RETRIES = 3;
-      
-      // Race between query and timeout (20 seconds - increased for stability)
-      const fetchPromise = supabase
+      const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .single();
-      
-      const timeoutPromise = new Promise<{ data: null, error: { message: string } }>((resolve) => {
-        setTimeout(() => resolve({ data: null, error: { message: 'timeout' } }), 20000);
-      });
-      
-      const response = await Promise.race([fetchPromise, timeoutPromise]);
-      const data = response.data;
-      const error = response.error as any;
 
-      // Handle timeout or network failure with retry
-      if (error?.message === 'timeout' || error?.message?.includes('Failed to fetch')) {
-        if (retryCount < MAX_RETRIES) {
-          const delay = Math.pow(2, retryCount) * 1000;
-          console.warn(`[Auth] Profile fetch delayed/timed out. Retrying in ${delay}ms... (Attempt ${retryCount + 1}/${MAX_RETRIES})`);
-          await new Promise(r => setTimeout(r, delay));
-          return fetchProfile(userId, userEmail, role, retryCount + 1);
-        }
-        console.error('[Auth] Profile fetch timed out after maximum retries');
-        return null;
-      }
-
-      if (!error && data) {
+      if (data) {
         return data as Profile;
       }
 
       // Check if profile not found - create it
       if (error?.code === 'PGRST116' || error?.message?.includes('No rows')) {
-        console.log('[Auth] Profile not found, creating new profile...');
         const profileRole = role || pendingRole || 'customer';
         
-        const { error: createError } = await supabase
+        const { data: newProfile, error: createError } = await supabase
           .from('profiles')
           .upsert({
             id: userId,
             email: userEmail || '',
             role: profileRole,
-          }, {
-            onConflict: 'id',
-            ignoreDuplicates: false
-          });
+          })
+          .select()
+          .single();
 
-        if (!createError || createError?.code === '23505') {
-          const { data: newProfile } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', userId)
-            .single();
-          
-          if (newProfile) {
-            return newProfile as Profile;
-          }
-        } else {
-          console.error('Error creating profile:', createError);
+        if (!createError && newProfile) {
+          return newProfile as Profile;
         }
       }
 

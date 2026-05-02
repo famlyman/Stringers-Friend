@@ -87,28 +87,6 @@ function AppRoutes() {
               profile.role === 'stringer' ? (
                 profile.shop_id ? <Dashboard user={profile} /> : <Navigate to="/setup" replace />
               ) : <CustomerDashboard user={profile} />
-            ) : user ? (
-              // Profile fetch failed but user exists - show retry option instead of blocking error
-              <div className="min-h-screen flex flex-col items-center justify-center bg-bg-main p-6">
-                <div className="text-center max-w-sm w-full bg-bg-card rounded-[2.5rem] p-10 shadow-2xl border border-border-main">
-                  <h2 className="text-xl font-black text-text-main mb-2 tracking-tight">Sync Delayed</h2>
-                  <p className="text-text-muted mb-8 text-sm">
-                    We're having trouble reaching the server. Please check your connection and try again.
-                  </p>
-                  <button
-                    onClick={() => window.location.reload()}
-                    className="w-full py-4 bg-primary text-white rounded-2xl font-bold hover:bg-primary/90 transition-all active:scale-[0.98] mb-3"
-                  >
-                    Try Again
-                  </button>
-                  <button
-                    onClick={handleLogout}
-                    className="w-full py-4 bg-bg-card text-text-main rounded-2xl font-bold hover:bg-bg-card/80 transition-all border border-border-main"
-                  >
-                    Sign Out
-                  </button>
-                </div>
-              </div>
             ) : (
               <Navigate to="/login" replace />
             )
