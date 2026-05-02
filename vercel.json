@@ -3,7 +3,6 @@
   "rewrites": [
     { "source": "/api/health", "destination": "/api/health.ts" },
     { "source": "/api/send-notification", "destination": "/api/send-notification.ts" },
-    { "source": "/api/(.*)", "destination": "/api/index.ts" },
     { "source": "/OneSignalSDKWorker.js", "destination": "/OneSignalSDKWorker.js" },
     { "source": "/icon.svg", "destination": "/icon.svg" },
     { "source": "/manifest.json", "destination": "/manifest.json" },

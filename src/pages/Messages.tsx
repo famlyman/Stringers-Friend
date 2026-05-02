@@ -10,7 +10,7 @@ interface ExtendedCustomer extends DatabaseCustomer {
   unreadCount: number;
 }
 
-export default function Messages({ user }: { user: Profile }) {
+export default function Messages({ user }: { user: Profile | null }) {
   const [loading, setLoading] = useState(true);
   const [conversations, setConversations] = useState<ExtendedCustomer[]>([]);
   const [selectedCustomer, setSelectedCustomer] = useState<ExtendedCustomer | null>(null);
@@ -23,6 +23,8 @@ export default function Messages({ user }: { user: Profile }) {
   const initialCustomerId = searchParams.get("customerId");
 
   useEffect(() => {
+    if (!user?.shop_id) return;
+
     fetchConversations();
 
     const messagesSubscription = supabase
@@ -34,7 +36,7 @@ export default function Messages({ user }: { user: Profile }) {
     return () => {
       messagesSubscription.unsubscribe();
     };
-  }, [user.shop_id]);
+  }, [user?.shop_id]);
 
   useEffect(() => {
     if (selectedCustomer) {
@@ -65,6 +67,7 @@ export default function Messages({ user }: { user: Profile }) {
   }, [initialCustomerId, conversations]);
 
   const fetchConversations = async () => {
+    if (!user?.shop_id) return;
     try {
       const { data, error } = await supabase
         .from("messages")
@@ -105,6 +108,7 @@ export default function Messages({ user }: { user: Profile }) {
   };
 
   const fetchMessages = async (customerId: string) => {
+    if (!user?.shop_id) return;
     try {
       const { data, error } = await supabase
         .from("messages")
@@ -121,6 +125,7 @@ export default function Messages({ user }: { user: Profile }) {
   };
 
   const markAsRead = async (customerId: string) => {
+    if (!user?.shop_id) return;
     try {
       await supabase
         .from("messages")
@@ -139,7 +144,7 @@ export default function Messages({ user }: { user: Profile }) {
 
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newMessage.trim() || !selectedCustomer || sending) return;
+    if (!newMessage.trim() || !selectedCustomer || sending || !user?.shop_id) return;
 
     setSending(true);
     try {

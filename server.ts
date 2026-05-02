@@ -1,6 +1,9 @@
 import express from "express";
 import path from "path";
 import { fileURLToPath } from "url";
+import { config as dotenvConfig } from "dotenv";
+
+dotenvConfig();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -29,8 +32,18 @@ app.post("/api/send-notification", async (req, res) => {
     }
 
     const apiKey = process.env.ONESIGNAL_REST_API_KEY;
+    const appId = process.env.ONESIGNAL_APP_ID;
+
+    console.log('[OneSignal] Sending notification:', { playerId, title, appId: appId?.substring(0, 8) + '...' });
+
     if (!apiKey) {
+      console.error('[OneSignal] API key not configured');
       return res.status(500).json({ error: "OneSignal API key not configured" });
+    }
+
+    if (!appId) {
+      console.error('[OneSignal] App ID not configured');
+      return res.status(500).json({ error: "OneSignal App ID not configured" });
     }
 
     const response = await fetch("https://onesignal.com/api/v1/notifications", {

@@ -3,6 +3,10 @@
 const ONESIGNAL_APP_ID = import.meta.env.VITE_ONESIGNAL_APP_ID;
 
 export async function sendNotification(playerId: string, title: string, message: string, data?: Record<string, any>) {
+  if (!playerId) {
+    console.error('No player ID provided for notification');
+    return { error: 'No player ID' };
+  }
   try {
     const response = await fetch('/api/send-notification', {
       method: 'POST',
