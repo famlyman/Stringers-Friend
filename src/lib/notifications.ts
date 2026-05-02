@@ -21,21 +21,26 @@ export async function sendNotification(playerIdOrIds: string | string[], title: 
     return { success: true, skipped: 'self' };
   }
 
-  console.log('[OneSignal] Attempting to send notification to devices:', targetIds);
+  console.log('[OneSignal] Notification Request:', {
+    allPlayerIds: playerIds,
+    currentDevice: currentDevicePlayerId,
+    targetIds: targetIds
+  });
 
   try {
     const response = await fetch('/api/send-notification', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ 
-        playerIds: targetIds, // Pass the array of IDs
+        playerIds: targetIds, 
         title, 
         message, 
         data 
       }),
     });
+    
     const result = await response.json();
-    console.log('[OneSignal] Notification send result:', result);
+    console.log('[OneSignal] Server Response:', result);
     return result;
   } catch (error) {
     console.error('Failed to send notification:', error);
