@@ -106,22 +106,28 @@ export default function CustomerMessages({ user }: { user: Profile | null }) {
     if (!newMessage.trim() || !shopId || sending || !user) return;
 
     setSending(true);
+    console.log('[Messages] Starting send flow...');
     try {
       const { data: customerData } = await supabase
         .from("customers")
         .select("id")
         .eq("profile_id", user.id)
+        .eq("shop_id", shopId)
         .single();
 
-      if (!customerData) return;
+      if (!customerData) {
+        console.error('[Messages] No customer record found for this shop');
+        return;
+      }
 
+      const messageContent = newMessage.trim();
       const { error } = await supabase
         .from("messages")
         .insert({
           shop_id: shopId,
           customer_id: customerData.id,
           sender_type: "customer",
-          content: newMessage.trim(),
+          content: messageContent,
           is_read: false
         });
 
@@ -137,20 +143,39 @@ export default function CustomerMessages({ user }: { user: Profile | null }) {
         .single();
 
       if (shop?.owner_id) {
+        console.log('[Messages] Fetching devices for shop owner:', shop.owner_id);
+        
+        // 1. Check new multi-device table
         const { data: devices } = await supabase
           .from('user_devices')
           .select('onesignal_subscription_id')
           .eq('profile_id', shop.owner_id);
 
-        const playerIds = devices?.map(d => d.onesignal_subscription_id).filter(Boolean) || [];
+        let playerIds = devices?.map(d => d.onesignal_subscription_id).filter(Boolean) || [];
+
+        // 2. Fallback to profiles table for backward compatibility
+        if (playerIds.length === 0) {
+          console.log('[Messages] No devices in user_devices, checking profiles table...');
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('onesignal_player_id')
+            .eq('id', shop.owner_id)
+            .single();
+          
+          if (profile?.onesignal_player_id) {
+            playerIds = [profile.onesignal_player_id];
+          }
+        }
 
         if (playerIds.length > 0) {
           await sendNotification(
             playerIds,
             'New Message',
-            `New message from ${user.profile?.full_name || 'a customer'}: ${newMessage.trim().substring(0, 50)}...`,
+            `New message from ${user.profile?.full_name || 'a customer'}: ${messageContent.substring(0, 50)}...`,
             { type: 'message', shop_id: shopId }
           );
+        } else {
+          console.log('[Messages] No push IDs found for shop owner');
         }
       }
     } catch (err) {
