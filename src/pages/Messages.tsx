@@ -147,7 +147,6 @@ export default function Messages({ user }: { user: Profile | null }) {
     if (!newMessage.trim() || !selectedCustomer || sending || !user?.shop_id) return;
 
     setSending(true);
-    console.log('[Messages] Shop starting send flow...');
     try {
       const messageContent = newMessage.trim();
       const { error } = await supabase
@@ -173,8 +172,6 @@ export default function Messages({ user }: { user: Profile | null }) {
         .single();
 
       if (customerProfile?.profile_id) {
-        console.log('[Messages] Fetching devices for customer:', customerProfile.profile_id);
-        
         // 1. Check new multi-device table
         const { data: devices } = await supabase
           .from('user_devices')
@@ -185,7 +182,6 @@ export default function Messages({ user }: { user: Profile | null }) {
 
         // 2. Fallback to profiles table
         if (playerIds.length === 0) {
-          console.log('[Messages] No devices in user_devices, checking profiles table...');
           const { data: profile } = await supabase
             .from('profiles')
             .select('onesignal_player_id')
@@ -204,11 +200,9 @@ export default function Messages({ user }: { user: Profile | null }) {
             `New message from ${user.shopName || 'your stringer'}: ${messageContent.substring(0, 50)}...`,
             { type: 'message', customer_id: selectedCustomer.id }
           );
-        } else {
-          console.log('[Messages] No push IDs found for customer');
         }
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error sending message:", err);
     } finally {
       setSending(false);

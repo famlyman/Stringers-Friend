@@ -18,33 +18,12 @@ export default async function handler(req: any, res: any) {
   const apiKey = process.env.ONESIGNAL_API_AUTHENTICATION_KEY || process.env.ONESIGNAL_REST_API_KEY;
   const appId = process.env.ONESIGNAL_APP_ID || process.env.VITE_ONESIGNAL_APP_ID;
 
-  console.log('[OneSignal] Sending notification debug:', { 
-    targetCount: targetIds.length,
-    appId: appId?.substring(0, 8) + '...',
-    apiKeySource: process.env.ONESIGNAL_API_AUTHENTICATION_KEY ? 'AUTHENTICATION_KEY' : (process.env.ONESIGNAL_REST_API_KEY ? 'REST_API_KEY' : 'None'),
-    apiKeyLength: apiKey?.length
-  });
-
-  if (!apiKey) {
-    console.error('[OneSignal] API key not configured');
-    return res.status(500).json({ error: "OneSignal API key not configured" });
-  }
-
-  if (!appId) {
-    console.error('[OneSignal] App ID not configured');
-    return res.status(500).json({ error: "OneSignal App ID not configured" });
+  if (!apiKey || !appId) {
+    return res.status(500).json({ error: "OneSignal configuration missing" });
   }
 
   try {
-    // OneSignal documentation specifies 'Key <key>' (or 'key <key>') for the REST API
     const authHeader = `Key ${apiKey}`;
-    
-    console.log('[OneSignal] Request Details:', {
-      url: "https://api.onesignal.com/notifications",
-      authHeaderPrefix: authHeader.substring(0, 8) + '...',
-      appId: appId,
-      targetIds: targetIds
-    });
     
     const response = await fetch("https://api.onesignal.com/notifications", {
       method: "POST",

@@ -3,7 +3,7 @@ import { Link, Outlet, useNavigate, useLocation } from "react-router-dom";
 import { LayoutDashboard, Users, Package, LogOut, User, Sun, Moon, MessageSquare, Bell, X, Home, FileText, Settings, LucideIcon } from "lucide-react";
 import { useTheme } from "../context/ThemeContext";
 import { supabase } from "../lib/supabase";
-import { getOneSignalPlayerId, requestPushSubscription, setupOneSignalListeners, debugNotificationStatus } from "../lib/notifications";
+import { getOneSignalPlayerId, requestPushSubscription, setupOneSignalListeners } from "../lib/notifications";
 
 import { Profile } from "../types/database";
 
@@ -26,10 +26,6 @@ function LayoutContent({ user, onLogout }: LayoutProps) {
   const [unreadCount, setUnreadCount] = useState(0);
   const [messageUnreadCount, setMessageUnreadCount] = useState(0);
   const [showPushPrompt, setShowPushPrompt] = useState(false);
-
-  useEffect(() => {
-    debugNotificationStatus();
-  }, []);
 
   useEffect(() => {
     if (!user) return;
@@ -56,20 +52,16 @@ function LayoutContent({ user, onLogout }: LayoutProps) {
       if (!playerId || !user) return;
       
       try {
-        console.log('[OneSignal] Checking device registration for ID:', playerId);
-
         // 1. Ensure this device ID belongs ONLY to this user
         // Delete this device ID from ANY other profile's devices
-        const { error: cleanupError } = await supabase
+        await supabase
           .from('user_devices')
           .delete()
           .eq('onesignal_subscription_id', playerId)
           .neq('profile_id', user.id);
 
-        if (cleanupError) console.error('[OneSignal] Error cleaning up device ID:', cleanupError);
-
         // 2. Register/Update this device for the current user
-        const { error: deviceError } = await supabase
+        await supabase
           .from('user_devices')
           .upsert({ 
             profile_id: user.id, 
@@ -78,12 +70,6 @@ function LayoutContent({ user, onLogout }: LayoutProps) {
           }, { 
             onConflict: 'profile_id, onesignal_subscription_id' 
           });
-
-        if (deviceError) {
-          console.error('[OneSignal] Error saving device to user_devices:', deviceError);
-        } else {
-          console.log('[OneSignal] Device registered to current user successfully');
-        }
 
         // 3. Sync legacy field in profiles table
         const { data: profileData } = await supabase
@@ -99,7 +85,7 @@ function LayoutContent({ user, onLogout }: LayoutProps) {
             .eq('id', user.id);
         }
       } catch (error) {
-        console.error('[OneSignal] Error in device registration flow:', error);
+        console.error('[OneSignal] Error in registration flow:', error);
       }
     };
 

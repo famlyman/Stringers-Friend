@@ -36,21 +36,8 @@ app.post("/api/send-notification", async (req, res) => {
     const apiKey = process.env.ONESIGNAL_API_AUTHENTICATION_KEY || process.env.ONESIGNAL_REST_API_KEY;
     const appId = process.env.ONESIGNAL_APP_ID || process.env.VITE_ONESIGNAL_APP_ID;
 
-    console.log('[OneSignal] Sending notification:', { 
-      targetCount: targetIds.length,
-      title, 
-      appId: appId?.substring(0, 8) + '...',
-      apiKeySource: process.env.ONESIGNAL_API_AUTHENTICATION_KEY ? 'AUTHENTICATION_KEY' : (process.env.ONESIGNAL_REST_API_KEY ? 'REST_API_KEY' : 'None')
-    });
-
-    if (!apiKey) {
-      console.error('[OneSignal] API key not configured');
-      return res.status(500).json({ error: "OneSignal API key not configured" });
-    }
-
-    if (!appId) {
-      console.error('[OneSignal] App ID not configured');
-      return res.status(500).json({ error: "OneSignal App ID not configured" });
+    if (!apiKey || !appId) {
+      return res.status(500).json({ error: "OneSignal configuration missing" });
     }
 
     // OneSignal documentation specifies 'Key <key>' for the REST API

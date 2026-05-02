@@ -101,33 +101,12 @@ export default function CustomerMessages({ user }: { user: Profile | null }) {
     setMessages(messagesData || []);
   };
 
-  const [notificationStatus, setNotificationStatus] = useState<string | null>(null);
-
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Add logging to see why it might be skipping
-    console.log('[Messages] sendMessage triggered', { 
-      hasMessage: !!newMessage.trim(), 
-      shopId, 
-      sending, 
-      hasUser: !!user 
-    });
-
-    if (!newMessage.trim()) return;
-    if (!shopId) {
-      setNotificationStatus('Error: Shop ID missing');
-      return;
-    }
-    if (sending) return;
-    if (!user) {
-      setNotificationStatus('Error: User not logged in');
-      return;
-    }
+    if (!newMessage.trim() || !shopId || sending || !user) return;
 
     setSending(true);
-    setNotificationStatus('Sending...');
-    
     try {
       const { data: customerData } = await supabase
         .from("customers")
@@ -136,10 +115,7 @@ export default function CustomerMessages({ user }: { user: Profile | null }) {
         .eq("shop_id", shopId)
         .single();
 
-      if (!customerData) {
-        setNotificationStatus('Error: No customer record');
-        return;
-      }
+      if (!customerData) return;
 
       const messageContent = newMessage.trim();
       const { error } = await supabase
@@ -156,7 +132,6 @@ export default function CustomerMessages({ user }: { user: Profile | null }) {
       
       setNewMessage("");
       fetchMessages();
-      setNotificationStatus('Message saved. Sending push...');
 
       // Send push notification to shop owner
       const { data: shop } = await supabase
@@ -166,8 +141,7 @@ export default function CustomerMessages({ user }: { user: Profile | null }) {
         .single();
 
       if (shop?.owner_id) {
-        console.log('[Messages] Fetching devices for shop owner:', shop.owner_id);
-        
+        // 1. Check new multi-device table
         const { data: devices } = await supabase
           .from('user_devices')
           .select('onesignal_subscription_id')
@@ -175,6 +149,7 @@ export default function CustomerMessages({ user }: { user: Profile | null }) {
 
         let playerIds = devices?.map(d => d.onesignal_subscription_id).filter(Boolean) || [];
 
+        // 2. Fallback to profiles table
         if (playerIds.length === 0) {
           const { data: profile } = await supabase
             .from('profiles')
@@ -188,31 +163,18 @@ export default function CustomerMessages({ user }: { user: Profile | null }) {
         }
 
         if (playerIds.length > 0) {
-          const result = await sendNotification(
+          await sendNotification(
             playerIds,
             'New Message',
             `New message from ${user.profile?.full_name || 'a customer'}: ${messageContent.substring(0, 50)}...`,
             { type: 'message', shop_id: shopId }
           );
-          
-          if (result.success || result.skipped) {
-            setNotificationStatus('Sent! (Mac should ring)');
-          } else {
-            setNotificationStatus(`Push Error: ${JSON.stringify(result.error || result)}`);
-          }
-        } else {
-          setNotificationStatus('No registered devices for shop owner.');
         }
-      } else {
-        setNotificationStatus('Message sent (No shop owner ID).');
       }
     } catch (err: any) {
       console.error("Error sending message:", err);
-      setNotificationStatus(`Error: ${err.message || 'Send failed'}`);
     } finally {
       setSending(false);
-      // Clear status after 10 seconds to give more time to read
-      setTimeout(() => setNotificationStatus(null), 10000);
     }
   };
 
@@ -317,13 +279,6 @@ export default function CustomerMessages({ user }: { user: Profile | null }) {
           <Send className="w-5 h-5" />
         </button>
       </form>
-      {notificationStatus && (
-        <div className="px-4 pb-2 text-center animate-fade-in">
-          <p className={`text-[10px] font-bold uppercase tracking-wider ${notificationStatus.startsWith('Error') ? 'text-red-500' : 'text-green-500'}`}>
-            {notificationStatus}
-          </p>
-        </div>
-      )}
     </div>
   );
 }
