@@ -35,9 +35,9 @@
 - Auth: `src/context/SupabaseAuthContext.tsx`
 - Supabase client: `src/lib/supabase.ts`
 - Notifications: `src/lib/notifications.ts`
-- API: `server.ts`
+- API: `server.ts` (dev), `api/send-notification.ts` (Vercel)
 - Schema: `supabase/schema.sql`
-- OneSignal worker: `public/OneSignalSDKWorker.js`
+- OneSignal worker: `src/OneSignalSDKWorker.ts` (compiled to root)
 
 ## Database Tables
 - `shops` - Shop owners and their business
@@ -52,21 +52,28 @@
 
 ## Push Notifications (OneSignal)
 ### Setup
-- OneSignal SDK loaded in `index.html` with service worker at `/OneSignalSDKWorker.js`
-- CSP headers in `vercel.json` allow OneSignal domains
-- API endpoint: `POST /api/send-notification` (in `server.ts`)
+- OneSignal SDK v16 loaded in `index.html` from `https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js`
+- Service worker at `/OneSignalSDKWorker.js` imports `https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js`
+- API endpoint: `POST /api/send-notification` (Vercel serverless in `/api/send-notification.ts`)
+- API URL: `https://api.onesignal.com/notifications` (not onesignal.com)
+- Auth header: `Key ${ONESIGNAL_REST_API_KEY}` (not Basic)
 
 ### How it works
-1. User subscribes via OneSignal slidedown prompt
-2. Player ID saved to `profiles.onesignal_player_id` on login
-3. Notifications sent via `/api/send-notification` endpoint
-4. Triggers: new messages, job completion
+1. User subscribes via OneSignal prompt (triggered by "Enable" button in Layout)
+2. Player ID saved to `profiles.onesignal_player_id` via `getOneSignalPlayerId()`
+3. Notifications sent via `/api/send-notification` endpoint using OneSignal REST API
+4. Triggers: new messages (shop owner + customer), job completion
 
 ### To send notifications from code
 ```typescript
 import { sendNotification } from './lib/notifications';
 await sendNotification(playerId, 'Title', 'Message body', { type: 'job', job_id: '...' });
 ```
+
+### Environment Variables (Vercel + .env.local)
+- `ONESIGNAL_APP_ID` = `133fd1be-b1e9-4664-a061-8a1a66e3e7f3`
+- `ONESIGNAL_REST_API_KEY` = (from OneSignal dashboard > Settings > Keys & IDs)
+- `VITE_ONESIGNAL_APP_ID` = `133fd1be-b1e9-4664-a061-8a1a66e3e7f3`
 
 ## QR Code System
 - **Racquet QR** -> encodes `/r/{racquet-uuid}`
@@ -100,13 +107,21 @@ CREATE POLICY "Anyone can view customers"
   ON public.customers FOR SELECT TO anon, authenticated USING (true);
 ```
 
-## Recent Changes (Apr 2026)
+## Recent Changes (Apr-May 2026)
 ### Push Notifications (OneSignal)
 - Added OneSignal SDK integration with VitePWA-compatible service worker
 - Service worker at `/OneSignalSDKWorker.js` to avoid conflicts
 - API endpoint `/api/send-notification` for server-side notification sending
 - Notifications triggered on: new messages, job completion
 - Customer notification button in Layout with 24h cooldown
+- **Fixed (May 2026):** OneSignal SDK URLs corrected to `web/v16/` format (was 404ing)
+- **Fixed (May 2026):** API endpoint updated to `api.onesignal.com/notifications` with `Key` auth header
+- **Fixed (May 2026):** Created Vercel serverless API routes in `/api/` directory
+- **Fixed (May 2026):** Added `dotenv` to server for environment variable loading
+
+### Fixed Null User Errors
+- Fixed `CustomerMessages.tsx` - Added null guard for `user` prop (was causing "Cannot read properties of null (reading 'id')")
+- Fixed `Messages.tsx` - Added null guards for `user` and `user?.shop_id` throughout component
 
 ### QR Code Label Improvements
 - Updated print label format: QR + customer name + strings + tension
