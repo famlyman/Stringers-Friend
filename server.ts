@@ -51,8 +51,8 @@ app.post("/api/send-notification", async (req, res) => {
       return res.status(500).json({ error: "OneSignal App ID not configured" });
     }
 
-    // Determine auth prefix - newer keys use 'Key', older use 'Basic'
-    const authHeader = apiKey.startsWith('os_v2_') ? `Key ${apiKey}` : `Basic ${apiKey}`;
+    // OneSignal documentation specifies 'Key <key>' for the REST API
+    const authHeader = `Key ${apiKey}`;
 
     const response = await fetch("https://api.onesignal.com/notifications", {
       method: "POST",

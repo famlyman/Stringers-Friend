@@ -34,9 +34,8 @@ export default async function handler(req: any, res: any) {
   }
 
   try {
-    // Determine auth prefix - newer keys use 'Key', older use 'Basic'
-    // OneSignal recommends 'Key' for api.onesignal.com
-    const authHeader = apiKey.startsWith('os_v2_') ? `Key ${apiKey}` : `Basic ${apiKey}`;
+    // OneSignal documentation specifies 'Key <key>' (or 'key <key>') for the REST API
+    const authHeader = `Key ${apiKey}`;
     
     const response = await fetch("https://api.onesignal.com/notifications", {
       method: "POST",
