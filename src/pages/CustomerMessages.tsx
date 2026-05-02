@@ -105,13 +105,30 @@ export default function CustomerMessages({ user }: { user: Profile | null }) {
 
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newMessage.trim() || !shopId || sending || !user) return;
+    
+    // Add logging to see why it might be skipping
+    console.log('[Messages] sendMessage triggered', { 
+      hasMessage: !!newMessage.trim(), 
+      shopId, 
+      sending, 
+      hasUser: !!user 
+    });
+
+    if (!newMessage.trim()) return;
+    if (!shopId) {
+      setNotificationStatus('Error: Shop ID missing');
+      return;
+    }
+    if (sending) return;
+    if (!user) {
+      setNotificationStatus('Error: User not logged in');
+      return;
+    }
 
     setSending(true);
-    setNotificationStatus(null);
-    console.log('[Messages] Starting send flow...');
+    setNotificationStatus('Sending...');
+    
     try {
-      // ... (existing code for finding customerData) ...
       const { data: customerData } = await supabase
         .from("customers")
         .select("id")
@@ -120,7 +137,7 @@ export default function CustomerMessages({ user }: { user: Profile | null }) {
         .single();
 
       if (!customerData) {
-        console.error('[Messages] No customer record found for this shop');
+        setNotificationStatus('Error: No customer record');
         return;
       }
 
@@ -136,8 +153,10 @@ export default function CustomerMessages({ user }: { user: Profile | null }) {
         });
 
       if (error) throw error;
+      
       setNewMessage("");
       fetchMessages();
+      setNotificationStatus('Message saved. Sending push...');
 
       // Send push notification to shop owner
       const { data: shop } = await supabase
@@ -176,22 +195,24 @@ export default function CustomerMessages({ user }: { user: Profile | null }) {
             { type: 'message', shop_id: shopId }
           );
           
-          if (result.success) {
-            setNotificationStatus('Notification sent to shop!');
+          if (result.success || result.skipped) {
+            setNotificationStatus('Sent! (Mac should ring)');
           } else {
-            setNotificationStatus(`Error: ${JSON.stringify(result.error || result)}`);
+            setNotificationStatus(`Push Error: ${JSON.stringify(result.error || result)}`);
           }
         } else {
-          setNotificationStatus('No registered devices found for shop owner.');
+          setNotificationStatus('No registered devices for shop owner.');
         }
+      } else {
+        setNotificationStatus('Message sent (No shop owner ID).');
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error sending message:", err);
-      setNotificationStatus('Error sending message.');
+      setNotificationStatus(`Error: ${err.message || 'Send failed'}`);
     } finally {
       setSending(false);
-      // Clear status after 5 seconds
-      setTimeout(() => setNotificationStatus(null), 5000);
+      // Clear status after 10 seconds to give more time to read
+      setTimeout(() => setNotificationStatus(null), 10000);
     }
   };
 
