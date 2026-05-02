@@ -3,7 +3,8 @@ import { Link, Outlet, useNavigate, useLocation } from "react-router-dom";
 import { LayoutDashboard, Users, Package, LogOut, User, Sun, Moon, MessageSquare, Bell, X, Home, FileText, Settings, LucideIcon } from "lucide-react";
 import { useTheme } from "../context/ThemeContext";
 import { supabase } from "../lib/supabase";
-import { getOneSignalPlayerId, requestPushSubscription, setupOneSignalListeners } from "../lib/notifications";
+import { getOneSignalPlayerId, requestPushSubscription, setupOneSignalListeners, debugNotificationStatus } from "../lib/notifications";
+
 import { Profile } from "../types/database";
 
 interface LayoutProps {
@@ -25,6 +26,10 @@ function LayoutContent({ user, onLogout }: LayoutProps) {
   const [unreadCount, setUnreadCount] = useState(0);
   const [messageUnreadCount, setMessageUnreadCount] = useState(0);
   const [showPushPrompt, setShowPushPrompt] = useState(false);
+
+  useEffect(() => {
+    debugNotificationStatus();
+  }, []);
 
   useEffect(() => {
     if (!user) return;

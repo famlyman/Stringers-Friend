@@ -48,6 +48,28 @@ export async function sendNotification(playerIdOrIds: string | string[], title: 
   }
 }
 
+// Debug utility to check permission and worker status
+export async function debugNotificationStatus() {
+  const win = window as any;
+  const status = {
+    permission: 'Notification' in window ? Notification.permission : 'not supported',
+    serviceWorker: 'serviceWorker' in navigator ? 'supported' : 'not supported',
+    oneSignalId: await getOneSignalPlayerId(),
+  };
+  
+  console.log('[OneSignal] Debug Status:', status);
+  
+  if (win.OneSignalDeferred) {
+    win.OneSignalDeferred.push(async (OneSignal: any) => {
+      const isPushEnabled = await OneSignal.Notifications.isPushEnabled();
+      const optInStatus = OneSignal.User?.PushSubscription?.optedIn;
+      console.log('[OneSignal] SDK Status:', { isPushEnabled, optInStatus });
+    });
+  }
+  
+  return status;
+}
+
 // Get OneSignal player ID for current user (call after user subscribes)
 export async function getOneSignalPlayerId(): Promise<string | null> {
   const win = window as any;
