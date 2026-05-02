@@ -43,6 +43,30 @@ function AppRoutes() {
     window.location.href = "/login";
   };
 
+  // If logged in but profile is still null after loading, show a sync error
+  if (user && !profile) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-bg-main p-6 text-center">
+        <h2 className="text-xl font-black text-text-main mb-2">Sync Delayed</h2>
+        <p className="text-text-muted mb-8 text-sm max-w-xs">
+          We found your session but couldn't load your profile. This usually fixes itself in a few seconds.
+        </p>
+        <button
+          onClick={() => window.location.reload()}
+          className="w-full max-w-xs py-4 bg-primary text-white rounded-2xl font-bold mb-3"
+        >
+          Try Again
+        </button>
+        <button
+          onClick={handleLogout}
+          className="w-full max-w-xs py-4 bg-bg-card text-text-main rounded-2xl font-bold border border-border-main"
+        >
+          Sign Out
+        </button>
+      </div>
+    );
+  }
+
   return (
     <Suspense fallback={<PageLoader />}>
       <Routes>
@@ -52,28 +76,22 @@ function AppRoutes() {
         <Route path="/r/:id" element={<RacquetPage />} />
         <Route path="/scan/:qrCode" element={<ScanResult />} />
         
-        {/* Protected Routes */}
-        {user ? (
-          <Route element={<Layout user={profile || user} onLogout={handleLogout} />}>
-            <Route path="/dashboard" element={
-              profile ? (
-                profile.role === 'stringer' ? (
-                  profile.shop_id ? <Dashboard user={profile} /> : <Navigate to="/setup" replace />
-                ) : <CustomerDashboard user={profile} />
-              ) : <PageLoader />
-            } />
-            <Route path="/setup" element={profile?.role === 'stringer' ? <ShopSetup user={profile} /> : <Navigate to="/" replace />} />
-            <Route path="/inventory" element={profile?.role === 'stringer' ? <Inventory user={profile} /> : <Navigate to="/" replace />} />
-            <Route path="/customers" element={profile?.role === 'stringer' ? <CustomerList user={profile} /> : <Navigate to="/" replace />} />
-            <Route path="/messages" element={
-              profile?.role === 'stringer' ? <Messages user={profile} /> : <CustomerMessages user={profile} />
-            } />
-            <Route path="/profile" element={profile ? <Profile user={profile} /> : <Navigate to="/" replace />} />
-            <Route path="/racquet-specs" element={profile?.role === 'stringer' ? <RacquetSpecsAdmin user={profile} /> : <Navigate to="/" replace />} />
-          </Route>
-        ) : (
-          <Route path="*" element={<Navigate to="/" replace />} />
-        )}
+        {/* Protected Routes Wrapper */}
+        <Route element={user ? <Layout user={profile || user} onLogout={handleLogout} /> : <Navigate to="/login" replace />}>
+          <Route path="/dashboard" element={
+            profile?.role === 'stringer' ? (
+              profile.shop_id ? <Dashboard user={profile} /> : <Navigate to="/setup" replace />
+            ) : <CustomerDashboard user={profile!} />
+          } />
+          <Route path="/setup" element={profile?.role === 'stringer' ? <ShopSetup user={profile} /> : <Navigate to="/" replace />} />
+          <Route path="/inventory" element={profile?.role === 'stringer' ? <Inventory user={profile} /> : <Navigate to="/" replace />} />
+          <Route path="/customers" element={profile?.role === 'stringer' ? <CustomerList user={profile} /> : <Navigate to="/" replace />} />
+          <Route path="/messages" element={
+            profile?.role === 'stringer' ? <Messages user={profile} /> : <CustomerMessages user={profile} />
+          } />
+          <Route path="/profile" element={profile ? <Profile user={profile} /> : <Navigate to="/" replace />} />
+          <Route path="/racquet-specs" element={profile?.role === 'stringer' ? <RacquetSpecsAdmin user={profile} /> : <Navigate to="/" replace />} />
+        </Route>
 
         <Route path="/:slug" element={<PublicShop />} />
         <Route path="*" element={<Navigate to="/" replace />} />

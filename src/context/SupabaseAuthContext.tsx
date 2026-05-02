@@ -75,6 +75,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     let mounted = true;
+    let initialized = false;
+
+    // Safety timeout: ensure loading is NEVER stuck forever
+    const safetyTimeout = setTimeout(() => {
+      if (mounted && !initialized) {
+        console.warn('[Auth] Safety timeout reached, forcing loading to false');
+        setLoading(false);
+      }
+    }, 10000);
     
     const initializeAuth = async () => {
       try {
@@ -89,7 +98,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } catch (error) {
         console.error('Auth init error:', error);
       } finally {
-        if (mounted) setLoading(false);
+        if (mounted) {
+          initialized = true;
+          setLoading(false);
+          clearTimeout(safetyTimeout);
+        }
       }
     };
 
@@ -99,13 +112,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       async (event, session) => {
         if (!mounted) return;
         
+        // Skip initial session if we already handled it in initializeAuth
+        if (event === 'INITIAL_SESSION' && initialized) return;
+        
         if (session?.user) {
           setUser(session.user);
-          const profileData = await fetchProfile(session.user.id, session.user.email);
-          if (mounted) {
-            setProfile(profileData);
-            setLoading(false);
+          // Only fetch if profile is missing or user changed
+          if (!profile || profile.id !== session.user.id) {
+            const profileData = await fetchProfile(session.user.id, session.user.email);
+            if (mounted) setProfile(profileData);
           }
+          setLoading(false);
         } else {
           setUser(null);
           setProfile(null);
@@ -116,6 +133,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     return () => {
       mounted = false;
+      clearTimeout(safetyTimeout);
       subscription.unsubscribe();
     };
   }, []);
