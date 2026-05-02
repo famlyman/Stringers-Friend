@@ -78,27 +78,29 @@ export default function Register() {
         if (linkError) {
           console.error("Error finding customers to link:", linkError);
           throw new Error("Failed to link existing customer record");
+        }
+
         if (customersToLink && customersToLink.length > 0) {
           for (const customer of customersToLink) {
             const { error: updateError } = await supabase
               .from('customers')
               .update({ profile_id: userId })
               .eq('id', customer.id);
-
+            
             if (updateError) {
               console.error("Error linking customer:", updateError);
               throw new Error("Failed to link customer account");
             }
           }
         }
-
+        
         navigate("/dashboard");
-        } else if (role === "stringer") {
+      } else if (role === "stringer") {
         console.log("Stringer registered, redirecting to shop setup");
         navigate("/setup");
-        } else {
+      } else {
         navigate("/dashboard");
-        }
+      }
     } catch (err: any) {
       setError(err.message || "Failed to create account");
     } finally {
