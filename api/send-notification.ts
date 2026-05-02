@@ -36,7 +36,7 @@ export default async function handler(req: any, res: any) {
       },
       body: JSON.stringify({
         app_id: appId,
-        include_player_ids: [playerId],
+        include_subscription_ids: [playerId],
         headings: { en: title },
         contents: { en: message },
         data: data || {},

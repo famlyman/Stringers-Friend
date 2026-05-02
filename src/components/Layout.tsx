@@ -3,7 +3,7 @@ import { Link, Outlet, useNavigate, useLocation } from "react-router-dom";
 import { LayoutDashboard, Users, Package, LogOut, User, Sun, Moon, MessageSquare, Bell, X, Home, FileText, Settings, LucideIcon } from "lucide-react";
 import { useTheme } from "../context/ThemeContext";
 import { supabase } from "../lib/supabase";
-import { getOneSignalPlayerId, requestPushSubscription } from "../lib/notifications";
+import { getOneSignalPlayerId, requestPushSubscription, setupOneSignalListeners } from "../lib/notifications";
 import { Profile } from "../types/database";
 
 interface LayoutProps {
@@ -47,10 +47,10 @@ function LayoutContent({ user, onLogout }: LayoutProps) {
   useEffect(() => {
     if (!user) return;
 
-    const savePlayerId = async () => {
-      const playerId = await getOneSignalPlayerId();
-      if (playerId) {
-        // Check if already saved
+    const saveIdToProfile = async (playerId: string | null) => {
+      if (!playerId || !user) return;
+      
+      try {
         const { data: profile } = await supabase
           .from('profiles')
           .select('onesignal_player_id')
@@ -58,15 +58,22 @@ function LayoutContent({ user, onLogout }: LayoutProps) {
           .single();
 
         if (profile?.onesignal_player_id !== playerId) {
+          console.log('[OneSignal] Updating profile with new player ID:', playerId);
           await supabase
             .from('profiles')
             .update({ onesignal_player_id: playerId })
             .eq('id', user.id);
         }
+      } catch (error) {
+        console.error('[OneSignal] Error saving player ID to profile:', error);
       }
     };
 
-    savePlayerId();
+    // Initial check
+    getOneSignalPlayerId().then(saveIdToProfile);
+
+    // Set up listener for future changes (subscription success, etc.)
+    setupOneSignalListeners(saveIdToProfile);
   }, [user]);
 
   if (!user) return <Outlet />;

@@ -32,7 +32,7 @@ app.post("/api/send-notification", async (req, res) => {
     }
 
     const apiKey = process.env.ONESIGNAL_REST_API_KEY;
-    const appId = process.env.ONESIGNAL_APP_ID;
+    const appId = process.env.ONESIGNAL_APP_ID || process.env.VITE_ONESIGNAL_APP_ID;
 
     console.log('[OneSignal] Sending notification:', { playerId, title, appId: appId?.substring(0, 8) + '...' });
 
@@ -53,8 +53,8 @@ app.post("/api/send-notification", async (req, res) => {
         "Authorization": `Key ${apiKey}`,
       },
       body: JSON.stringify({
-        app_id: process.env.ONESIGNAL_APP_ID,
-        include_player_ids: [playerId],
+        app_id: appId,
+        include_subscription_ids: [playerId],
         headings: { en: title },
         contents: { en: message },
         data: data || {},
