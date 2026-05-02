@@ -50,10 +50,10 @@ export function useDashboardData(shopId: string | undefined): DashboardData {
         { data: inventoryData }
       ] = await Promise.all([
         supabase.from('shops').select('*').eq('id', shopId).single(),
-        supabase.from('jobs').select('*, customers!inner(first_name, last_name, email)').eq('shop_id', shopId).order('created_at', { ascending: false }),
+        supabase.from('jobs').select('*, customers(first_name, last_name, email)').eq('shop_id', shopId).order('created_at', { ascending: false }),
         supabase.from('customers').select('*').eq('shop_id', shopId),
-        supabase.from('racquets').select('*, customers!inner(shop_id)').eq('customers.shop_id', shopId),
-        supabase.from('messages').select('*, customers!inner(first_name, last_name)').eq('shop_id', shopId).order('created_at', { ascending: false }),
+        supabase.from('racquets').select('*').eq('shop_id', shopId),
+        supabase.from('messages').select('*, customers(first_name, last_name)').eq('shop_id', shopId).order('created_at', { ascending: false }),
         supabase.from('inventory').select('*').eq('shop_id', shopId).order('created_at', { ascending: false })
       ]);
 

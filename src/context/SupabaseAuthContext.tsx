@@ -89,20 +89,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (!mounted) return;
-        console.log('[Auth] Event:', event, !!session);
         
         if (session?.user) {
           setUser(session.user);
+          // Set loading false immediately when session exists
           setLoading(false);
           clearTimeout(safetyTimeout);
 
-          console.log('[Auth] Fetching profile...');
+          // Fetch profile in background without blocking
           if (!profile || profile.id !== session.user.id) {
-            const profileData = await fetchProfile(session.user.id, session.user.email);
-            if (mounted && profileData) {
-              console.log('[Auth] Profile loaded');
-              setProfile(profileData);
-            }
+            fetchProfile(session.user.id, session.user.email).then(profileData => {
+              if (mounted && profileData) setProfile(profileData);
+            });
           }
         } else {
           setUser(null);

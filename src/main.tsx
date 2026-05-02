@@ -1,12 +1,18 @@
-// Force build to ensure all changes are picked up
 import {StrictMode} from 'react';
 import {createRoot} from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
-// import { registerSW } from 'virtual:pwa-register';
 
-// Register the service worker for PWA
-// registerSW({ immediate: true });
+// Nuclear reset for Service Workers to fix hangs
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.getRegistrations().then(registrations => {
+    for (const registration of registrations) {
+      // Only unregister if it's not the current version (or just unregister all for now to be safe)
+      registration.unregister();
+      console.log('[SW] Nuclear reset: Unregistered stale worker');
+    }
+  });
+}
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
