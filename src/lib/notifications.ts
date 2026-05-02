@@ -7,6 +7,14 @@ export async function sendNotification(playerId: string, title: string, message:
     console.error('No player ID provided for notification');
     return { error: 'No player ID' };
   }
+
+  // Check if we are trying to notify ourselves (current device)
+  const currentDevicePlayerId = await getOneSignalPlayerId();
+  if (playerId === currentDevicePlayerId) {
+    console.log('[OneSignal] Skipping notification to current device (self-notification)');
+    return { success: true, skipped: 'self' };
+  }
+
   try {
     const response = await fetch('/api/send-notification', {
       method: 'POST',

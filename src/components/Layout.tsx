@@ -51,6 +51,17 @@ function LayoutContent({ user, onLogout }: LayoutProps) {
       if (!playerId || !user) return;
       
       try {
+        // 1. Remove this playerId from any other profiles first to ensure uniqueness
+        // This prevents multiple users from being associated with the same device ID
+        const { error: clearError } = await supabase
+          .from('profiles')
+          .update({ onesignal_player_id: null })
+          .eq('onesignal_player_id', playerId)
+          .neq('id', user.id); // Don't clear if it's already us
+
+        if (clearError) console.error('[OneSignal] Error clearing duplicate player ID:', clearError);
+
+        // 2. Check current profile
         const { data: profile } = await supabase
           .from('profiles')
           .select('onesignal_player_id')
