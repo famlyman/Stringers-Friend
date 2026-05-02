@@ -6,21 +6,23 @@ export default async function handler(req: any, res: any) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { playerId, title, message, data } = req.body;
+  const { playerId, playerIds, title, message, data } = req.body;
+  
+  // Normalize to an array of IDs
+  const targetIds = playerIds || (playerId ? [playerId] : []);
 
-  if (!playerId || !title || !message) {
-    return res.status(400).json({ error: "Missing required fields: playerId, title, message" });
+  if (targetIds.length === 0 || !title || !message) {
+    return res.status(400).json({ error: "Missing required fields: target IDs, title, or message" });
   }
 
   const apiKey = process.env.ONESIGNAL_API_AUTHENTICATION_KEY || process.env.ONESIGNAL_REST_API_KEY;
   const appId = process.env.ONESIGNAL_APP_ID || process.env.VITE_ONESIGNAL_APP_ID;
 
   console.log('[OneSignal] Sending notification debug:', { 
-    playerId, 
+    targetCount: targetIds.length,
     appId: appId?.substring(0, 8) + '...',
     apiKeySource: process.env.ONESIGNAL_API_AUTHENTICATION_KEY ? 'AUTHENTICATION_KEY' : (process.env.ONESIGNAL_REST_API_KEY ? 'REST_API_KEY' : 'None'),
-    apiKeyLength: apiKey?.length,
-    apiKeyPrefix: apiKey ? (apiKey.startsWith('os_v2_') ? 'os_v2_...' : 'Legacy/Other') : 'None'
+    apiKeyLength: apiKey?.length
   });
 
   if (!apiKey) {
@@ -41,7 +43,7 @@ export default async function handler(req: any, res: any) {
       url: "https://api.onesignal.com/notifications",
       authHeaderPrefix: authHeader.substring(0, 8) + '...',
       appId: appId,
-      playerId: playerId
+      targetIds: targetIds
     });
     
     const response = await fetch("https://api.onesignal.com/notifications", {
@@ -52,7 +54,7 @@ export default async function handler(req: any, res: any) {
       },
       body: JSON.stringify({
         app_id: appId,
-        include_subscription_ids: [playerId],
+        include_subscription_ids: targetIds,
         headings: { en: title },
         contents: { en: message },
         data: data || {},

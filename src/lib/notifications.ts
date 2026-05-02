@@ -2,24 +2,37 @@
 
 const ONESIGNAL_APP_ID = import.meta.env.VITE_ONESIGNAL_APP_ID;
 
-export async function sendNotification(playerId: string, title: string, message: string, data?: Record<string, any>) {
-  if (!playerId) {
-    console.error('No player ID provided for notification');
-    return { error: 'No player ID' };
+export async function sendNotification(playerIdOrIds: string | string[], title: string, message: string, data?: Record<string, any>) {
+  const playerIds = Array.isArray(playerIdOrIds) ? playerIdOrIds : [playerIdOrIds];
+  
+  if (playerIds.length === 0) {
+    console.error('No player IDs provided for notification');
+    return { error: 'No player IDs' };
   }
 
-  // Check if we are trying to notify ourselves (current device)
+  // Get current device to skip self-notification
   const currentDevicePlayerId = await getOneSignalPlayerId();
-  if (playerId === currentDevicePlayerId) {
-    console.log('[OneSignal] Skipping notification to current device (self-notification)');
+  
+  // Filter out the current device
+  const targetIds = playerIds.filter(id => id !== currentDevicePlayerId);
+
+  if (targetIds.length === 0) {
+    console.log('[OneSignal] Skipping notification: No targets remain after filtering sender device');
     return { success: true, skipped: 'self' };
   }
+
+  console.log('[OneSignal] Attempting to send notification to devices:', targetIds);
 
   try {
     const response = await fetch('/api/send-notification', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ playerId, title, message, data }),
+      body: JSON.stringify({ 
+        playerIds: targetIds, // Pass the array of IDs
+        title, 
+        message, 
+        data 
+      }),
     });
     const result = await response.json();
     console.log('[OneSignal] Notification send result:', result);

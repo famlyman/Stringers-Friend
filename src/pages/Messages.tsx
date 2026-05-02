@@ -171,15 +171,16 @@ export default function Messages({ user }: { user: Profile | null }) {
         .single();
 
       if (customerProfile?.profile_id) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('onesignal_player_id, full_name')
-          .eq('id', customerProfile.profile_id)
-          .single();
+        const { data: devices } = await supabase
+          .from('user_devices')
+          .select('onesignal_subscription_id')
+          .eq('profile_id', customerProfile.profile_id);
 
-        if (profile?.onesignal_player_id) {
+        const playerIds = devices?.map(d => d.onesignal_subscription_id).filter(Boolean) || [];
+
+        if (playerIds.length > 0) {
           await sendNotification(
-            profile.onesignal_player_id,
+            playerIds,
             'New Message',
             `New message from ${user.shopName || 'your stringer'}: ${newMessage.trim().substring(0, 50)}...`,
             { type: 'message', customer_id: selectedCustomer.id }

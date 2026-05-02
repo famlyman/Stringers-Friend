@@ -51,17 +51,24 @@ function LayoutContent({ user, onLogout }: LayoutProps) {
       if (!playerId || !user) return;
       
       try {
-        // 1. Remove this playerId from any other profiles first to ensure uniqueness
-        // This prevents multiple users from being associated with the same device ID
-        const { error: clearError } = await supabase
-          .from('profiles')
-          .update({ onesignal_player_id: null })
-          .eq('onesignal_player_id', playerId)
-          .neq('id', user.id); // Don't clear if it's already us
+        // 1. Register this device in the user_devices table
+        const { error: deviceError } = await supabase
+          .from('user_devices')
+          .upsert({ 
+            profile_id: user.id, 
+            onesignal_subscription_id: playerId,
+            last_seen_at: new Date().toISOString()
+          }, { 
+            onConflict: 'profile_id, onesignal_subscription_id' 
+          });
 
-        if (clearError) console.error('[OneSignal] Error clearing duplicate player ID:', clearError);
+        if (deviceError) {
+          console.error('[OneSignal] Error saving device to user_devices:', deviceError);
+        } else {
+          console.log('[OneSignal] Device registered successfully');
+        }
 
-        // 2. Check current profile
+        // 2. Keep the main profiles table updated for backward compatibility
         const { data: profile } = await supabase
           .from('profiles')
           .select('onesignal_player_id')
@@ -69,21 +76,20 @@ function LayoutContent({ user, onLogout }: LayoutProps) {
           .single();
 
         if (profile?.onesignal_player_id !== playerId) {
-          console.log('[OneSignal] Updating profile with new player ID:', playerId);
           await supabase
             .from('profiles')
             .update({ onesignal_player_id: playerId })
             .eq('id', user.id);
         }
       } catch (error) {
-        console.error('[OneSignal] Error saving player ID to profile:', error);
+        console.error('[OneSignal] Error saving player ID:', error);
       }
     };
 
     // Initial check
     getOneSignalPlayerId().then(saveIdToProfile);
 
-    // Set up listener for future changes (subscription success, etc.)
+    // Set up listener for future changes
     setupOneSignalListeners(saveIdToProfile);
   }, [user]);
 

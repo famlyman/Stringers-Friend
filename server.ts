@@ -22,20 +22,22 @@ app.get("/api/health", (req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString(), vercel: !!process.env.VERCEL });
 });
 
-// OneSignal Push Notification endpoint
 app.post("/api/send-notification", async (req, res) => {
   try {
-    const { playerId, title, message, data } = req.body;
+    const { playerId, playerIds, title, message, data } = req.body;
 
-    if (!playerId || !title || !message) {
-      return res.status(400).json({ error: "Missing required fields: playerId, title, message" });
+    // Normalize to an array of IDs
+    const targetIds = playerIds || (playerId ? [playerId] : []);
+
+    if (targetIds.length === 0 || !title || !message) {
+      return res.status(400).json({ error: "Missing required fields: target IDs, title, or message" });
     }
 
     const apiKey = process.env.ONESIGNAL_API_AUTHENTICATION_KEY || process.env.ONESIGNAL_REST_API_KEY;
     const appId = process.env.ONESIGNAL_APP_ID || process.env.VITE_ONESIGNAL_APP_ID;
 
     console.log('[OneSignal] Sending notification:', { 
-      playerId, 
+      targetCount: targetIds.length,
       title, 
       appId: appId?.substring(0, 8) + '...',
       apiKeySource: process.env.ONESIGNAL_API_AUTHENTICATION_KEY ? 'AUTHENTICATION_KEY' : (process.env.ONESIGNAL_REST_API_KEY ? 'REST_API_KEY' : 'None')
@@ -62,7 +64,7 @@ app.post("/api/send-notification", async (req, res) => {
       },
       body: JSON.stringify({
         app_id: appId,
-        include_subscription_ids: [playerId],
+        include_subscription_ids: targetIds,
         headings: { en: title },
         contents: { en: message },
         data: data || {},

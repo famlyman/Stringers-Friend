@@ -371,15 +371,16 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: Profile
                               .single();
 
                             if (jobData?.customers?.profile_id) {
-                              const { data: profile } = await supabase
-                                .from('profiles')
-                                .select('onesignal_player_id')
-                                .eq('id', jobData.customers.profile_id)
-                                .single();
+                              const { data: devices } = await supabase
+                                .from('user_devices')
+                                .select('onesignal_subscription_id')
+                                .eq('profile_id', jobData.customers.profile_id);
 
-                              if (profile?.onesignal_player_id) {
+                              const playerIds = devices?.map(d => d.onesignal_subscription_id).filter(Boolean) || [];
+
+                              if (playerIds.length > 0) {
                                 await sendNotification(
-                                  profile.onesignal_player_id,
+                                  playerIds,
                                   'Job Completed!',
                                   `Your racquet is ready for pickup${job.racquets ? ` - ${job.racquets.brand} ${job.racquets.model}` : ''}`,
                                   { type: 'job', job_id: job.id }
