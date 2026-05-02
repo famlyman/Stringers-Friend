@@ -36,9 +36,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [pendingRole, setPendingRole] = useState<'stringer' | 'customer' | null>(null);
 
   // Fetch profile from Supabase, create if missing
-  const fetchProfile = async (userId: string, userEmail?: string, role?: 'stringer' | 'customer'): Promise<Profile | null> => {
+  const fetchProfile = async (userId: string, userEmail?: string, role?: 'stringer' | 'customer', retryCount = 0): Promise<Profile | null> => {
     try {
-      // Race between query and timeout (15 seconds - increased for stability)
+      const MAX_RETRIES = 3;
+      
+      // Race between query and timeout (20 seconds - increased for stability)
       const fetchPromise = supabase
         .from('profiles')
         .select('*')
@@ -46,16 +48,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .single();
       
       const timeoutPromise = new Promise<{ data: null, error: { message: string } }>((resolve) => {
-        setTimeout(() => resolve({ data: null, error: { message: 'timeout' } }), 15000);
+        setTimeout(() => resolve({ data: null, error: { message: 'timeout' } }), 20000);
       });
       
       const response = await Promise.race([fetchPromise, timeoutPromise]);
       const data = response.data;
       const error = response.error as any;
 
-      // Handle timeout - return null to show retry UI
-      if (error?.message === 'timeout') {
-        console.warn('[Auth] Profile fetch timed out after 15s');
+      // Handle timeout or network failure with retry
+      if (error?.message === 'timeout' || error?.message?.includes('Failed to fetch')) {
+        if (retryCount < MAX_RETRIES) {
+          const delay = Math.pow(2, retryCount) * 1000;
+          console.warn(`[Auth] Profile fetch delayed/timed out. Retrying in ${delay}ms... (Attempt ${retryCount + 1}/${MAX_RETRIES})`);
+          await new Promise(r => setTimeout(r, delay));
+          return fetchProfile(userId, userEmail, role, retryCount + 1);
+        }
+        console.error('[Auth] Profile fetch timed out after maximum retries');
         return null;
       }
 

@@ -72,28 +72,28 @@ function AppRoutes() {
         {/* Protected Routes Wrapper */}
         <Route element={user ? <Layout user={profile || user} onLogout={handleLogout} /> : <Navigate to="/" replace />}>
           <Route path="/dashboard" element={
-            profile ? (
-              profile.role === 'stringer' ? (
-                profile.shop_id ? <Dashboard user={profile} /> : <Navigate to="/setup" replace />
-              ) : <CustomerDashboard user={profile} />
-            ) : loading ? (
+            loading ? (
               <div className="min-h-screen flex flex-col items-center justify-center bg-bg-main p-6">
                 <div className="text-center max-w-sm w-full bg-bg-card rounded-3xl p-10 shadow-2xl border border-border-main animate-scale-in">
                   <img src="/logo.png" alt="Loading" className="h-16 w-16 object-contain mx-auto mb-6" />
                   <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin mx-auto mb-6"></div>
-                  <h2 className="text-xl font-black text-text-main mb-2 tracking-tight">Loading Profile</h2>
+                  <h2 className="text-xl font-black text-text-main mb-2 tracking-tight">Syncing Account</h2>
                   <p className="text-text-muted mb-8 text-sm">
-                    We're retrieving your account information...
+                    We're preparing your workspace...
                   </p>
                 </div>
               </div>
+            ) : profile ? (
+              profile.role === 'stringer' ? (
+                profile.shop_id ? <Dashboard user={profile} /> : <Navigate to="/setup" replace />
+              ) : <CustomerDashboard user={profile} />
             ) : user ? (
               // Profile fetch failed but user exists - show retry option instead of blocking error
               <div className="min-h-screen flex flex-col items-center justify-center bg-bg-main p-6">
                 <div className="text-center max-w-sm w-full bg-bg-card rounded-[2.5rem] p-10 shadow-2xl border border-border-main">
-                  <h2 className="text-xl font-black text-text-main mb-2 tracking-tight">Connection Issue</h2>
+                  <h2 className="text-xl font-black text-text-main mb-2 tracking-tight">Sync Delayed</h2>
                   <p className="text-text-muted mb-8 text-sm">
-                    We had trouble loading your profile. This is often resolved by waiting a moment and trying again.
+                    We're having trouble reaching the server. Please check your connection and try again.
                   </p>
                   <button
                     onClick={() => window.location.reload()}
