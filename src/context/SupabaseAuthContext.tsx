@@ -75,61 +75,56 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     let mounted = true;
-    let initialized = false;
-
-    // Safety timeout: ensure loading is NEVER stuck forever
+    
+    // Safety timeout
     const safetyTimeout = setTimeout(() => {
-      if (mounted && !initialized) {
-        console.warn('[Auth] Safety timeout reached, forcing loading to false');
+      if (mounted) {
+        console.warn('[Auth] Safety timeout reached');
         setLoading(false);
       }
     }, 10000);
     
-    const initializeAuth = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!mounted) return;
-        
-        if (session?.user) {
-          setUser(session.user);
-          const profileData = await fetchProfile(session.user.id, session.user.email);
-          if (mounted) setProfile(profileData);
-        }
-      } catch (error) {
-        console.error('Auth init error:', error);
-      } finally {
-        if (mounted) {
-          initialized = true;
-          setLoading(false);
-          clearTimeout(safetyTimeout);
-        }
-      }
-    };
-
-    initializeAuth();
+    console.log('[Auth] Initializing...');
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (!mounted) return;
-        
-        // Skip initial session if we already handled it in initializeAuth
-        if (event === 'INITIAL_SESSION' && initialized) return;
+        console.log('[Auth] Event:', event, !!session);
         
         if (session?.user) {
           setUser(session.user);
-          // Only fetch if profile is missing or user changed
+          setLoading(false);
+          clearTimeout(safetyTimeout);
+
+          console.log('[Auth] Fetching profile...');
           if (!profile || profile.id !== session.user.id) {
             const profileData = await fetchProfile(session.user.id, session.user.email);
-            if (mounted) setProfile(profileData);
+            if (mounted && profileData) {
+              console.log('[Auth] Profile loaded');
+              setProfile(profileData);
+            }
           }
-          setLoading(false);
         } else {
           setUser(null);
           setProfile(null);
           setLoading(false);
+          clearTimeout(safetyTimeout);
         }
       }
     );
+
+    // Initial check
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log('[Auth] getSession:', !!session);
+      if (mounted && session?.user && !user) {
+        setUser(session.user);
+        setLoading(false);
+        clearTimeout(safetyTimeout);
+      }
+    }).catch(err => {
+      console.error('[Auth] getSession error:', err);
+      if (mounted) setLoading(false);
+    });
 
     return () => {
       mounted = false;
