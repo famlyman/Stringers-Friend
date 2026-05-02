@@ -46,11 +46,11 @@ app.post("/api/send-notification", async (req, res) => {
       return res.status(500).json({ error: "OneSignal App ID not configured" });
     }
 
-    const response = await fetch("https://onesignal.com/api/v1/notifications", {
+    const response = await fetch("https://api.onesignal.com/notifications", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Basic ${apiKey}`,
+        "Authorization": `Key ${apiKey}`,
       },
       body: JSON.stringify({
         app_id: process.env.ONESIGNAL_APP_ID,

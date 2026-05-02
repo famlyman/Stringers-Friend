@@ -28,11 +28,11 @@ export default async function handler(req: any, res: any) {
   }
 
   try {
-    const response = await fetch("https://onesignal.com/api/v1/notifications", {
+    const response = await fetch("https://api.onesignal.com/notifications", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Basic ${apiKey}`,
+        "Authorization": `Key ${apiKey}`,
       },
       body: JSON.stringify({
         app_id: appId,
