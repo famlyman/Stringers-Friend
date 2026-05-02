@@ -101,13 +101,17 @@ export default function CustomerMessages({ user }: { user: Profile | null }) {
     setMessages(messagesData || []);
   };
 
+  const [notificationStatus, setNotificationStatus] = useState<string | null>(null);
+
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newMessage.trim() || !shopId || sending || !user) return;
 
     setSending(true);
+    setNotificationStatus(null);
     console.log('[Messages] Starting send flow...');
     try {
+      // ... (existing code for finding customerData) ...
       const { data: customerData } = await supabase
         .from("customers")
         .select("id")
@@ -145,7 +149,6 @@ export default function CustomerMessages({ user }: { user: Profile | null }) {
       if (shop?.owner_id) {
         console.log('[Messages] Fetching devices for shop owner:', shop.owner_id);
         
-        // 1. Check new multi-device table
         const { data: devices } = await supabase
           .from('user_devices')
           .select('onesignal_subscription_id')
@@ -153,9 +156,7 @@ export default function CustomerMessages({ user }: { user: Profile | null }) {
 
         let playerIds = devices?.map(d => d.onesignal_subscription_id).filter(Boolean) || [];
 
-        // 2. Fallback to profiles table for backward compatibility
         if (playerIds.length === 0) {
-          console.log('[Messages] No devices in user_devices, checking profiles table...');
           const { data: profile } = await supabase
             .from('profiles')
             .select('onesignal_player_id')
@@ -168,20 +169,29 @@ export default function CustomerMessages({ user }: { user: Profile | null }) {
         }
 
         if (playerIds.length > 0) {
-          await sendNotification(
+          const result = await sendNotification(
             playerIds,
             'New Message',
             `New message from ${user.profile?.full_name || 'a customer'}: ${messageContent.substring(0, 50)}...`,
             { type: 'message', shop_id: shopId }
           );
+          
+          if (result.success) {
+            setNotificationStatus('Notification sent to shop!');
+          } else {
+            setNotificationStatus(`Error: ${JSON.stringify(result.error || result)}`);
+          }
         } else {
-          console.log('[Messages] No push IDs found for shop owner');
+          setNotificationStatus('No registered devices found for shop owner.');
         }
       }
     } catch (err) {
       console.error("Error sending message:", err);
+      setNotificationStatus('Error sending message.');
     } finally {
       setSending(false);
+      // Clear status after 5 seconds
+      setTimeout(() => setNotificationStatus(null), 5000);
     }
   };
 
@@ -286,6 +296,13 @@ export default function CustomerMessages({ user }: { user: Profile | null }) {
           <Send className="w-5 h-5" />
         </button>
       </form>
+      {notificationStatus && (
+        <div className="px-4 pb-2 text-center animate-fade-in">
+          <p className={`text-[10px] font-bold uppercase tracking-wider ${notificationStatus.startsWith('Error') ? 'text-red-500' : 'text-green-500'}`}>
+            {notificationStatus}
+          </p>
+        </div>
+      )}
     </div>
   );
 }
