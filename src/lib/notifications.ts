@@ -11,21 +11,22 @@ export async function sendNotification(playerIdOrIds: string | string[], title: 
   }
 
   // Get current device to skip self-notification
-  const currentDevicePlayerId = await getOneSignalPlayerId();
+  // We use a non-blocking check here to prevent hangs
+  let currentDevicePlayerId = null;
+  try {
+    const win = window as any;
+    currentDevicePlayerId = win.OneSignal?.User?.PushSubscription?.id || null;
+  } catch (e) {}
   
   // Filter out the current device
-  const targetIds = playerIds.filter(id => id !== currentDevicePlayerId);
+  const targetIds = playerIds.filter(id => id && id !== currentDevicePlayerId);
 
   if (targetIds.length === 0) {
-    console.log('[OneSignal] Skipping notification: No targets remain after filtering sender device');
+    console.log('[OneSignal] Skipping notification: Target is the sender device');
     return { success: true, skipped: 'self' };
   }
 
-  console.log('[OneSignal] Notification Request:', {
-    allPlayerIds: playerIds,
-    currentDevice: currentDevicePlayerId,
-    targetIds: targetIds
-  });
+  console.log('[OneSignal] Sending to:', targetIds);
 
   try {
     const response = await fetch('/api/send-notification', {
@@ -65,25 +66,38 @@ export async function getOneSignalPlayerId(): Promise<string | null> {
   const win = window as any;
   
   return new Promise((resolve) => {
+    // Set a safety timeout of 2 seconds
+    const timeout = setTimeout(() => {
+      console.warn('[OneSignal] Player ID request timed out');
+      resolve(null);
+    }, 2000);
+
     const handleOneSignal = (OneSignal: any) => {
       try {
         // v16 approach: OneSignal.User.PushSubscription.id
         const subscriptionId = OneSignal.User?.PushSubscription?.id;
         if (subscriptionId) {
-          console.log('[OneSignal] Found subscription ID:', subscriptionId);
+          clearTimeout(timeout);
           resolve(subscriptionId);
           return;
         }
 
         // Fallback for transition or if not yet available
-        // In v16, getUserId is deprecated but might still exist as an alias
         if (typeof OneSignal.getUserId === 'function') {
-          OneSignal.getUserId().then((id: string) => resolve(id)).catch(() => resolve(null));
+          OneSignal.getUserId().then((id: string) => {
+            clearTimeout(timeout);
+            resolve(id);
+          }).catch(() => {
+            clearTimeout(timeout);
+            resolve(null);
+          });
         } else {
-          resolve(null);
+          // If we are here, OneSignal is loaded but no ID yet
+          // Let it timeout naturally
         }
       } catch (error) {
         console.error('[OneSignal] Error getting player ID:', error);
+        clearTimeout(timeout);
         resolve(null);
       }
     };
@@ -93,6 +107,7 @@ export async function getOneSignalPlayerId(): Promise<string | null> {
     } else if (win.OneSignal) {
       handleOneSignal(win.OneSignal);
     } else {
+      clearTimeout(timeout);
       resolve(null);
     }
   });
