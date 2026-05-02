@@ -13,7 +13,9 @@ export async function sendNotification(playerId: string, title: string, message:
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ playerId, title, message, data }),
     });
-    return await response.json();
+    const result = await response.json();
+    console.log('[OneSignal] Notification send result:', result);
+    return result;
   } catch (error) {
     console.error('Failed to send notification:', error);
     return { error };

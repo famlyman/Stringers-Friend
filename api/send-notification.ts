@@ -15,7 +15,13 @@ export default async function handler(req: any, res: any) {
   const apiKey = process.env.ONESIGNAL_REST_API_KEY;
   const appId = process.env.ONESIGNAL_APP_ID || process.env.VITE_ONESIGNAL_APP_ID;
 
-  console.log('[OneSignal] Sending notification:', { playerId, title, appId: appId?.substring(0, 8) + '...' });
+  console.log('[OneSignal] Sending notification debug:', { 
+    playerId, 
+    appId: appId?.substring(0, 8) + '...',
+    apiKeyExists: !!apiKey,
+    apiKeyLength: apiKey?.length,
+    apiKeyPrefix: apiKey ? (apiKey.startsWith('os_v2_') ? 'os_v2_...' : 'Legacy/Other') : 'None'
+  });
 
   if (!apiKey) {
     console.error('[OneSignal] API key not configured');
@@ -28,11 +34,15 @@ export default async function handler(req: any, res: any) {
   }
 
   try {
+    // Determine auth prefix - newer keys use 'Key', older use 'Basic'
+    // OneSignal recommends 'Key' for api.onesignal.com
+    const authHeader = apiKey.startsWith('os_v2_') ? `Key ${apiKey}` : `Basic ${apiKey}`;
+    
     const response = await fetch("https://api.onesignal.com/notifications", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Key ${apiKey}`,
+        "Authorization": authHeader,
       },
       body: JSON.stringify({
         app_id: appId,

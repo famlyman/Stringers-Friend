@@ -34,7 +34,12 @@ app.post("/api/send-notification", async (req, res) => {
     const apiKey = process.env.ONESIGNAL_REST_API_KEY;
     const appId = process.env.ONESIGNAL_APP_ID || process.env.VITE_ONESIGNAL_APP_ID;
 
-    console.log('[OneSignal] Sending notification:', { playerId, title, appId: appId?.substring(0, 8) + '...' });
+    console.log('[OneSignal] Sending notification:', { 
+      playerId, 
+      title, 
+      appId: appId?.substring(0, 8) + '...',
+      hasApiKey: !!apiKey
+    });
 
     if (!apiKey) {
       console.error('[OneSignal] API key not configured');
@@ -46,11 +51,14 @@ app.post("/api/send-notification", async (req, res) => {
       return res.status(500).json({ error: "OneSignal App ID not configured" });
     }
 
+    // Determine auth prefix - newer keys use 'Key', older use 'Basic'
+    const authHeader = apiKey.startsWith('os_v2_') ? `Key ${apiKey}` : `Basic ${apiKey}`;
+
     const response = await fetch("https://api.onesignal.com/notifications", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Key ${apiKey}`,
+        "Authorization": authHeader,
       },
       body: JSON.stringify({
         app_id: appId,
