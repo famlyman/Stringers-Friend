@@ -12,13 +12,8 @@ export default function Landing() {
   const [searchParams] = useSearchParams();
   const racquetId = searchParams.get('r') || window.location.pathname.split('/r/')[1];
   
-  // Auto-redirect logged in users to dashboard
-  useEffect(() => {
-    if (user && !racquetId) {
-      navigate('/dashboard');
-    }
-  }, [user, racquetId, navigate]);
-
+  // Removed auto-redirect to prevent infinite loops during auth initialization
+  
   console.log('Landing - racquetId:', racquetId, 'path:', window.location.pathname);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");

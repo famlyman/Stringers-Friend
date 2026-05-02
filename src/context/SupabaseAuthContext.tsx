@@ -76,7 +76,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   
   useEffect(() => {
-    console.log('AuthContext useEffect FIRED');
     let mounted = true;
     let authInitialized = false;
     

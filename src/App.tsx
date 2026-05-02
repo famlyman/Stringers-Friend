@@ -70,19 +70,10 @@ function AppRoutes() {
         <Route path="/scan/:qrCode" element={<ScanResult />} />
         
         {/* Protected Routes Wrapper */}
-        <Route element={user ? <Layout user={profile || user} onLogout={handleLogout} /> : <Navigate to="/" replace />}>
+        <Route element={user ? <Layout user={profile || user} onLogout={handleLogout} /> : (loading ? <PageLoader /> : <Navigate to="/" replace />)}>
           <Route path="/dashboard" element={
             loading ? (
-              <div className="min-h-screen flex flex-col items-center justify-center bg-bg-main p-6">
-                <div className="text-center max-w-sm w-full bg-bg-card rounded-3xl p-10 shadow-2xl border border-border-main animate-scale-in">
-                  <img src="/logo.png" alt="Loading" className="h-16 w-16 object-contain mx-auto mb-6" />
-                  <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin mx-auto mb-6"></div>
-                  <h2 className="text-xl font-black text-text-main mb-2 tracking-tight">Syncing Account</h2>
-                  <p className="text-text-muted mb-8 text-sm">
-                    We're preparing your workspace...
-                  </p>
-                </div>
-              </div>
+              <PageLoader />
             ) : profile ? (
               profile.role === 'stringer' ? (
                 profile.shop_id ? <Dashboard user={profile} /> : <Navigate to="/setup" replace />
