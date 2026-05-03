@@ -37,31 +37,32 @@ The application serves as a digital assistant for racquet stringers, providing t
 ### 6. Communication & Notifications
 *   **Messaging System:** Integrated chat/messaging between the shop and the customer.
 *   **Automated Notifications:** Customers receive alerts for job completions, new messages, and payment confirmations.
-*   **Push Notifications:** Support for browser push notifications to keep users informed even when the app is in the background.
+*   **Push Notifications (OneSignal v16):** Full support for multi-device push notifications. A user can receive alerts on their MacBook, phone, and tablet simultaneously.
+*   **Intelligent Routing:** The system automatically filters out the sender's active device to prevent redundant alerts while ensuring all other linked devices are notified.
 
 ## Technical Architecture (PWA)
 
 ### Frontend
 *   **Framework:** React 19 with TypeScript.
 *   **Build Tool:** Vite 6.
-*   **Routing:** React Router v7.
+*   **Routing:** React Router v7 with loop protection and non-blocking auth.
 *   **Styling:** Tailwind CSS v4.
 *   **Icons:** Lucide-React.
-*   **PWA:** Vite PWA Plugin with Workbox.
+*   **PWA:** Vite PWA Plugin with unified OneSignal + Workbox Service Worker.
 
 ### Backend (Supabase)
-*   **Authentication:** Supabase Auth.
+*   **Authentication:** Supabase Auth with resilient profile sync.
 *   **Database:** Supabase PostgreSQL with a multi-tenant schema (Shops, Customers, Jobs).
-*   **Security:** Row Level Security (RLS) policies ensuring shop-level data isolation.
-*   **Real-time:** Supabase Realtime for instant job and inventory updates.
-*   **Edge Functions:** Supabase Edge Functions for notifications.
+*   **Multi-Device Tracking:** `user_devices` table for managing multiple push subscription IDs per user.
+*   **Security:** Row Level Security (RLS) policies ensuring shop-level data isolation and secure device management.
+*   **Real-time:** Supabase Realtime for instant job, message, and inventory updates.
 
 ### Integrations
 *   **AI:** Google Gemini API (gemini-1.5-flash) for technical racquet data.
 *   **QR Codes:** react-qr-code for generating scannable codes.
-*   **Notifications:** Supabase Edge Functions + Push Subscriptions.
+*   **Push:** OneSignal REST API with standardized `Key` authorization.
 
 ---
 
 *Status: In Active Development (PWA Live)*
-*Last Updated: 2026-04-29*
+*Last Updated: 2026-05-02*

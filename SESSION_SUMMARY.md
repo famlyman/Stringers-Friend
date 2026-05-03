@@ -1,3 +1,24 @@
+# Session Summary - 2026-05-02
+
+## Completed Fixes & Enhancements
+
+### OneSignal v16 & Multi-Device Push (Phase 3)
+1.  **SDK v16 Migration** - Fully migrated OneSignal integration to the modern **v16 Web SDK**. Replaced deprecated `getUserId()` with `OneSignal.User.PushSubscription.id` and updated REST API calls to use the standardized `include_subscription_ids` parameter.
+2.  **Multi-Device Support** - Implemented a new `user_devices` table in Supabase to track multiple OneSignal Subscription IDs per user. This allows a user (e.g., a Stringer) to receive push notifications on their MacBook and Android device simultaneously.
+3.  **Smart Routing & Self-Filtering** - 
+    *   Updated `sendNotification` to broadcast messages to all registered devices for a recipient.
+    *   Implemented automatic **"Self-Notification" filtering** that prevents the sender's current device from ringing for an action they just performed.
+    *   Added uniqueness logic in `Layout.tsx` to ensure a device ID is only associated with one user profile at a time, preventing "ghost" notifications.
+4.  **Authorization Header Standard** - Updated all server-side and API functions to use the explicit `Authorization: Key <REST_API_KEY>` format required by the latest OneSignal security standards.
+
+### Performance & Stability Optimization
+1.  **"Nuclear" Service Worker Reset** - Added a one-time reset script in `main.tsx` that unregisters stale Service Workers. This resolves the persistent "hang on refresh" issue seen on MacBook and Android devices.
+2.  **Non-Blocking Auth Flow** - Refactored `SupabaseAuthContext.tsx` to prioritize the user session. The app now allows the UI to render as soon as a session is found, fetching the detailed profile in the background. This eliminated the infinite loading loop and the "Throttling navigation" browser errors.
+3.  **Dashboard Query Optimization** - Simplified queries in `useDashboardData.ts` by removing slow `!inner` joins in favor of direct filtering. This significantly reduced the dashboard's initial load time and improved reliability on mobile networks.
+4.  **Network Resilience** - Added safety timeouts and robust error handling to the profile fetching process, ensuring the app stays functional even during temporary database connectivity dips.
+
+---
+
 # Session Summary - 2026-04-30
 
 ## Completed Fixes & Enhancements
