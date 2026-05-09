@@ -48,7 +48,9 @@ export default function Inventory({ user }: { user: Profile }) {
 
   const filteredItems = useMemo(() => {
     return items.filter(item => {
-      const isLowStock = item.quantity <= (item.low_stock_threshold || 5);
+      const isLowStock = item.packaging === 'reel' 
+        ? (item.remaining_length || 0) <= (item.low_stock_threshold || 20)
+        : item.quantity <= (item.low_stock_threshold || 5);
       const matchesType = filterType === "all" || (filterType === "low-stock" ? isLowStock : item.category === filterType);
       const matchesSearch = item.model.toLowerCase().includes(searchQuery.toLowerCase()) || 
                            item.brand.toLowerCase().includes(searchQuery.toLowerCase());

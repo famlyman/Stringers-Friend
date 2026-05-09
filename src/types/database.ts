@@ -91,6 +91,7 @@ export interface InventoryItem {
   unit_price: number | null;
   low_stock_threshold: number;
   packaging?: string;
+  length_unit?: 'm' | 'ft';
   total_length?: number;
   remaining_length?: number;
   grip_type?: string;

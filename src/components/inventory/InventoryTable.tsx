@@ -34,7 +34,7 @@ export function InventoryTable({ items, loading, setShowQRCodeModal, setEditingI
                 <div className="flex flex-col">
                   <span className="capitalize text-sm text-neutral-600 dark:text-neutral-300 font-medium">{item.category}</span>
                   <span className="text-xs text-neutral-400">
-                    {item.category === 'string' && (item.packaging === 'reel' ? `Reel (${item.total_length}m)` : 'Individual Set')}
+                    {item.category === 'string' && (item.packaging === 'reel' ? `Reel (${item.total_length}${item.length_unit || 'm'})` : 'Individual Set')}
                     {item.category === 'grip' && `Grip`}
                   </span>
                 </div>
@@ -42,16 +42,27 @@ export function InventoryTable({ items, loading, setShowQRCodeModal, setEditingI
               <td className="px-6 py-4">
                 <div className="flex flex-col">
                   <div className="flex items-center">
-                    <span className={`text-sm font-medium ${item.quantity <= (item.low_stock_threshold || 5) ? 'text-red-600' : 'text-neutral-900 dark:text-white'}`}>
-                      {item.quantity} {item.packaging === 'reel' ? 'Reels' : 'Sets'}
-                    </span>
-                    {item.quantity <= (item.low_stock_threshold || 5) && <AlertCircle className="w-4 h-4 ml-2 text-red-500" />}
+                    {item.packaging === 'reel' ? (
+                      <>
+                        <span className={`text-sm font-medium ${(item.remaining_length || 0) <= (item.low_stock_threshold || 20) ? 'text-red-600' : 'text-neutral-900 dark:text-white'}`}>
+                          {item.quantity} {item.quantity === 1 ? 'Reel' : 'Reels'}
+                        </span>
+                        {(item.remaining_length || 0) <= (item.low_stock_threshold || 20) && <AlertCircle className="w-4 h-4 ml-2 text-red-500" />}
+                      </>
+                    ) : (
+                      <>
+                        <span className={`text-sm font-medium ${item.quantity <= (item.low_stock_threshold || 5) ? 'text-red-600' : 'text-neutral-900 dark:text-white'}`}>
+                          {item.quantity} {item.packaging === 'set' ? 'Sets' : 'Units'}
+                        </span>
+                        {item.quantity <= (item.low_stock_threshold || 5) && <AlertCircle className="w-4 h-4 ml-2 text-red-500" />}
+                      </>
+                    )}
                   </div>
                   {item.packaging === 'reel' && (
                     <div className="mt-1 w-32">
                       <div className="flex justify-between text-[10px] text-neutral-400 mb-0.5">
-                        <span>{Math.round(item.remaining_length || 0)}m left</span>
-                        <span>{Math.floor((item.remaining_length || 0) / 12)} jobs</span>
+                        <span>{Math.round(item.remaining_length || 0)}{item.length_unit || 'm'} left</span>
+                        <span>{Math.floor((item.remaining_length || 0) / (item.length_unit === 'ft' ? 40 : 12))} jobs</span>
                       </div>
                       <div className="w-full bg-neutral-100 dark:bg-neutral-800 rounded-full h-1">
                         <div 

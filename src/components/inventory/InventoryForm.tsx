@@ -32,6 +32,26 @@ export function InventoryForm({ item, setItem, onSubmit, onCancel, submitLabel }
 
         {item.category === 'string' && (
           <div className="space-y-1">
+            <label htmlFor="inventory-unit" className="text-xs font-semibold text-neutral-500 uppercase ml-1">Length Unit</label>
+            <select 
+              id="inventory-unit"
+              name="length_unit"
+              value={item.length_unit || 'm'}
+              onChange={e => {
+                const unit = e.target.value;
+                const total_length = item.packaging === 'reel' ? (unit === 'm' ? 200 : 660) : (unit === 'm' ? 12 : 40);
+                setItem({...item, length_unit: unit, total_length, remaining_length: total_length});
+              }}
+              className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-xl outline-none focus:ring-2 focus:ring-primary"
+            >
+              <option value="m">Meters (m)</option>
+              <option value="ft">Feet (ft)</option>
+            </select>
+          </div>
+        )}
+
+        {item.category === 'string' && (
+          <div className="space-y-1">
             <label htmlFor="inventory-packaging" className="text-xs font-semibold text-neutral-500 uppercase ml-1">Packaging</label>
             <select 
               id="inventory-packaging"
@@ -39,13 +59,14 @@ export function InventoryForm({ item, setItem, onSubmit, onCancel, submitLabel }
               value={item.packaging}
               onChange={e => {
                 const packaging = e.target.value;
-                const total_length = packaging === 'reel' ? 200 : 12;
+                const unit = item.length_unit || 'm';
+                const total_length = packaging === 'reel' ? (unit === 'm' ? 200 : 660) : (unit === 'm' ? 12 : 40);
                 setItem({...item, packaging, total_length, remaining_length: total_length});
               }}
               className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-xl outline-none focus:ring-2 focus:ring-primary"
             >
-              <option value="set">Individual Set (12m)</option>
-              <option value="reel">Reel (200m)</option>
+              <option value="set">Individual Set ({item.length_unit === 'ft' ? '40ft' : '12m'})</option>
+              <option value="reel">Reel ({item.length_unit === 'ft' ? '660ft' : '200m'})</option>
             </select>
           </div>
         )}

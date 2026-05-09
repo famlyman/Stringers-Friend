@@ -31,11 +31,13 @@ export function JobsTab({ filteredJobs, setJobs, setShowNewJob }: JobsTabProps) 
           .eq('job_id', job.id);
         
         if (jobDetails && jobDetails.length > 0) {
+          const isHybrid = jobDetails.some(d => d.item_type === 'cross_string');
+          
           for (const detail of jobDetails) {
             if (detail.inventory_id && detail.inventory) {
               const inv = detail.inventory;
               
-              if (inv.type === 'set' || inv.type === 'unit') {
+              if (inv.packaging === 'set' || inv.packaging === 'unit' || !inv.packaging) {
                 // Deduct 1 from quantity
                 await supabase
                   .from('inventory')
@@ -44,20 +46,23 @@ export function JobsTab({ filteredJobs, setJobs, setShowNewJob }: JobsTabProps) 
                     updated_at: new Date().toISOString()
                   })
                   .eq('id', inv.id);
-              } else if (inv.type === 'reel') {
-                // Deduct 6 meters (typical for half-bed or hybrid piece)
-                // If it's a full bed of the same string, NewJobModal creates two details? 
-                // Wait, NewJobModal currently creates ONE detail for full bed and TWO for hybrid.
-                // If it's full bed, we should deduct 12m. If hybrid, 6m each.
-                const deduction = jobDetails.length === 2 && (detail.item_type === 'main_string' || detail.item_type === 'cross_string') ? 6 : 12;
+              } else if (inv.packaging === 'reel') {
+                const unit = inv.length_unit || 'm';
+                const fullBedLength = unit === 'ft' ? 40 : 12;
+                const halfBedLength = unit === 'ft' ? 20 : 6;
+                const deduction = isHybrid ? halfBedLength : fullBedLength;
                 
                 let newRemaining = (inv.remaining_length || 0) - deduction;
                 let newQuantity = inv.quantity;
                 
                 if (newRemaining <= 0) {
-                  // Use another reel if available
-                  newQuantity = Math.max(0, inv.quantity - 1);
-                  newRemaining = newQuantity > 0 ? (inv.total_length || 200) + newRemaining : 0;
+                  // If we have more reels, move to the next one
+                  if (newQuantity > 0) {
+                    newQuantity = Math.max(0, inv.quantity - 1);
+                    newRemaining = newQuantity > 0 ? (inv.total_length || (unit === 'ft' ? 660 : 200)) + newRemaining : 0;
+                  } else {
+                    newRemaining = 0;
+                  }
                 }
                 
                 await supabase
