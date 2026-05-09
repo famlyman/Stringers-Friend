@@ -12,7 +12,6 @@ export function AddInventoryModal({ onAdd, onCancel }: AddInventoryModalProps) {
     category: "string",
     brand: "", 
     model: "",
-    type: "string", 
     packaging: "set",
     gauge: "",
     quantity: 0, 

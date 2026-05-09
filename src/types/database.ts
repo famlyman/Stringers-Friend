@@ -93,6 +93,7 @@ export interface InventoryItem {
   packaging?: string;
   total_length?: number;
   remaining_length?: number;
+  grip_type?: string;
   qr_code?: string;
   created_at: string;
   updated_at: string;

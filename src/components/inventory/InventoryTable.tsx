@@ -32,10 +32,10 @@ export function InventoryTable({ items, loading, setShowQRCodeModal, setEditingI
               </td>
               <td className="px-6 py-4">
                 <div className="flex flex-col">
-                  <span className="capitalize text-sm text-neutral-600 dark:text-neutral-300 font-medium">{item.type}</span>
+                  <span className="capitalize text-sm text-neutral-600 dark:text-neutral-300 font-medium">{item.category}</span>
                   <span className="text-xs text-neutral-400">
-                    {item.type === 'string' && (item.packaging === 'reel' ? `Reel (${item.total_length}m)` : 'Individual Set')}
-                    {item.type === 'grip' && `Grip`}
+                    {item.category === 'string' && (item.packaging === 'reel' ? `Reel (${item.total_length}m)` : 'Individual Set')}
+                    {item.category === 'grip' && `Grip`}
                   </span>
                 </div>
               </td>
@@ -50,13 +50,13 @@ export function InventoryTable({ items, loading, setShowQRCodeModal, setEditingI
                   {item.packaging === 'reel' && (
                     <div className="mt-1 w-32">
                       <div className="flex justify-between text-[10px] text-neutral-400 mb-0.5">
-                        <span>{Math.round(item.remaining_length)}m left</span>
-                        <span>{Math.floor(item.remaining_length / 12)} jobs</span>
+                        <span>{Math.round(item.remaining_length || 0)}m left</span>
+                        <span>{Math.floor((item.remaining_length || 0) / 12)} jobs</span>
                       </div>
                       <div className="w-full bg-neutral-100 dark:bg-neutral-800 rounded-full h-1">
                         <div 
                           className="bg-primary h-1 rounded-full" 
-                          style={{ width: `${(item.remaining_length / item.total_length) * 100}%` }}
+                          style={{ width: `${((item.remaining_length || 0) / (item.total_length || 1)) * 100}%` }}
                         />
                       </div>
                     </div>

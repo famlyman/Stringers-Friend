@@ -15,21 +15,22 @@ export function InventoryForm({ item, setItem, onSubmit, onCancel, submitLabel }
     <form onSubmit={onSubmit} className="space-y-4">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="space-y-1">
-          <label htmlFor="inventory-type" className="text-xs font-semibold text-neutral-500 uppercase ml-1">Type</label>
+          <label htmlFor="inventory-category" className="text-xs font-semibold text-neutral-500 uppercase ml-1">Type</label>
           <select 
-            id="inventory-type"
-            name="type"
-            value={item.type}
-            onChange={e => setItem({...item, type: e.target.value, packaging: e.target.value === 'string' ? 'set' : 'set', grip_type: e.target.value === 'grip' ? 'tacky' : ''})}
+            id="inventory-category"
+            name="category"
+            value={item.category}
+            onChange={e => setItem({...item, category: e.target.value, packaging: e.target.value === 'string' ? 'set' : 'unit', grip_type: e.target.value === 'grip' ? 'tacky' : ''})}
             className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-xl outline-none focus:ring-2 focus:ring-primary"
           >
             <option value="string">String</option>
             <option value="grip">Grip</option>
             <option value="dampener">Dampener</option>
+            <option value="other">Other</option>
           </select>
         </div>
 
-        {item.type === 'string' && (
+        {item.category === 'string' && (
           <div className="space-y-1">
             <label htmlFor="inventory-packaging" className="text-xs font-semibold text-neutral-500 uppercase ml-1">Packaging</label>
             <select 
@@ -49,7 +50,7 @@ export function InventoryForm({ item, setItem, onSubmit, onCancel, submitLabel }
           </div>
         )}
 
-        {item.type === 'string' && (
+        {item.category === 'string' && (
           <div className="space-y-1">
             <label htmlFor="inventory-gauge" className="text-xs font-semibold text-neutral-500 uppercase ml-1">Gauge</label>
             <select 
@@ -67,14 +68,14 @@ export function InventoryForm({ item, setItem, onSubmit, onCancel, submitLabel }
           </div>
         )}
 
-        {item.type === 'string' && item.packaging === 'reel' && (
+        {item.category === 'string' && item.packaging === 'reel' && (
           <div className="space-y-1">
             <label htmlFor="inventory-reel-length" className="text-xs font-semibold text-neutral-500 uppercase ml-1">Reel Length (m)</label>
             <div className="flex gap-2">
               <select 
                 id="inventory-reel-length"
                 name="total_length_select"
-                value={[100, 200].includes(item.total_length) ? item.total_length : 'other'}
+                value={[100, 200].includes(item.total_length || 0) ? item.total_length : 'other'}
                 onChange={e => {
                   const val = e.target.value;
                   const total_length = val === 'other' ? 0 : parseInt(val);
@@ -86,7 +87,7 @@ export function InventoryForm({ item, setItem, onSubmit, onCancel, submitLabel }
                 <option value="200">200m</option>
                 <option value="other">Other</option>
               </select>
-              {![100, 200].includes(item.total_length) && (
+              {![100, 200].includes(item.total_length || 0) && (
                 <input 
                   id="inventory-custom-length"
                   name="total_length"
@@ -104,7 +105,7 @@ export function InventoryForm({ item, setItem, onSubmit, onCancel, submitLabel }
           </div>
         )}
 
-        {item.type === 'grip' && (
+        {item.category === 'grip' && (
           <div className="space-y-1">
             <label htmlFor="inventory-grip-feel" className="text-xs font-semibold text-neutral-500 uppercase ml-1">Grip Feel</label>
             <select 
@@ -119,7 +120,8 @@ export function InventoryForm({ item, setItem, onSubmit, onCancel, submitLabel }
             </select>
           </div>
         )}
-      </div>
+        </div>
+
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="space-y-1">
