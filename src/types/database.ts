@@ -66,8 +66,10 @@ export interface Racquet {
   stringing_instructions: string | null;
   current_string_main: string | null;
   current_string_cross: string | null;
-  current_tension_main: number;
   current_tension_cross: number;
+  recommended_tension?: string;
+  tension_range?: string;
+  string_pattern?: string;
   specs_id: string | null;
   notes: string | null;
   created_at: string;

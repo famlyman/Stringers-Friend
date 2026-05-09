@@ -21,7 +21,8 @@ export function AddRacquetForm({ customerId, shopId, onSuccess, onCancel }: AddR
 
   const [newRacquet, setNewRacquet] = useState<any>({ 
     brand: "", brand_custom: "", model: "", model_custom: "", serial_number: "", head_size: "", 
-    string_pattern_mains: "", string_pattern_crosses: "",
+    string_pattern: "", string_pattern_mains: "", string_pattern_crosses: "",
+    tension_range: "", recommended_tension: "",
     mains_skip: "", mains_tie_off: "", crosses_start: "", crosses_tie_off: "",
     one_piece_length: "", two_piece_length: "", stringing_instructions: "",
     string_main_brand: "", string_main_model: "", string_main_brand_custom: "", string_main_model_custom: "", string_main_gauge: "",
@@ -45,9 +46,12 @@ export function AddRacquetForm({ customerId, shopId, onSuccess, onCancel }: AddR
       if (specs) {
         setNewRacquet(prev => ({
           ...prev,
-          head_size: specs.headSize.toString(),
+          head_size: specs.headSize,
+          string_pattern: specs.stringPattern || "",
           string_pattern_mains: specs.patternMains.toString(),
           string_pattern_crosses: specs.patternCrosses.toString(),
+          tension_range: specs.tensionRange || "",
+          recommended_tension: specs.recommendedTension || "",
           mains_skip: specs.mainsSkip || "",
           mains_tie_off: specs.mainsTieOff || "",
           crosses_start: specs.crossesStart || "",
@@ -110,8 +114,11 @@ export function AddRacquetForm({ customerId, shopId, onSuccess, onCancel }: AddR
           model,
           serial_number: serialNumber,
           head_size: parseInt(newRacquet.head_size) || 0,
+          string_pattern: newRacquet.string_pattern,
           string_pattern_mains: parseInt(newRacquet.string_pattern_mains) || 0,
           string_pattern_crosses: parseInt(newRacquet.string_pattern_crosses) || 0,
+          tension_range: newRacquet.tension_range,
+          recommended_tension: newRacquet.recommended_tension,
           mains_skip: newRacquet.mains_skip,
           mains_tie_off: newRacquet.mains_tie_off,
           crosses_start: newRacquet.crosses_start,
@@ -266,6 +273,46 @@ export function AddRacquetForm({ customerId, shopId, onSuccess, onCancel }: AddR
           onChange={e => setNewRacquet({...newRacquet, string_pattern_crosses: e.target.value})}
           className="px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white rounded-xl outline-none focus:ring-2 focus:ring-primary"
         />
+
+        {/* Technical Specs Section */}
+        <div className="md:col-span-2 space-y-4 border-t border-neutral-100 dark:border-neutral-800 pt-4">
+          <h4 className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Official Specifications</h4>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-neutral-400 uppercase ml-1">Tension Range</label>
+              <input 
+                name="tension_range"
+                type="text" 
+                placeholder="e.g. 50-60 lbs" 
+                value={newRacquet.tension_range}
+                onChange={e => setNewRacquet({...newRacquet, tension_range: e.target.value})}
+                className="w-full px-3 py-1.5 text-sm border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 rounded-lg outline-none"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-neutral-400 uppercase ml-1">Recommended Tension</label>
+              <input 
+                name="recommended_tension"
+                type="text" 
+                placeholder="e.g. 55 lbs" 
+                value={newRacquet.recommended_tension}
+                onChange={e => setNewRacquet({...newRacquet, recommended_tension: e.target.value})}
+                className="w-full px-3 py-1.5 text-sm border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 rounded-lg outline-none"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-neutral-400 uppercase ml-1">Combined Pattern</label>
+              <input 
+                name="string_pattern"
+                type="text" 
+                placeholder="e.g. 16x19" 
+                value={newRacquet.string_pattern}
+                onChange={e => setNewRacquet({...newRacquet, string_pattern: e.target.value})}
+                className="w-full px-3 py-1.5 text-sm border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 rounded-lg outline-none"
+              />
+            </div>
+          </div>
+        </div>
 
         {/* Detailed Stringing Specs */}
         <div className="md:col-span-2 space-y-4 border-t border-neutral-100 dark:border-neutral-800 pt-4">

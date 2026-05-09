@@ -18,7 +18,13 @@ export default function RacquetSpecsAdmin({ user }: { user: Profile }) {
     string_pattern: "",
     tension_range: "",
     recommended_tension: "",
-    stringing_instructions: ""
+    stringing_instructions: "",
+    length: "",
+    weight: "",
+    balance: "",
+    swingweight: "",
+    stiffness: "",
+    beam_width: ""
   });
 
   const [stringForm, setStringForm] = useState({
@@ -44,7 +50,13 @@ export default function RacquetSpecsAdmin({ user }: { user: Profile }) {
           string_pattern: form.string_pattern || null,
           tension_range: form.tension_range || null,
           recommended_tension: form.recommended_tension || null,
-          stringing_instructions: form.stringing_instructions || null
+          stringing_instructions: form.stringing_instructions || null,
+          length: form.length || null,
+          weight: form.weight || null,
+          balance: form.balance || null,
+          swingweight: parseFloat(form.swingweight) || null,
+          stiffness: parseFloat(form.stiffness) || null,
+          beam_width: form.beam_width || null
         });
 
       if (error) throw error;
@@ -59,7 +71,13 @@ export default function RacquetSpecsAdmin({ user }: { user: Profile }) {
           string_pattern: "",
           tension_range: "",
           recommended_tension: "",
-          stringing_instructions: ""
+          stringing_instructions: "",
+          length: "",
+          weight: "",
+          balance: "",
+          swingweight: "",
+          stiffness: "",
+          beam_width: ""
         });
       }, 2000);
     } catch (err: any) {
@@ -214,6 +232,87 @@ export default function RacquetSpecsAdmin({ user }: { user: Profile }) {
                   placeholder="e.g., 55 lbs"
                   className="mt-1 w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Length
+                  </label>
+                  <input
+                    type="text"
+                    value={form.length}
+                    onChange={e => setForm({ ...form, length: e.target.value })}
+                    placeholder="e.g. 27 in"
+                    className="mt-1 w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Weight
+                  </label>
+                  <input
+                    type="text"
+                    value={form.weight}
+                    onChange={e => setForm({ ...form, weight: e.target.value })}
+                    placeholder="e.g. 300g"
+                    className="mt-1 w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Balance
+                  </label>
+                  <input
+                    type="text"
+                    value={form.balance}
+                    onChange={e => setForm({ ...form, balance: e.target.value })}
+                    placeholder="e.g. 320mm"
+                    className="mt-1 w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Swingweight
+                  </label>
+                  <input
+                    type="number"
+                    value={form.swingweight}
+                    onChange={e => setForm({ ...form, swingweight: e.target.value })}
+                    placeholder="e.g. 315"
+                    className="mt-1 w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Stiffness
+                  </label>
+                  <input
+                    type="number"
+                    value={form.stiffness}
+                    onChange={e => setForm({ ...form, stiffness: e.target.value })}
+                    placeholder="e.g. 64"
+                    className="mt-1 w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Beam Width
+                  </label>
+                  <input
+                    type="text"
+                    value={form.beam_width}
+                    onChange={e => setForm({ ...form, beam_width: e.target.value })}
+                    placeholder="e.g. 21mm"
+                    className="mt-1 w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  />
+                </div>
               </div>
 
               <div>

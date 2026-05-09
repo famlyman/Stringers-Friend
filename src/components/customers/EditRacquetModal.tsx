@@ -29,8 +29,11 @@ export function EditRacquetModal({ editingRacquet, setEditingRacquet, onUpdate, 
         setEditingRacquet({
           ...editingRacquet,
           head_size: specs.headSize,
+          string_pattern: specs.stringPattern || "",
           string_pattern_mains: specs.patternMains,
           string_pattern_crosses: specs.patternCrosses,
+          tension_range: specs.tensionRange || "",
+          recommended_tension: specs.recommendedTension || "",
           mains_skip: specs.mainsSkip || "",
           mains_tie_off: specs.mainsTieOff || "",
           crosses_start: specs.crossesStart || "",
@@ -130,10 +133,44 @@ export function EditRacquetModal({ editingRacquet, setEditingRacquet, onUpdate, 
             </div>
           </div>
 
-          <div className="space-y-2">
-            <label htmlFor="edit-racquet-instructions" className="text-xs font-bold text-neutral-500 uppercase tracking-wider">Instructions</label>
-            <textarea id="edit-racquet-instructions" name="stringing_instructions" value={editingRacquet.stringing_instructions || ""} onChange={e => setEditingRacquet({...editingRacquet, stringing_instructions: e.target.value})} className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 rounded-xl outline-none min-h-[100px]" />
+          <div className="space-y-4 border-t border-neutral-100 dark:border-neutral-800 pt-4">
+            <h4 className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Official Specifications</h4>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-neutral-400 uppercase ml-1">Tension Range</label>
+                <input name="tension_range" type="text" value={editingRacquet.tension_range || ""} onChange={e => setEditingRacquet({...editingRacquet, tension_range: e.target.value})} className="w-full px-3 py-1.5 text-sm border border-neutral-200 dark:border-neutral-800 rounded-lg outline-none" />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-neutral-400 uppercase ml-1">Recommended Tension</label>
+                <input name="recommended_tension" type="text" value={editingRacquet.recommended_tension || ""} onChange={e => setEditingRacquet({...editingRacquet, recommended_tension: e.target.value})} className="w-full px-3 py-1.5 text-sm border border-neutral-200 dark:border-neutral-800 rounded-lg outline-none" />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-neutral-400 uppercase ml-1">Combined Pattern</label>
+                <input name="string_pattern" type="text" value={editingRacquet.string_pattern || ""} onChange={e => setEditingRacquet({...editingRacquet, string_pattern: e.target.value})} className="w-full px-3 py-1.5 text-sm border border-neutral-200 dark:border-neutral-800 rounded-lg outline-none" />
+              </div>
+            </div>
           </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 border-t border-neutral-100 dark:border-neutral-800 pt-4">
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-neutral-400 uppercase ml-1">Mains Skip</label>
+              <input name="mains_skip" type="text" value={editingRacquet.mains_skip || ""} onChange={e => setEditingRacquet({...editingRacquet, mains_skip: e.target.value})} className="w-full px-3 py-1.5 text-sm border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 rounded-lg outline-none" />
+            </div>
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-neutral-400 uppercase ml-1">Mains Tie-off</label>
+              <input name="mains_tie_off" type="text" value={editingRacquet.mains_tie_off || ""} onChange={e => setEditingRacquet({...editingRacquet, mains_tie_off: e.target.value})} className="w-full px-3 py-1.5 text-sm border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 rounded-lg outline-none" />
+            </div>
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-neutral-400 uppercase ml-1">Crosses Start</label>
+              <input name="crosses_start" type="text" value={editingRacquet.crosses_start || ""} onChange={e => setEditingRacquet({...editingRacquet, crosses_start: e.target.value})} className="w-full px-3 py-1.5 text-sm border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 rounded-lg outline-none" />
+            </div>
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-neutral-400 uppercase ml-1">Crosses Tie-off</label>
+              <input name="crosses_tie_off" type="text" value={editingRacquet.crosses_tie_off || ""} onChange={e => setEditingRacquet({...editingRacquet, crosses_tie_off: e.target.value})} className="w-full px-3 py-1.5 text-sm border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 rounded-lg outline-none" />
+            </div>
+          </div>
+
+          <div className="space-y-2 border-t border-neutral-100 dark:border-neutral-800 pt-4">
 
           <div className="flex gap-4 pt-4">
             <button type="submit" disabled={submitting} className="flex-1 bg-primary text-white py-3 rounded-xl font-bold hover:bg-primary/90 transition-colors disabled:opacity-50">

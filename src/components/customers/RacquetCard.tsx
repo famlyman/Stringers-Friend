@@ -57,7 +57,19 @@ export function RacquetCard({
             {racquet.string_pattern_mains > 0 && (
               <div>
                 <span className="text-neutral-400 uppercase text-[10px] font-bold tracking-wider">Pattern</span>
-                <p className="text-neutral-700 dark:text-neutral-300">{racquet.string_pattern_mains}x{racquet.string_pattern_crosses}</p>
+                <p className="text-neutral-700 dark:text-neutral-300">{racquet.string_pattern || `${racquet.string_pattern_mains}x${racquet.string_pattern_crosses}`}</p>
+              </div>
+            )}
+            {racquet.tension_range && (
+              <div>
+                <span className="text-neutral-400 uppercase text-[10px] font-bold tracking-wider">Tension Range</span>
+                <p className="text-neutral-700 dark:text-neutral-300">{racquet.tension_range}</p>
+              </div>
+            )}
+            {racquet.recommended_tension && (
+              <div>
+                <span className="text-neutral-400 uppercase text-[10px] font-bold tracking-wider">Recommended</span>
+                <p className="text-neutral-700 dark:text-neutral-300">{racquet.recommended_tension}</p>
               </div>
             )}
             {(racquet.one_piece_length || racquet.two_piece_length) && (

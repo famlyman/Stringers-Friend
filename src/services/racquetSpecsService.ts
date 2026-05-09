@@ -4,11 +4,14 @@ import { PREDEFINED_RACQUETS } from "../data/racquetDatabase";
 export interface RacquetSpec {
   brand: string;
   model: string;
-  headSize: number;
+  headSize: string;
+  stringPattern?: string;
   patternMains: number;
   patternCrosses: number;
+  tensionRange?: string;
   tensionRangeMin: number;
   tensionRangeMax: number;
+  recommendedTension?: string;
   mainsSkip?: string;
   mainsTieOff?: string;
   crossesStart?: string;
@@ -16,12 +19,6 @@ export interface RacquetSpec {
   onePieceLength?: string;
   twoPieceLength?: string;
   stringingInstructions?: string;
-  length?: string;
-  unstrungWeight?: number;
-  balance?: string;
-  swingweight?: number;
-  stiffness?: number;
-  beamWidth?: string;
 }
 
 // Parse tension range from string like "50-60 lbs" or "50-60"
@@ -129,13 +126,15 @@ export const racquetSpecsService = {
         return {
           brand: cachedData.brand,
           model: cachedData.model,
-          headSize: parseInt(cachedData.head_size) || 100,
+          headSize: cachedData.head_size || "100",
+          stringPattern: cachedData.string_pattern,
           patternMains: stringPattern.mains,
           patternCrosses: stringPattern.crosses,
+          tensionRange: cachedData.tension_range,
           tensionRangeMin: tensionRange.min,
           tensionRangeMax: tensionRange.max,
+          recommendedTension: cachedData.recommended_tension,
           stringingInstructions: cachedData.stringing_instructions,
-          length: parsedInstructions.length,
           mainsSkip: parsedInstructions.mainsSkip,
           mainsTieOff: parsedInstructions.mainsTieOff,
           crossesStart: parsedInstructions.crossesStart,
