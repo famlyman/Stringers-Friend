@@ -1,7 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { X, Search } from "lucide-react";
 import { RACQUET_BRANDS, GAUGES } from "../../constants";
 import { racquetSpecsService } from "../../services/racquetSpecsService";
+import { SmartStringBrandSelect, SmartStringModelSelect } from "../SmartStringSelect";
 
 interface EditRacquetModalProps {
   editingRacquet: any;
@@ -16,6 +17,38 @@ export function EditRacquetModal({ editingRacquet, setEditingRacquet, onUpdate, 
   const [modelSuggestions, setModelSuggestions] = useState<string[]>([]);
   const [showModelSuggestions, setShowModelSuggestions] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Helper to parse concatenated strings (e.g. "Wilson NXT 17")
+  const parseStringInfo = (str: string | null) => {
+    if (!str) return { brand: "", model: "", gauge: "" };
+    const parts = str.split(' ');
+    if (parts.length >= 3) {
+      return {
+        brand: parts[0],
+        gauge: parts[parts.length - 1],
+        model: parts.slice(1, -1).join(' ')
+      };
+    }
+    return { brand: parts[0] || "", model: parts.slice(1).join(' ') || "", gauge: "" };
+  };
+
+  useEffect(() => {
+    if (editingRacquet && !editingRacquet._initialized) {
+      const mainInfo = parseStringInfo(editingRacquet.current_string_main);
+      const crossInfo = parseStringInfo(editingRacquet.current_string_cross);
+      
+      setEditingRacquet({
+        ...editingRacquet,
+        _initialized: true,
+        string_main_brand: mainInfo.brand,
+        string_main_model: mainInfo.model,
+        string_main_gauge: mainInfo.gauge,
+        string_cross_brand: crossInfo.brand,
+        string_cross_model: crossInfo.model,
+        string_cross_gauge: crossInfo.gauge
+      });
+    }
+  }, [editingRacquet, setEditingRacquet]);
 
   if (!editingRacquet) return null;
 
@@ -166,6 +199,100 @@ export function EditRacquetModal({ editingRacquet, setEditingRacquet, onUpdate, 
             <div className="space-y-1">
               <label className="text-[10px] font-bold text-neutral-400 uppercase ml-1">Crosses Tie-off</label>
               <input name="crosses_tie_off" type="text" value={editingRacquet.crosses_tie_off || ""} onChange={e => setEditingRacquet({...editingRacquet, crosses_tie_off: e.target.value})} className="w-full px-3 py-1.5 text-sm border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 rounded-lg outline-none" />
+            </div>
+          </div>
+
+          <div className="space-y-4 border-t border-neutral-100 dark:border-neutral-800 pt-4">
+            <h4 className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Current String Setup</h4>
+            
+            {/* Mains Setup */}
+            <div className="p-4 bg-neutral-100/50 dark:bg-neutral-900/50 rounded-2xl space-y-4">
+              <span className="text-[10px] font-black uppercase tracking-widest text-primary">Mains</span>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-neutral-400 uppercase ml-1">String Brand</label>
+                  <SmartStringBrandSelect
+                    value={editingRacquet.string_main_brand || ""}
+                    onChange={(val) => setEditingRacquet({...editingRacquet, string_main_brand: val, string_main_model: ""})}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-neutral-400 uppercase ml-1">String Model</label>
+                  <SmartStringModelSelect
+                    brand={editingRacquet.string_main_brand || ""}
+                    value={editingRacquet.string_main_model || ""}
+                    onChange={(val) => setEditingRacquet({...editingRacquet, string_main_model: val})}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-neutral-400 uppercase ml-1">Gauge</label>
+                  <input 
+                    name="string_main_gauge"
+                    type="text" 
+                    placeholder="e.g. 17" 
+                    value={editingRacquet.string_main_gauge || ""}
+                    onChange={(e) => setEditingRacquet({...editingRacquet, string_main_gauge: e.target.value})}
+                    className="w-full px-4 py-2 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl text-sm"
+                  />
+                </div>
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-neutral-400 uppercase ml-1">Tension (lbs)</label>
+                <input 
+                  id="edit-racquet-tension-main"
+                  name="current_tension_main"
+                  type="number" 
+                  placeholder="Mains Tension" 
+                  value={editingRacquet.current_tension_main || ""}
+                  onChange={e => setEditingRacquet({...editingRacquet, current_tension_main: e.target.value})}
+                  className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-xl outline-none"
+                />
+              </div>
+            </div>
+
+            {/* Crosses Setup */}
+            <div className="p-4 bg-neutral-100/50 dark:bg-neutral-900/50 rounded-2xl space-y-4">
+              <span className="text-[10px] font-black uppercase tracking-widest text-secondary">Crosses</span>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-neutral-400 uppercase ml-1">String Brand</label>
+                  <SmartStringBrandSelect
+                    value={editingRacquet.string_cross_brand || ""}
+                    onChange={(val) => setEditingRacquet({...editingRacquet, string_cross_brand: val, string_cross_model: ""})}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-neutral-400 uppercase ml-1">String Model</label>
+                  <SmartStringModelSelect
+                    brand={editingRacquet.string_cross_brand || ""}
+                    value={editingRacquet.string_cross_model || ""}
+                    onChange={(val) => setEditingRacquet({...editingRacquet, string_cross_model: val})}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-neutral-400 uppercase ml-1">Gauge</label>
+                  <input 
+                    name="string_cross_gauge"
+                    type="text" 
+                    placeholder="e.g. 17" 
+                    value={editingRacquet.string_cross_gauge || ""}
+                    onChange={(e) => setEditingRacquet({...editingRacquet, string_cross_gauge: e.target.value})}
+                    className="w-full px-4 py-2 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl text-sm"
+                  />
+                </div>
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-neutral-400 uppercase ml-1">Tension (lbs)</label>
+                <input 
+                  id="edit-racquet-tension-cross"
+                  name="current_tension_cross"
+                  type="number" 
+                  placeholder="Crosses Tension" 
+                  value={editingRacquet.current_tension_cross || ""}
+                  onChange={e => setEditingRacquet({...editingRacquet, current_tension_cross: e.target.value})}
+                  className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-xl outline-none"
+                />
+              </div>
             </div>
           </div>
 

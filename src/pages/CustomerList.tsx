@@ -68,6 +68,9 @@ export default function CustomerList({ user }: { user: Profile }) {
     if (!editingRacquet) return;
     setSubmitting(true);
     try {
+      const stringMain = `${editingRacquet.string_main_brand || ""} ${editingRacquet.string_main_model || ""} ${editingRacquet.string_main_gauge || ""}`.trim();
+      const stringCross = `${editingRacquet.string_cross_brand || ""} ${editingRacquet.string_cross_model || ""} ${editingRacquet.string_cross_gauge || ""}`.trim();
+
       const { error } = await supabase
         .from('racquets')
         .update({
@@ -87,6 +90,10 @@ export default function CustomerList({ user }: { user: Profile }) {
           one_piece_length: String(editingRacquet.one_piece_length || ""),
           two_piece_length: String(editingRacquet.two_piece_length || ""),
           stringing_instructions: editingRacquet.stringing_instructions,
+          current_string_main: stringMain,
+          current_string_cross: stringCross,
+          current_tension_main: parseFloat(editingRacquet.current_tension_main) || 0,
+          current_tension_cross: parseFloat(editingRacquet.current_tension_cross) || 0,
         })
         .eq('id', editingRacquet.id);
 

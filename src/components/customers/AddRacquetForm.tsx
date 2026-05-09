@@ -318,77 +318,149 @@ export function AddRacquetForm({ customerId, shopId, onSuccess, onCancel }: AddR
         <div className="md:col-span-2 space-y-4 border-t border-neutral-100 dark:border-neutral-800 pt-4">
           <h4 className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Stringing Pattern & Specs</h4>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <input 
-              id="racquet-mains-skip"
-              name="mains_skip"
-              type="text" 
-              placeholder="Mains Skip" 
-              value={newRacquet.mains_skip}
-              onChange={e => setNewRacquet({...newRacquet, mains_skip: e.target.value})}
-              className="w-full px-3 py-1.5 text-sm border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 rounded-lg outline-none"
-            />
-            <input 
-              id="racquet-mains-tie-off"
-              name="mains_tie_off"
-              type="text" 
-              placeholder="Mains Tie-off" 
-              value={newRacquet.mains_tie_off}
-              onChange={e => setNewRacquet({...newRacquet, mains_tie_off: e.target.value})}
-              className="w-full px-3 py-1.5 text-sm border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 rounded-lg outline-none"
-            />
-            <input 
-              id="racquet-crosses-start"
-              name="crosses_start"
-              type="text" 
-              placeholder="Crosses Start" 
-              value={newRacquet.crosses_start}
-              onChange={e => setNewRacquet({...newRacquet, crosses_start: e.target.value})}
-              className="w-full px-3 py-1.5 text-sm border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 rounded-lg outline-none"
-            />
-            <input 
-              id="racquet-crosses-tie-off"
-              name="crosses_tie_off"
-              type="text" 
-              placeholder="Crosses Tie-off" 
-              value={newRacquet.crosses_tie_off}
-              onChange={e => setNewRacquet({...newRacquet, crosses_tie_off: e.target.value})}
-              className="w-full px-3 py-1.5 text-sm border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 rounded-lg outline-none"
-            />
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-neutral-400 uppercase ml-1">Mains Skip</label>
+              <input 
+                id="racquet-mains-skip"
+                name="mains_skip"
+                type="text" 
+                placeholder="e.g. 8T, 8B" 
+                value={newRacquet.mains_skip}
+                onChange={e => setNewRacquet({...newRacquet, mains_skip: e.target.value})}
+                className="w-full px-3 py-1.5 text-sm border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 rounded-lg outline-none"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-neutral-400 uppercase ml-1">Mains Tie-off</label>
+              <input 
+                id="racquet-mains-tie-off"
+                name="mains_tie_off"
+                type="text" 
+                placeholder="e.g. 7T" 
+                value={newRacquet.mains_tie_off}
+                onChange={e => setNewRacquet({...newRacquet, mains_tie_off: e.target.value})}
+                className="w-full px-3 py-1.5 text-sm border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 rounded-lg outline-none"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-neutral-400 uppercase ml-1">Crosses Start</label>
+              <input 
+                id="racquet-crosses-start"
+                name="crosses_start"
+                type="text" 
+                placeholder="e.g. 8T" 
+                value={newRacquet.crosses_start}
+                onChange={e => setNewRacquet({...newRacquet, crosses_start: e.target.value})}
+                className="w-full px-3 py-1.5 text-sm border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 rounded-lg outline-none"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-neutral-400 uppercase ml-1">Crosses Tie-off</label>
+              <input 
+                id="racquet-crosses-tie-off"
+                name="crosses_tie_off"
+                type="text" 
+                placeholder="e.g. 6T, 10B" 
+                value={newRacquet.crosses_tie_off}
+                onChange={e => setNewRacquet({...newRacquet, crosses_tie_off: e.target.value})}
+                className="w-full px-3 py-1.5 text-sm border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 rounded-lg outline-none"
+              />
+            </div>
           </div>
         </div>
 
         {/* Current Setup */}
-        <div className="md:col-span-2 space-y-4 pt-4 border-t border-neutral-100 dark:border-neutral-800">
-          <div className="grid grid-cols-2 gap-4">
-            <SmartStringBrandSelect
-              value={newRacquet.string_main_brand}
-              onChange={(val) => setNewRacquet({...newRacquet, string_main_brand: val, string_main_model: ""})}
-            />
-            <SmartStringModelSelect
-              brand={newRacquet.string_main_brand}
-              value={newRacquet.string_main_model}
-              onChange={(val) => setNewRacquet({...newRacquet, string_main_model: val})}
-            />
+        <div className="md:col-span-2 space-y-6 pt-4 border-t border-neutral-100 dark:border-neutral-800">
+          <h4 className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Current String Setup</h4>
+          
+          {/* Mains Setup */}
+          <div className="p-4 bg-neutral-100/50 dark:bg-neutral-900/50 rounded-2xl space-y-4">
+            <span className="text-[10px] font-black uppercase tracking-widest text-primary">Mains</span>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-neutral-400 uppercase ml-1">String Brand</label>
+                <SmartStringBrandSelect
+                  value={newRacquet.string_main_brand}
+                  onChange={(val) => setNewRacquet({...newRacquet, string_main_brand: val, string_main_model: ""})}
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-neutral-400 uppercase ml-1">String Model</label>
+                <SmartStringModelSelect
+                  brand={newRacquet.string_main_brand}
+                  value={newRacquet.string_main_model}
+                  onChange={(val) => setNewRacquet({...newRacquet, string_main_model: val})}
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-neutral-400 uppercase ml-1">Gauge</label>
+                <input 
+                  name="string_main_gauge"
+                  type="text" 
+                  placeholder="e.g. 17" 
+                  value={newRacquet.string_main_gauge}
+                  onChange={(e) => setNewRacquet({...newRacquet, string_main_gauge: e.target.value})}
+                  className="w-full px-4 py-2 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl text-sm"
+                />
+              </div>
+            </div>
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-neutral-400 uppercase ml-1">Tension (lbs)</label>
+              <input 
+                id="racquet-tension-main"
+                name="current_tension_main"
+                type="number" 
+                placeholder="Mains Tension" 
+                value={newRacquet.current_tension_main}
+                onChange={e => setNewRacquet({...newRacquet, current_tension_main: e.target.value})}
+                className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-xl outline-none"
+              />
+            </div>
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            <input 
-              id="racquet-tension-main"
-              name="current_tension_main"
-              type="number" 
-              placeholder="Mains Tension (lbs)" 
-              value={newRacquet.current_tension_main}
-              onChange={e => setNewRacquet({...newRacquet, current_tension_main: e.target.value})}
-              className="px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white rounded-xl outline-none"
-            />
-            <input 
-              id="racquet-tension-cross"
-              name="current_tension_cross"
-              type="number" 
-              placeholder="Crosses Tension (lbs)" 
-              value={newRacquet.current_tension_cross}
-              onChange={e => setNewRacquet({...newRacquet, current_tension_cross: e.target.value})}
-              className="px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white rounded-xl outline-none"
-            />
+
+          {/* Crosses Setup */}
+          <div className="p-4 bg-neutral-100/50 dark:bg-neutral-900/50 rounded-2xl space-y-4">
+            <span className="text-[10px] font-black uppercase tracking-widest text-secondary">Crosses</span>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-neutral-400 uppercase ml-1">String Brand</label>
+                <SmartStringBrandSelect
+                  value={newRacquet.string_cross_brand}
+                  onChange={(val) => setNewRacquet({...newRacquet, string_cross_brand: val, string_cross_model: ""})}
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-neutral-400 uppercase ml-1">String Model</label>
+                <SmartStringModelSelect
+                  brand={newRacquet.string_cross_brand}
+                  value={newRacquet.string_cross_model}
+                  onChange={(val) => setNewRacquet({...newRacquet, string_cross_model: val})}
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-neutral-400 uppercase ml-1">Gauge</label>
+                <input 
+                  name="string_cross_gauge"
+                  type="text" 
+                  placeholder="e.g. 17" 
+                  value={newRacquet.string_cross_gauge}
+                  onChange={(e) => setNewRacquet({...newRacquet, string_cross_gauge: e.target.value})}
+                  className="w-full px-4 py-2 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl text-sm"
+                />
+              </div>
+            </div>
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-neutral-400 uppercase ml-1">Tension (lbs)</label>
+              <input 
+                id="racquet-tension-cross"
+                name="current_tension_cross"
+                type="number" 
+                placeholder="Crosses Tension" 
+                value={newRacquet.current_tension_cross}
+                onChange={e => setNewRacquet({...newRacquet, current_tension_cross: e.target.value})}
+                className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-xl outline-none"
+              />
+            </div>
           </div>
         </div>
 
