@@ -16,14 +16,14 @@ export function WhyChooseUsSection() {
             <Award className="w-6 h-6 text-primary" />
           </div>
           <h3 className="text-xl font-bold text-neutral-900 dark:text-white mb-3">Expert Quality</h3>
-          <p className="text-sm text-neutral-500 dark:text-neutral-400 leading-relaxed">Professional grade stringing with precision tensioning for every racquet type and playing style.</p>
+          <p className="text-sm text-neutral-500 dark:text-neutral-400 leading-relaxed">Experienced stringing with precision tensioning for every racquet type and playing style.</p>
         </div>
         <div className="p-8 bg-white dark:bg-neutral-900 rounded-3xl border border-neutral-200 dark:border-neutral-800 hover:shadow-lg transition-all">
           <div className="w-12 h-12 bg-secondary/10 rounded-2xl flex items-center justify-center mb-6">
             <Clock className="w-6 h-6 text-secondary" />
           </div>
           <h3 className="text-xl font-bold text-neutral-900 dark:text-white mb-3">Fast Turnaround</h3>
-          <p className="text-sm text-neutral-500 dark:text-neutral-400 leading-relaxed">Most jobs completed within 24-48 hours. Express service available for urgent needs.</p>
+          <p className="text-sm text-neutral-500 dark:text-neutral-400 leading-relaxed">Most jobs completed within 3-4 days. Express service available for urgent needs.</p>
         </div>
         <div className="p-8 bg-white dark:bg-neutral-900 rounded-3xl border border-neutral-200 dark:border-neutral-800 hover:shadow-lg transition-all">
           <div className="w-12 h-12 bg-accent/10 rounded-2xl flex items-center justify-center mb-6">

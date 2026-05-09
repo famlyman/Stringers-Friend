@@ -22,7 +22,7 @@ export function ShopStats({ servicesCount }: ShopStatsProps) {
           <Clock className="w-6 h-6 text-secondary" />
         </div>
         <div className="text-left">
-          <p className="text-2xl font-black text-neutral-900 dark:text-white">72h</p>
+          <p className="text-2xl font-black text-neutral-900 dark:text-white">Quick</p>
           <p className="text-xs text-neutral-500 dark:text-neutral-400 uppercase tracking-wider font-bold">Turnaround</p>
         </div>
       </div>

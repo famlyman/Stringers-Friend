@@ -19,8 +19,8 @@ export function FinalCTA({ openContactModal }: FinalCTAProps) {
           Transform Your Game Today
         </h2>
         <p className="text-xl text-white/90 max-w-2xl mx-auto mb-8 leading-relaxed">
-          Join hundreds of satisfied players who trust us with their racquet stringing needs. 
-          Experience the difference that professional stringing can make.
+          Join the growing community of satisfied players who trust us with their racquet stringing needs. 
+          Experience the difference that knowledgeable stringing can make.
         </p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <button

@@ -15,7 +15,7 @@ export function PublicShopFooter({ shop, openContactModal }: PublicShopFooterPro
           <div>
             <h3 className="text-xl font-black text-white dark:text-neutral-900 mb-4">{shop.name}</h3>
             <p className="text-sm text-neutral-400 dark:text-neutral-600 leading-relaxed">
-              Professional racquet stringing services with precision, care, and quick turnaround. 
+              Experienced racquet stringing services with precision, care, and quick turnaround. 
               Trusted by players of all levels.
             </p>
           </div>

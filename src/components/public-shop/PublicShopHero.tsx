@@ -54,7 +54,7 @@ export function PublicShopHero({ shop, servicesCount, openContactModal }: Public
             </button>
           </div>
           <p className="text-sm text-neutral-400 mt-4">
-            No account required • Quick response guaranteed
+            Quick response guaranteed
           </p>
         </div>
         
