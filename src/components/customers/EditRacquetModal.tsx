@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { X, Search } from "lucide-react";
-import { RACQUET_BRANDS, STRINGS, GAUGES } from "../../constants";
+import { RACQUET_BRANDS, GAUGES } from "../../constants";
 import { racquetSpecsService } from "../../services/racquetSpecsService";
 
 interface EditRacquetModalProps {
@@ -38,8 +38,8 @@ export function EditRacquetModal({ editingRacquet, setEditingRacquet, onUpdate, 
           mains_tie_off: specs.mainsTieOff || "",
           crosses_start: specs.crossesStart || "",
           crosses_tie_off: specs.crossesTieOff || "",
-          one_piece_length: specs.onePieceLength || 0,
-          two_piece_length: specs.twoPieceLength || 0,
+          one_piece_length: specs.onePieceLength || "",
+          two_piece_length: specs.twoPieceLength || "",
           stringing_instructions: specs.stringingInstructions || "",
         });
       }
@@ -79,7 +79,6 @@ export function EditRacquetModal({ editingRacquet, setEditingRacquet, onUpdate, 
         {error && <p className="text-red-500 text-xs mb-4">{error}</p>}
         
         <form onSubmit={onUpdate} className="space-y-6">
-          {/* Form fields go here - similar to the original inline form */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1">
               <label htmlFor="edit-racquet-brand" className="text-xs font-bold text-neutral-500 uppercase tracking-wider">Brand</label>
@@ -117,7 +116,7 @@ export function EditRacquetModal({ editingRacquet, setEditingRacquet, onUpdate, 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="space-y-1">
               <label htmlFor="edit-racquet-head-size" className="text-xs font-bold text-neutral-500 uppercase tracking-wider">Head Size</label>
-              <input id="edit-racquet-head-size" name="head_size" type="number" value={editingRacquet.head_size || ""} onChange={e => setEditingRacquet({...editingRacquet, head_size: e.target.value})} className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 rounded-xl outline-none" />
+              <input id="edit-racquet-head-size" name="head_size" type="text" value={editingRacquet.head_size || ""} onChange={e => setEditingRacquet({...editingRacquet, head_size: e.target.value})} className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 rounded-xl outline-none" />
             </div>
             <div className="space-y-1">
               <label htmlFor="edit-racquet-mains" className="text-xs font-bold text-neutral-500 uppercase tracking-wider">Mains</label>
@@ -171,6 +170,9 @@ export function EditRacquetModal({ editingRacquet, setEditingRacquet, onUpdate, 
           </div>
 
           <div className="space-y-2 border-t border-neutral-100 dark:border-neutral-800 pt-4">
+            <label htmlFor="edit-racquet-instructions" className="text-xs font-bold text-neutral-500 uppercase tracking-wider">Stringing Instructions</label>
+            <textarea id="edit-racquet-instructions" name="stringing_instructions" value={editingRacquet.stringing_instructions || ""} onChange={e => setEditingRacquet({...editingRacquet, stringing_instructions: e.target.value})} className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 rounded-xl outline-none min-h-[100px]" />
+          </div>
 
           <div className="flex gap-4 pt-4">
             <button type="submit" disabled={submitting} className="flex-1 bg-primary text-white py-3 rounded-xl font-bold hover:bg-primary/90 transition-colors disabled:opacity-50">

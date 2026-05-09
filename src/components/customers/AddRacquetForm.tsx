@@ -249,7 +249,7 @@ export function AddRacquetForm({ customerId, shopId, onSuccess, onCancel }: AddR
         <input 
           id="racquet-head-size"
           name="head_size"
-          type="number" 
+          type="text" 
           placeholder="Head Size (sq in)" 
           value={newRacquet.head_size}
           onChange={e => setNewRacquet({...newRacquet, head_size: e.target.value})}
