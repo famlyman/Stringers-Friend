@@ -476,7 +476,7 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: Profile
                     <div className="text-right">
                       <p className="text-lg font-bold text-primary">${item.unit_price}</p>
                       <p className="text-sm text-text-muted">
-                        {item.packaging === 'reel' 
+                        {(item.packaging === 'reel' || item.packaging === 'mini-reel') 
                           ? `${Math.round(item.remaining_length || 0)}${item.length_unit || 'm'} left (${item.quantity} reels)` 
                           : `Qty: ${item.quantity} ${item.packaging === 'set' ? 'sets' : 'units'}`
                         }

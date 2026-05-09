@@ -34,7 +34,11 @@ export function InventoryTable({ items, loading, setShowQRCodeModal, setEditingI
                 <div className="flex flex-col">
                   <span className="capitalize text-sm text-neutral-600 dark:text-neutral-300 font-medium">{item.category}</span>
                   <span className="text-xs text-neutral-400">
-                    {item.category === 'string' && (item.packaging === 'reel' ? `Reel (${item.total_length}${item.length_unit || 'm'})` : 'Individual Set')}
+                    {item.category === 'string' && (
+                      item.packaging === 'reel' ? `Reel (${item.total_length}${item.length_unit || 'm'})` :
+                      item.packaging === 'mini-reel' ? `Mini Reel (${item.total_length}${item.length_unit || 'm'})` :
+                      'Individual Set'
+                    )}
                     {item.category === 'grip' && `Grip`}
                   </span>
                 </div>
@@ -42,7 +46,7 @@ export function InventoryTable({ items, loading, setShowQRCodeModal, setEditingI
               <td className="px-6 py-4">
                 <div className="flex flex-col">
                   <div className="flex items-center">
-                    {item.packaging === 'reel' ? (
+                    {(item.packaging === 'reel' || item.packaging === 'mini-reel') ? (
                       <>
                         <span className={`text-sm font-medium ${(item.remaining_length || 0) <= (item.low_stock_threshold || 20) ? 'text-red-600' : 'text-neutral-900 dark:text-white'}`}>
                           {item.quantity} {item.quantity === 1 ? 'Reel' : 'Reels'}
@@ -58,7 +62,7 @@ export function InventoryTable({ items, loading, setShowQRCodeModal, setEditingI
                       </>
                     )}
                   </div>
-                  {item.packaging === 'reel' && (
+                  {(item.packaging === 'reel' || item.packaging === 'mini-reel') && (
                     <div className="mt-1 w-32">
                       <div className="flex justify-between text-[10px] text-neutral-400 mb-0.5">
                         <span>{Math.round(item.remaining_length || 0)}{item.length_unit || 'm'} left</span>

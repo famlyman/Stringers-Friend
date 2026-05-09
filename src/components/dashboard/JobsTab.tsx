@@ -46,7 +46,7 @@ export function JobsTab({ filteredJobs, setJobs, setShowNewJob }: JobsTabProps) 
                     updated_at: new Date().toISOString()
                   })
                   .eq('id', inv.id);
-              } else if (inv.packaging === 'reel') {
+              } else if (inv.packaging === 'reel' || inv.packaging === 'mini-reel') {
                 const unit = inv.length_unit || 'm';
                 const fullBedLength = unit === 'ft' ? 40 : 12;
                 const halfBedLength = unit === 'ft' ? 20 : 6;

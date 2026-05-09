@@ -60,13 +60,18 @@ export function InventoryForm({ item, setItem, onSubmit, onCancel, submitLabel }
               onChange={e => {
                 const packaging = e.target.value;
                 const unit = item.length_unit || 'm';
-                const total_length = packaging === 'reel' ? (unit === 'm' ? 200 : 660) : (unit === 'm' ? 12 : 40);
+                let total_length = 12;
+                if (packaging === 'reel') total_length = (unit === 'm' ? 200 : 660);
+                else if (packaging === 'mini-reel') total_length = (unit === 'm' ? 100 : 330);
+                else total_length = (unit === 'm' ? 12 : 40);
+                
                 setItem({...item, packaging, total_length, remaining_length: total_length});
               }}
               className="w-full px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-xl outline-none focus:ring-2 focus:ring-primary"
             >
               <option value="set">Individual Set ({item.length_unit === 'ft' ? '40ft' : '12m'})</option>
-              <option value="reel">Reel ({item.length_unit === 'ft' ? '660ft' : '200m'})</option>
+              <option value="mini-reel">Mini Reel ({item.length_unit === 'ft' ? '330ft' : '100m'})</option>
+              <option value="reel">Standard Reel ({item.length_unit === 'ft' ? '660ft' : '200m'})</option>
             </select>
           </div>
         )}
@@ -89,14 +94,14 @@ export function InventoryForm({ item, setItem, onSubmit, onCancel, submitLabel }
           </div>
         )}
 
-        {item.category === 'string' && item.packaging === 'reel' && (
+        {item.category === 'string' && (item.packaging === 'reel' || item.packaging === 'mini-reel') && (
           <div className="space-y-1">
-            <label htmlFor="inventory-reel-length" className="text-xs font-semibold text-neutral-500 uppercase ml-1">Reel Length (m)</label>
+            <label htmlFor="inventory-reel-length" className="text-xs font-semibold text-neutral-500 uppercase ml-1">Reel Length ({item.length_unit || 'm'})</label>
             <div className="flex gap-2">
               <select 
                 id="inventory-reel-length"
                 name="total_length_select"
-                value={[100, 200].includes(item.total_length || 0) ? item.total_length : 'other'}
+                value={[100, 200, 330, 660].includes(item.total_length || 0) ? item.total_length : 'other'}
                 onChange={e => {
                   const val = e.target.value;
                   const total_length = val === 'other' ? 0 : parseInt(val);
@@ -104,11 +109,20 @@ export function InventoryForm({ item, setItem, onSubmit, onCancel, submitLabel }
                 }}
                 className="flex-1 px-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white rounded-xl outline-none focus:ring-2 focus:ring-primary"
               >
-                <option value="100">100m</option>
-                <option value="200">200m</option>
+                {item.length_unit === 'ft' ? (
+                  <>
+                    <option value="330">330ft</option>
+                    <option value="660">660ft</option>
+                  </>
+                ) : (
+                  <>
+                    <option value="100">100m</option>
+                    <option value="200">200m</option>
+                  </>
+                )}
                 <option value="other">Other</option>
               </select>
-              {![100, 200].includes(item.total_length || 0) && (
+              {![100, 200, 330, 660].includes(item.total_length || 0) && (
                 <input 
                   id="inventory-custom-length"
                   name="total_length"
