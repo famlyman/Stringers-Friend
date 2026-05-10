@@ -112,7 +112,7 @@ export default function QRCodeDisplay({
               padding-top: 0.2mm;
             }
             .customer-name {
-              font-size: 8pt;
+              font-size: 7.5pt;
               font-weight: 950;
               margin: 0;
               line-height: 1;
@@ -127,10 +127,10 @@ export default function QRCodeDisplay({
               display: flex;
               flex-direction: column;
               gap: 0.1mm;
-              margin: 0.4mm 0;
+              margin: 0.3mm 0;
             }
             .specs {
-              font-size: 4.8pt;
+              font-size: 4pt;
               font-weight: 700;
               color: #111;
               line-height: 1.1;
@@ -139,7 +139,7 @@ export default function QRCodeDisplay({
               text-overflow: ellipsis;
             }
             .racquet-model {
-              font-size: 4.8pt;
+              font-size: 4pt;
               font-weight: 600;
               color: #444;
               line-height: 1.1;
@@ -148,7 +148,7 @@ export default function QRCodeDisplay({
               text-overflow: ellipsis;
             }
             .shop-name-block {
-              font-size: 4.2pt;
+              font-size: 3.8pt;
               font-weight: 900;
               color: #000;
               text-transform: uppercase;
@@ -158,7 +158,7 @@ export default function QRCodeDisplay({
               text-overflow: ellipsis;
             }
             .date-info { 
-              font-size: 3.5pt; 
+              font-size: 3.2pt; 
               color: #666; 
               font-weight: 700;
               margin-top: 0.2mm;
@@ -172,7 +172,7 @@ export default function QRCodeDisplay({
               border-top: 0.05mm solid #eee;
             }
             .powered-by { 
-              font-size: 3pt; 
+              font-size: 2.8pt; 
               color: #bbb; 
               font-weight: 600;
               text-transform: uppercase;
@@ -358,33 +358,33 @@ export default function QRCodeDisplay({
         >
           {qrUrl && <img src={qrUrl} alt="QR Code" className="w-[220px] h-[220px] mr-6 flex-shrink-0" />}
           <div className="flex flex-col justify-center min-w-0 flex-1 h-full py-1">
-            <p className="text-4xl font-black text-black leading-none uppercase truncate mb-1.5">
+            <p className="text-3xl font-black text-black leading-none uppercase truncate mb-1">
               {customerName || label || 'RACQUET'}
             </p>
-            <div className="space-y-1 my-1 overflow-hidden">
+            <div className="space-y-0.5 my-1 overflow-hidden">
               {stringMain && (
-                <p className="text-2xl font-bold text-neutral-800 leading-tight truncate">
+                <p className="text-lg font-bold text-neutral-800 leading-tight truncate">
                   {stringMain}{tensionMain ? ` @ ${tensionMain} lbs` : ''}
                 </p>
               )}
               {stringCross && (
-                <p className="text-2xl font-bold text-neutral-800 leading-tight truncate">
+                <p className="text-lg font-bold text-neutral-800 leading-tight truncate">
                   {stringCross}{tensionCross ? ` @ ${tensionCross} lbs` : ''}
                 </p>
               )}
-              <p className="text-2xl font-semibold text-neutral-600 truncate">{label || ''}</p>
+              <p className="text-lg font-semibold text-neutral-600 truncate">{label || ''}</p>
               <div className="flex justify-between items-center mt-1">
-                <p className="text-lg font-bold text-neutral-400">
+                <p className="text-base font-bold text-neutral-400">
                   {stringingDate || new Date().toLocaleDateString()}
                 </p>
-                <p className="text-lg font-black text-black uppercase truncate ml-4">
+                <p className="text-base font-black text-black uppercase truncate ml-4">
                   {shopName || ''}
                 </p>
               </div>
             </div>
             
-            <div className="mt-auto pt-1.5 border-t border-neutral-100 flex justify-center">
-              <p className="text-xs font-bold text-neutral-300 uppercase tracking-widest">Powered by Stringer's Friend</p>
+            <div className="mt-auto pt-1 border-t border-neutral-100 flex justify-center">
+              <p className="text-[10px] font-bold text-neutral-300 uppercase tracking-widest">Powered by Stringer's Friend</p>
             </div>
           </div>
         </div>
