@@ -48,7 +48,7 @@ export default function QRCodeDisplay({
         ? `${window.location.origin}/r/${value}`
         : `${window.location.origin}/${value}`;
       
-      QRCode.toDataURL(fullUrl, { width: 400, margin: 1, errorCorrectionLevel: 'M' }, (err, url) => {
+      QRCode.toDataURL(fullUrl, { width: 300, margin: 1, errorCorrectionLevel: 'M' }, (err, url) => {
         if (!err) setQrUrl(url);
       });
     }
@@ -88,77 +88,89 @@ export default function QRCodeDisplay({
               justify-content: flex-start;
               text-align: left;
               border: 1px dashed #ccc;
-              padding: 0.5mm 1mm;
+              padding: 0.8mm;
               border-radius: 0.5mm;
-              width: 80mm;
+              width: 35mm;
               height: 14mm;
               box-sizing: border-box;
               overflow: hidden;
               background: white;
             }
             .qr-img { 
-              width: 13mm; 
-              height: 13mm; 
-              margin-right: 4mm;
+              width: 12mm; 
+              height: 12mm; 
+              margin-right: 1.5mm;
               flex-shrink: 0;
             }
             .info {
               display: flex;
               flex-direction: column;
-              justify-content: space-between;
+              justify-content: center;
               min-width: 0;
               flex: 1;
               height: 100%;
-              padding-top: 0.2mm;
+              padding-top: 1.8mm;
             }
             .customer-name {
-              font-size: 12pt;
+              font-size: 7.5pt;
               font-weight: 950;
               margin: 0;
               line-height: 1;
               color: #000;
               text-transform: uppercase;
-              letter-spacing: 0.2mm;
+              letter-spacing: -0.1mm;
               white-space: nowrap;
+              overflow: hidden;
+              text-overflow: ellipsis;
             }
-            .row {
+            .specs-container {
               display: flex;
-              flex-direction: row;
-              align-items: center;
-              gap: 4mm;
-              white-space: nowrap;
+              flex-direction: column;
+              gap: 0.1mm;
+              margin: 0.3mm 0;
             }
-            .text-extra-bold {
+            .specs {
+              font-size: 4pt;
+              font-weight: 700;
+              color: #111;
+              line-height: 1.1;
+              white-space: nowrap;
+              overflow: hidden;
+              text-overflow: ellipsis;
+            }
+            .racquet-model {
+              font-size: 4pt;
+              font-weight: 600;
+              color: #444;
+              line-height: 1.1;
+              white-space: nowrap;
+              overflow: hidden;
+              text-overflow: ellipsis;
+            }
+            .shop-name-block {
+              font-size: 3.8pt;
               font-weight: 950;
               color: #000;
-              font-size: 8.5pt;
-              line-height: 1;
-            }
-            .text-bold {
-              font-weight: 700;
-              color: #000;
-              font-size: 8.5pt;
-              line-height: 1;
+              text-transform: uppercase;
+              margin-top: auto;
+              padding-top: 0.2mm;
+              white-space: nowrap;
+              overflow: hidden;
+              text-overflow: ellipsis;
             }
             .footer-row {
               display: flex;
-              justify-content: space-between;
+              justify-content: center;
               align-items: center;
-              padding-top: 0.2mm;
-              border-top: 0.2mm solid #000;
-            }
-            .shop-name {
-              font-size: 8pt;
-              font-weight: 950;
-              text-transform: uppercase;
-              white-space: nowrap;
+              padding-top: 0.3mm;
+              border-top: 0.05mm solid #eee;
             }
             .powered-by { 
-              font-size: 5pt; 
-              color: #000; 
-              font-weight: 700;
+              font-size: 2.8pt; 
+              color: #bbb; 
+              font-weight: 600;
               text-transform: uppercase;
-              letter-spacing: 0.2mm;
+              letter-spacing: 0.1mm;
             }
             @media print {
               .container { border: none; }
@@ -171,19 +183,14 @@ export default function QRCodeDisplay({
             <img class="qr-img" src="${qrUrl}" />
             <div class="info">
               <div class="customer-name">${customerName || label || 'RACQUET'}</div>
-              
-              <div class="row">
-                <span class="text-extra-bold">${stringMain}${tensionMain ? ' @ '+tensionMain : ''}</span>
-                ${stringCross ? `<span class="text-extra-bold"> / ${stringCross}${tensionCross ? ' @ '+tensionCross : ''}</span>` : ''}
+              <div class="specs-container">
+                ${stringMain ? `<div class="specs">${stringMain}${tensionMain ? ' @ '+tensionMain : ''}</div>` : ''}
+                ${stringCross ? `<div class="specs">${stringCross}${tensionCross ? ' @ '+tensionCross : ''}</div>` : ''}
+                <div class="racquet-model">${label || ''}</div>
+                <div class="specs" style="color: #666; font-size: 3.2pt;">${stringingDate || new Date().toLocaleDateString()}</div>
               </div>
-
-              <div class="row">
-                <span class="text-extra-bold">${label || ''}</span>
-                <span class="text-extra-bold" style="color: #444; font-size: 7.5pt; margin-left: auto;">${stringingDate || new Date().toLocaleDateString()}</span>
-              </div>
-
+              <div class="shop-name-block">${shopName || ''}</div>
               <div class="footer-row">
-                <div class="shop-name">${shopName || ''}</div>
                 <div class="powered-by">Powered by Stringer's Friend</div>
               </div>
             </div>
@@ -285,29 +292,36 @@ export default function QRCodeDisplay({
         <div 
           ref={labelRef}
           className="bg-white p-4 flex flex-row items-center justify-start text-left"
-          style={{ width: '1200px', height: '210px', fontFamily: 'sans-serif' }}
+          style={{ width: '600px', height: '240px', fontFamily: 'sans-serif' }}
         >
-          {qrUrl && <img src={qrUrl} alt="QR Code" className="w-[180px] h-[180px] mr-12 flex-shrink-0" />}
-          <div className="flex flex-col justify-between min-w-0 flex-1 h-full py-2">
-            <p className="text-6xl font-black text-black leading-none uppercase truncate">
+          {qrUrl && <img src={qrUrl} alt="QR Code" className="w-[180px] h-[180px] mr-6 flex-shrink-0" />}
+          <div className="flex flex-col justify-center min-w-0 flex-1 h-full py-1 pt-4">
+            <p className="text-3xl font-black text-black leading-none uppercase truncate mb-1">
               {customerName || label || 'RACQUET'}
             </p>
-            <div className="flex flex-row items-center gap-8">
-              <p className="text-4xl font-black text-black leading-tight">
-                {stringMain}{tensionMain ? ` @ ${tensionMain} lbs` : ''}
-                {stringCross ? ` / ${stringCross}${tensionCross ? ` @ ${tensionCross} lbs` : ''}` : ''}
-              </p>
-            </div>
-            <div className="flex justify-between items-center">
-              <p className="text-4xl font-black text-neutral-800">{label || ''}</p>
-              <p className="text-3xl font-black text-neutral-400">
+            <div className="space-y-0.5 my-1 overflow-hidden">
+              {stringMain && (
+                <p className="text-lg font-bold text-neutral-800 leading-tight truncate">
+                  {stringMain}{tensionMain ? ` @ ${tensionMain} lbs` : ''}
+                </p>
+              )}
+              {stringCross && (
+                <p className="text-lg font-bold text-neutral-800 leading-tight truncate">
+                  {stringCross}{tensionCross ? ` @ ${tensionCross} lbs` : ''}
+                </p>
+              )}
+              <p className="text-lg font-semibold text-neutral-600 truncate">{label || ''}</p>
+              <p className="text-base font-bold text-neutral-400 truncate">
                 {stringingDate || new Date().toLocaleDateString()}
               </p>
             </div>
             
-            <div className="pt-2 border-t-4 border-black flex justify-between items-center">
-              <p className="text-3xl font-black text-black uppercase truncate">{shopName || ''}</p>
-              <p className="text-xl font-bold text-neutral-400 uppercase tracking-widest ml-8">Powered by Stringer's Friend</p>
+            <p className="text-base font-black text-black uppercase truncate mt-auto mb-1">
+              {shopName || ''}
+            </p>
+            
+            <div className="pt-1.5 border-t border-neutral-100 flex justify-center">
+              <p className="text-[10px] font-bold text-neutral-300 uppercase tracking-widest">Powered by Stringer's Friend</p>
             </div>
           </div>
         </div>
