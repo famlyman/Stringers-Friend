@@ -149,25 +149,19 @@ export default function QRCodeDisplay({
             }
             .shop-name-block {
               font-size: 3.8pt;
-              font-weight: 900;
+              font-weight: 950;
               color: #000;
               text-transform: uppercase;
-              margin-top: 0.2mm;
+              margin-top: auto;
+              padding-top: 0.2mm;
               white-space: nowrap;
               overflow: hidden;
               text-overflow: ellipsis;
-            }
-            .date-info { 
-              font-size: 3.2pt; 
-              color: #666; 
-              font-weight: 700;
-              margin-top: 0.2mm;
             }
             .footer-row {
               display: flex;
               justify-content: center;
               align-items: center;
-              margin-top: auto;
               padding-top: 0.3mm;
               border-top: 0.05mm solid #eee;
             }
@@ -194,8 +188,8 @@ export default function QRCodeDisplay({
                 ${stringCross ? `<div class="specs">${stringCross}${tensionCross ? ' @ '+tensionCross : ''}</div>` : ''}
                 <div class="racquet-model">${label || ''}</div>
                 <div class="date-info">${stringingDate || new Date().toLocaleDateString()}</div>
-                <div class="shop-name-block">${shopName || ''}</div>
               </div>
+              <div class="shop-name-block">${shopName || ''}</div>
               <div class="footer-row">
                 <div class="powered-by">Powered by Stringer's Friend</div>
               </div>
@@ -373,17 +367,16 @@ export default function QRCodeDisplay({
                 </p>
               )}
               <p className="text-lg font-semibold text-neutral-600 truncate">{label || ''}</p>
-              <div className="flex justify-between items-center mt-1">
-                <p className="text-base font-bold text-neutral-400">
-                  {stringingDate || new Date().toLocaleDateString()}
-                </p>
-                <p className="text-base font-black text-black uppercase truncate ml-4">
-                  {shopName || ''}
-                </p>
-              </div>
+              <p className="text-base font-bold text-neutral-400">
+                {stringingDate || new Date().toLocaleDateString()}
+              </p>
             </div>
             
-            <div className="mt-auto pt-1 border-t border-neutral-100 flex justify-center">
+            <p className="text-base font-black text-black uppercase truncate mt-auto mb-1">
+              {shopName || ''}
+            </p>
+            
+            <div className="pt-1 border-t border-neutral-100 flex justify-center">
               <p className="text-[10px] font-bold text-neutral-300 uppercase tracking-widest">Powered by Stringer's Friend</p>
             </div>
           </div>
