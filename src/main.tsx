@@ -7,7 +7,11 @@ import './index.css';
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.getRegistrations().then(registrations => {
     for (const registration of registrations) {
-      // Only unregister if it's not the current version (or just unregister all for now to be safe)
+      // Skip unregistering OneSignal workers to avoid connection errors
+      const scriptURL = registration.active?.scriptURL || registration.installing?.scriptURL || registration.waiting?.scriptURL || '';
+      if (scriptURL.includes('OneSignal')) {
+        continue;
+      }
       registration.unregister();
       console.log('[SW] Nuclear reset: Unregistered stale worker');
     }
