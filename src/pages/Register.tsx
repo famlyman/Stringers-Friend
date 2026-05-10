@@ -41,58 +41,34 @@ export default function Register() {
       }
 
       if (role === "customer") {
+        const nameParts = email.split('@')[0].split(/[._-]/);
+        const firstName = nameParts[0].charAt(0).toUpperCase() + nameParts[0].slice(1);
+        const lastName = nameParts.length > 1 ? nameParts[1].charAt(0).toUpperCase() + nameParts[1].slice(1) : '';
+
         if (shopId) {
-          const { data: existingCustomers, error: searchError } = await supabase
+          // 1. Create a customer entry for this specific shop
+          const { error: insertError } = await supabase
             .from('customers')
-            .select('id')
-            .eq('email', email)
-            .eq('shop_id', shopId);
+            .insert({
+              shop_id: shopId,
+              profile_id: userId,
+              first_name: firstName,
+              last_name: lastName,
+              email: email,
+              phone: ""
+            });
 
-          if (searchError) {
-            throw new Error("Failed to verify customer status. Please try again.");
-          } else if (!existingCustomers || existingCustomers.length === 0) {
-            const { error: insertError } = await supabase
-              .from('customers')
-              .insert({
-                shop_id: shopId,
-                profile_id: userId,
-                first_name: email.split('@')[0],
-                last_name: '',
-                email: email,
-                phone: ""
-              });
-
-            if (insertError) {
-              console.error("Error creating customer record:", insertError);
-              throw new Error(insertError.message || "Failed to create customer record");
-            }
+          if (insertError) {
+            console.error("Error creating customer record:", insertError);
           }
         }
 
-        const { data: customersToLink, error: linkError } = await supabase
+        // 2. Link ANY existing customer records (from other shops) that match this email
+        await supabase
           .from('customers')
-          .select('id')
+          .update({ profile_id: userId })
           .eq('email', email)
           .is('profile_id', null);
-
-        if (linkError) {
-          console.error("Error finding customers to link:", linkError);
-          throw new Error("Failed to link existing customer record");
-        }
-
-        if (customersToLink && customersToLink.length > 0) {
-          for (const customer of customersToLink) {
-            const { error: updateError } = await supabase
-              .from('customers')
-              .update({ profile_id: userId })
-              .eq('id', customer.id);
-            
-            if (updateError) {
-              console.error("Error linking customer:", updateError);
-              throw new Error("Failed to link customer account");
-            }
-          }
-        }
         
         navigate("/dashboard");
       } else if (role === "stringer") {
