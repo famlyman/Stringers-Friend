@@ -88,18 +88,18 @@ export default function QRCodeDisplay({
               justify-content: flex-start;
               text-align: left;
               border: 1px dashed #ccc;
-              padding: 1mm;
+              padding: 1.5mm;
               border-radius: 0.5mm;
-              width: 40mm;
+              width: 80mm;
               height: 14mm;
               box-sizing: border-box;
               overflow: hidden;
               background: white;
             }
             .qr-img { 
-              width: 12mm; 
-              height: 12mm; 
-              margin-right: 1.5mm;
+              width: 12.5mm; 
+              height: 12.5mm; 
+              margin-right: 4mm;
               flex-shrink: 0;
             }
             .info {
@@ -109,74 +109,66 @@ export default function QRCodeDisplay({
               min-width: 0;
               flex: 1;
               height: 100%;
-              padding-top: 1.8mm;
+              padding-top: 1mm;
             }
             .customer-name {
-              font-size: 7.5pt;
+              font-size: 10.5pt;
               font-weight: 950;
               margin: 0;
               line-height: 1;
               color: #000;
               text-transform: uppercase;
-              letter-spacing: -0.1mm;
+              letter-spacing: 0.2mm;
               white-space: nowrap;
-              overflow: hidden;
-              text-overflow: ellipsis;
             }
             .specs-container {
               display: flex;
               flex-direction: column;
-              gap: 0.1mm;
-              margin: 0.3mm 0;
+              gap: 0.4mm;
+              margin: 0.5mm 0;
             }
             .specs {
-              font-size: 4pt;
-              font-weight: 700;
-              color: #111;
-              line-height: 1.1;
+              font-size: 6.5pt;
+              font-weight: 800;
+              color: #000;
+              line-height: 1;
               white-space: nowrap;
-              overflow: hidden;
-              text-overflow: ellipsis;
             }
             .racquet-model {
-              font-size: 4pt;
-              font-weight: 600;
-              color: #444;
-              line-height: 1.1;
+              font-size: 6pt;
+              font-weight: 700;
+              color: #333;
+              line-height: 1;
               white-space: nowrap;
-              overflow: hidden;
-              text-overflow: ellipsis;
             }
             .shop-name-block {
-              font-size: 3.8pt;
+              font-size: 5.5pt;
               font-weight: 950;
               color: #000;
               text-transform: uppercase;
               margin-top: auto;
               padding-top: 0.2mm;
               white-space: nowrap;
-              overflow: hidden;
-              text-overflow: ellipsis;
-            }
-            .date-info { 
-              font-size: 3.2pt; 
-              color: #666; 
-              font-weight: 700;
-              margin-top: 0.2mm;
             }
             .footer-row {
               display: flex;
-              justify-content: center;
+              justify-content: space-between;
               align-items: center;
-              padding-top: 0.3mm;
-              border-top: 0.05mm solid #eee;
+              margin-top: auto;
+              padding-top: 0.4mm;
+              border-top: 0.15mm solid #000;
             }
             .powered-by { 
-              font-size: 2.8pt; 
-              color: #bbb; 
-              font-weight: 600;
+              font-size: 4.8pt; 
+              color: #000; 
+              font-weight: 900;
               text-transform: uppercase;
-              letter-spacing: 0.1mm;
+              letter-spacing: 0.2mm;
+            }
+            .date-info { 
+              font-size: 4.8pt; 
+              color: #333; 
+              font-weight: 800;
             }
             @media print {
               .container { border: none; }
@@ -193,11 +185,11 @@ export default function QRCodeDisplay({
                 ${stringMain ? `<div class="specs">${stringMain}${tensionMain ? ' @ '+tensionMain : ''}</div>` : ''}
                 ${stringCross ? `<div class="specs">${stringCross}${tensionCross ? ' @ '+tensionCross : ''}</div>` : ''}
                 <div class="racquet-model">${label || ''}</div>
-                <div class="date-info">${stringingDate || new Date().toLocaleDateString()}</div>
               </div>
               <div class="shop-name-block">${shopName || ''}</div>
               <div class="footer-row">
                 <div class="powered-by">Powered by Stringer's Friend</div>
+                <div class="date-info">${stringingDate || new Date().toLocaleDateString()}</div>
               </div>
             </div>
           </div>
@@ -354,36 +346,36 @@ export default function QRCodeDisplay({
         <div 
           ref={labelRef}
           className="bg-white p-4 flex flex-row items-center justify-start text-left"
-          style={{ width: '600px', height: '280px', fontFamily: 'sans-serif' }}
+          style={{ width: '1200px', height: '210px', fontFamily: 'sans-serif' }}
         >
-          {qrUrl && <img src={qrUrl} alt="QR Code" className="w-[220px] h-[220px] mr-6 flex-shrink-0" />}
-          <div className="flex flex-col justify-center min-w-0 flex-1 h-full py-1 pt-4">
-            <p className="text-3xl font-black text-black leading-none uppercase truncate mb-1">
+          {qrUrl && <img src={qrUrl} alt="QR Code" className="w-[180px] h-[180px] mr-12 flex-shrink-0" />}
+          <div className="flex flex-col justify-center min-w-0 flex-1 h-full py-1">
+            <p className="text-5xl font-black text-black leading-none uppercase mb-2">
               {customerName || label || 'RACQUET'}
             </p>
-            <div className="space-y-0.5 my-1 overflow-hidden">
+            <div className="space-y-1.5 my-2">
               {stringMain && (
-                <p className="text-lg font-bold text-neutral-800 leading-tight truncate">
+                <p className="text-3xl font-bold text-neutral-800 leading-tight">
                   {stringMain}{tensionMain ? ` @ ${tensionMain} lbs` : ''}
                 </p>
               )}
               {stringCross && (
-                <p className="text-lg font-bold text-neutral-800 leading-tight truncate">
+                <p className="text-3xl font-bold text-neutral-800 leading-tight">
                   {stringCross}{tensionCross ? ` @ ${tensionCross} lbs` : ''}
                 </p>
               )}
-              <p className="text-lg font-semibold text-neutral-600 truncate">{label || ''}</p>
-              <p className="text-base font-bold text-neutral-400 truncate">
-                {stringingDate || new Date().toLocaleDateString()}
-              </p>
+              <p className="text-3xl font-semibold text-neutral-600">{label || ''}</p>
             </div>
             
-            <p className="text-base font-black text-black uppercase truncate mt-auto mb-1">
+            <p className="text-2xl font-black text-black uppercase mt-auto mb-2">
               {shopName || ''}
             </p>
             
-            <div className="pt-1.5 border-t border-neutral-100 flex justify-center">
-              <p className="text-[10px] font-bold text-neutral-300 uppercase tracking-widest">Powered by Stringer's Friend</p>
+            <div className="pt-2 border-t-2 border-black flex justify-between items-center">
+              <p className="text-xl font-black text-black uppercase tracking-widest">Powered by Stringer's Friend</p>
+              <p className="text-xl font-bold text-neutral-500">
+                {stringingDate || new Date().toLocaleDateString()}
+              </p>
             </div>
           </div>
         </div>

@@ -24,6 +24,12 @@ export function RacquetQRModal({ showRacquetQR, setShowRacquetQR, customerName, 
 
   const derivedCustomerName = getCustomerName();
 
+  // Get the most relevant date (last updated or completion date)
+  const getStringingDate = () => {
+    // If the racquet was updated recently (marked by a job completion)
+    return new Date(showRacquetQR.updated_at || showRacquetQR.created_at).toLocaleDateString();
+  };
+
   return (
     <div 
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
@@ -50,7 +56,7 @@ export function RacquetQRModal({ showRacquetQR, setShowRacquetQR, customerName, 
             tensionMain={showRacquetQR.current_tension_main}
             tensionCross={showRacquetQR.current_tension_cross}
             label={`${showRacquetQR.brand} ${showRacquetQR.model}`}
-            stringingDate={new Date(showRacquetQR.updated_at || showRacquetQR.created_at).toLocaleDateString()}
+            stringingDate={getStringingDate()}
             shopName={shopName || (showRacquetQR as any).shop?.name}
           />
         </div>
