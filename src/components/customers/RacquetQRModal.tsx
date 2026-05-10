@@ -12,9 +12,17 @@ interface RacquetQRModalProps {
 export function RacquetQRModal({ showRacquetQR, setShowRacquetQR, customerName, shopName }: RacquetQRModalProps) {
   if (!showRacquetQR) return null;
 
-  const derivedCustomerName = customerName || (showRacquetQR as any).customers?.first_name 
-    ? `${(showRacquetQR as any).customers.first_name} ${(showRacquetQR as any).customers.last_name || ''}`.trim()
-    : (showRacquetQR as any).customerName;
+  // Safer derivation of customer name to avoid TypeErrors
+  const getCustomerName = () => {
+    if (customerName) return customerName;
+    const racquetWithData = showRacquetQR as any;
+    if (racquetWithData.customers?.first_name) {
+      return `${racquetWithData.customers.first_name} ${racquetWithData.customers.last_name || ''}`.trim();
+    }
+    return racquetWithData.customerName || 'RACQUET';
+  };
+
+  const derivedCustomerName = getCustomerName();
 
   return (
     <div 

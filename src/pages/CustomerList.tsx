@@ -153,7 +153,7 @@ export default function CustomerList({ user }: { user: Profile }) {
                       setEditingRacquet={setEditingRacquet}
                       setShowRacquetQR={setShowRacquetQR}
                       setDeleteConfirm={setDeleteConfirm}
-                      customerName={`${selectedCustomer.first_name} ${selectedCustomer.last_name}`}
+                      customerName={selectedCustomer ? `${selectedCustomer.first_name} ${selectedCustomer.last_name}` : "Unknown Customer"}
                     />
                   ))
                 )}
