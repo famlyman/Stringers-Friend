@@ -48,7 +48,7 @@ export default function QRCodeDisplay({
         ? `${window.location.origin}/r/${value}`
         : `${window.location.origin}/${value}`;
       
-      QRCode.toDataURL(fullUrl, { width: 400, margin: 1, errorCorrectionLevel: 'M' }, (err, url) => {
+      QRCode.toDataURL(fullUrl, { width: 300, margin: 1, errorCorrectionLevel: 'M' }, (err, url) => {
         if (!err) setQrUrl(url);
       });
     }
@@ -67,8 +67,8 @@ export default function QRCodeDisplay({
           <title>Print QR Code</title>
           <style>
             @page {
-              size: 80mm 14mm;
               margin: 0;
+              size: auto;
             }
             body { 
               display: flex; 
@@ -77,7 +77,7 @@ export default function QRCodeDisplay({
               justify-content: center; 
               min-height: 100vh; 
               margin: 0; 
-              padding: 0;
+              padding: 20px;
               font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
               background: white;
             }
@@ -86,11 +86,11 @@ export default function QRCodeDisplay({
               flex-direction: row;
               align-items: center;
               justify-content: flex-start;
-              text-align: center;
+              text-align: left;
               border: 1px dashed #ccc;
               padding: 1.2mm;
               border-radius: 0.5mm;
-              width: 80mm;
+              width: 40mm;
               height: 14mm;
               box-sizing: border-box;
               overflow: hidden;
@@ -99,7 +99,7 @@ export default function QRCodeDisplay({
             .qr-img { 
               width: 12.5mm; 
               height: 12.5mm; 
-              margin-right: 5mm;
+              margin-right: 1.5mm;
               flex-shrink: 0;
             }
             .info {
@@ -109,54 +109,60 @@ export default function QRCodeDisplay({
               min-width: 0;
               flex: 1;
               height: 100%;
-              padding-top: 1.5mm;
+              padding-top: 0.2mm;
             }
             .customer-name {
-              font-size: 11.5pt;
+              font-size: 7.2pt;
               font-weight: 950;
               margin: 0;
-              line-height: 0.9;
-              color: #000;
-              text-transform: uppercase;
-              letter-spacing: 0.2mm;
-              white-space: nowrap;
-            }
-            .specs-row {
-              display: flex;
-              justify-content: center;
-              gap: 6mm;
-              width: 100%;
-              margin: 0.2mm 0;
-            }
-            .specs-item {
-              font-size: 8.5pt;
-              font-weight: 900;
-              color: #000;
               line-height: 1;
-              white-space: nowrap;
-            }
-            .shop-name-block {
-              font-size: 8pt;
-              font-weight: 950;
               color: #000;
               text-transform: uppercase;
-              margin-top: 0.3mm;
+              letter-spacing: -0.1mm;
               white-space: nowrap;
+              overflow: hidden;
+              text-overflow: ellipsis;
+            }
+            .specs {
+              font-size: 4.5pt;
+              font-weight: 700;
+              color: #111;
+              margin-top: 0.2mm;
+              line-height: 1.1;
+              white-space: nowrap;
+              overflow: hidden;
+              text-overflow: ellipsis;
+            }
+            .racquet-model {
+              font-size: 4.5pt;
+              font-weight: 600;
+              color: #555;
+              margin-top: 0.1mm;
+              white-space: nowrap;
+              overflow: hidden;
+              text-overflow: ellipsis;
             }
             .footer-row {
               display: flex;
-              justify-content: center;
-              align-items: center;
+              justify-content: space-between;
+              align-items: flex-end;
               margin-top: auto;
               padding-top: 0.4mm;
-              border-top: 0.2mm solid #000;
+              border-top: 0.05mm solid #ddd;
             }
-            .powered-by { 
-              font-size: 5.5pt; 
+            .shop-info { 
+              font-size: 3.5pt; 
+              font-weight: 900; 
               color: #000; 
-              font-weight: 700;
               text-transform: uppercase;
-              letter-spacing: 0.3mm;
+              max-width: 70%;
+              overflow: hidden;
+              text-overflow: ellipsis;
+            }
+            .date-info { 
+              font-size: 3pt; 
+              color: #888; 
+              font-weight: 700;
             }
             @media print {
               .container { border: none; }
@@ -169,21 +175,12 @@ export default function QRCodeDisplay({
             <img class="qr-img" src="${qrUrl}" />
             <div class="info">
               <div class="customer-name">${customerName || label || 'RACQUET'}</div>
-              
-              <div class="specs-row">
-                ${stringMain ? `<div class="specs-item">${stringMain}${tensionMain ? ' @ '+tensionMain : ''}</div>` : ''}
-                ${stringCross ? `<div class="specs-item">${stringCross}${tensionCross ? ' @ '+tensionCross : ''}</div>` : ''}
-              </div>
-
-              <div class="specs-row">
-                <div class="specs-item">${label || ''}</div>
-                <div class="specs-item">${stringingDate || new Date().toLocaleDateString()}</div>
-              </div>
-
-              <div class="shop-name-block">${shopName || ''}</div>
-              
+              ${stringMain ? `<div class="specs">${stringMain}${tensionMain ? ' @ '+tensionMain : ''}</div>` : ''}
+              ${stringCross ? `<div class="specs">${stringCross}${tensionCross ? ' @ '+tensionCross : ''}</div>` : ''}
+              <div class="racquet-model">${label || ''}</div>
               <div class="footer-row">
-                <div class="powered-by">Powered by Stringer's Friend</div>
+                <div class="shop-info">${shopName || (customerName ? 'STRINGERS FRIEND' : '')}</div>
+                <div class="date-info">${stringingDate || new Date().toLocaleDateString()}</div>
               </div>
             </div>
           </div>
@@ -284,40 +281,36 @@ export default function QRCodeDisplay({
         <div 
           ref={labelRef}
           className="bg-white p-4 flex flex-row items-center justify-start text-left"
-          style={{ width: '1200px', height: '210px', fontFamily: 'sans-serif' }}
+          style={{ width: '600px', height: '280px', fontFamily: 'sans-serif' }}
         >
-          {qrUrl && <img src={qrUrl} alt="QR Code" className="w-[180px] h-[180px] mr-12 flex-shrink-0" />}
-          <div className="flex flex-col justify-center min-w-0 flex-1 h-full py-1 pt-6">
-            <p className="text-6xl font-black text-black leading-none uppercase mb-1">
+          {qrUrl && <img src={qrUrl} alt="QR Code" className="w-[220px] h-[220px] mr-6 flex-shrink-0" />}
+          <div className="flex flex-col justify-center min-w-0 flex-1 h-full py-1">
+            <p className="text-3xl font-black text-black leading-none uppercase truncate mb-1.5">
               {customerName || label || 'RACQUET'}
             </p>
-            <div className="space-y-1.5 my-1 overflow-hidden">
-              <div className="flex gap-8">
-                {stringMain && (
-                  <p className="text-3xl font-black text-black leading-tight">
-                    {stringMain}{tensionMain ? ` @ ${tensionMain} lbs` : ''}
-                  </p>
-                )}
-                {stringCross && (
-                  <p className="text-3xl font-black text-black leading-tight">
-                    {stringCross}{tensionCross ? ` @ ${tensionCross} lbs` : ''}
-                  </p>
-                )}
-              </div>
-              <div className="flex gap-8 mt-1">
-                <p className="text-3xl font-extrabold text-neutral-800">{label || ''}</p>
-                <p className="text-2xl font-bold text-neutral-500">
-                  {stringingDate || new Date().toLocaleDateString()}
+            <div className="space-y-0.5 mb-1.5">
+              {stringMain && (
+                <p className="text-xl font-bold text-neutral-800 truncate">
+                  {stringMain}{tensionMain ? ` @ ${tensionMain} lbs` : ''}
                 </p>
-              </div>
+              )}
+              {stringCross && (
+                <p className="text-xl font-bold text-neutral-800 truncate">
+                  {stringCross}{tensionCross ? ` @ ${tensionCross} lbs` : ''}
+                </p>
+              )}
             </div>
+            {(stringMain || stringCross) && label && (
+              <p className="text-xl font-semibold text-neutral-600 truncate mb-3">{label}</p>
+            )}
             
-            <p className="text-2xl font-black text-black uppercase truncate mt-auto mb-1">
-              {shopName || ''}
-            </p>
-            
-            <div className="pt-2 border-t-4 border-black flex justify-center">
-              <p className="text-xl font-bold text-black uppercase tracking-widest">Powered by Stringer's Friend</p>
+            <div className="mt-auto pt-1.5 border-t border-neutral-100 flex justify-between items-end">
+              <p className="text-lg font-black text-black uppercase tracking-wider">
+                {shopName || (customerName ? 'STRINGERS FRIEND' : '')}
+              </p>
+              <p className="text-base font-bold text-neutral-400">
+                {stringingDate || new Date().toLocaleDateString()}
+              </p>
             </div>
           </div>
         </div>
