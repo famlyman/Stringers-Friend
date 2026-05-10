@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
-import { Customer, Racquet } from "../types/database";
+import { Customer, Racquet, Shop } from "../types/database";
 
 export function useCustomerListData(shopId: string | undefined) {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [allRacquets, setAllRacquets] = useState<Racquet[]>([]);
+  const [shop, setShop] = useState<Shop | null>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchData = async () => {
@@ -14,14 +15,17 @@ export function useCustomerListData(shopId: string | undefined) {
       // Parallelize fetches for better performance
       const [
         { data: customersData },
-        { data: racquetsData }
+        { data: racquetsData },
+        { data: shopData }
       ] = await Promise.all([
         supabase.from('customers').select('*').eq('shop_id', shopId),
-        supabase.from('racquets').select('*').eq('shop_id', shopId)
+        supabase.from('racquets').select('*').eq('shop_id', shopId),
+        supabase.from('shops').select('*').eq('id', shopId).single()
       ]);
       
       setCustomers((customersData || []) as Customer[]);
       setAllRacquets((racquetsData || []) as Racquet[]);
+      if (shopData) setShop(shopData as Shop);
     } catch (err) {
       console.error("Error fetching customer list data:", err);
     } finally {
@@ -56,5 +60,5 @@ export function useCustomerListData(shopId: string | undefined) {
     };
   }, [shopId]);
 
-  return { customers, allRacquets, loading, refreshData: fetchData };
+  return { customers, allRacquets, shop, loading, refreshData: fetchData };
 }

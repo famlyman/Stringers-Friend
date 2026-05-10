@@ -9,8 +9,12 @@ interface RacquetQRModalProps {
   customerName?: string;
 }
 
-export function RacquetQRModal({ showRacquetQR, setShowRacquetQR, customerName }: RacquetQRModalProps) {
+export function RacquetQRModal({ showRacquetQR, setShowRacquetQR, customerName, shopName }: RacquetQRModalProps) {
   if (!showRacquetQR) return null;
+
+  const derivedCustomerName = customerName || (showRacquetQR as any).customers?.first_name 
+    ? `${(showRacquetQR as any).customers.first_name} ${(showRacquetQR as any).customers.last_name || ''}`.trim()
+    : (showRacquetQR as any).customerName;
 
   return (
     <div 
@@ -32,14 +36,14 @@ export function RacquetQRModal({ showRacquetQR, setShowRacquetQR, customerName }
           <p className="text-xs font-bold text-neutral-500 dark:text-neutral-400 mb-3 uppercase tracking-wide">Racquet QR Code</p>
           <QRCodeDisplay 
             value={showRacquetQR.id} 
-            customerName={customerName || (showRacquetQR as any).customerName}
+            customerName={derivedCustomerName}
             stringMain={showRacquetQR.current_string_main || ""}
             stringCross={showRacquetQR.current_string_cross || ""}
             tensionMain={showRacquetQR.current_tension_main}
             tensionCross={showRacquetQR.current_tension_cross}
             label={`${showRacquetQR.brand} ${showRacquetQR.model}`}
-            stringingDate={new Date(showRacquetQR.updated_at).toLocaleDateString()}
-            shopName={(showRacquetQR as any).shopName}
+            stringingDate={new Date(showRacquetQR.updated_at || showRacquetQR.created_at).toLocaleDateString()}
+            shopName={shopName || (showRacquetQR as any).shop?.name}
           />
         </div>
       </div>

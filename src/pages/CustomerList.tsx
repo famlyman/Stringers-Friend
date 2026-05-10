@@ -15,7 +15,7 @@ import { Profile, Customer, Racquet } from "../types/database";
 
 export default function CustomerList({ user }: { user: Profile }) {
   const shopId = user?.shop_id || undefined;
-  const { customers, loading: customersLoading, refreshData } = useCustomerListData(shopId);
+  const { customers, loading: customersLoading, shop, refreshData } = useCustomerListData(shopId);
   
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const { racquets, refreshRacquets } = useCustomerRacquets(selectedCustomer?.id);
@@ -191,6 +191,8 @@ export default function CustomerList({ user }: { user: Profile }) {
       <RacquetQRModal 
         showRacquetQR={showRacquetQR}
         setShowRacquetQR={setShowRacquetQR}
+        customerName={selectedCustomer ? `${selectedCustomer.first_name} ${selectedCustomer.last_name}` : undefined}
+        shopName={shop?.name}
       />
 
       <DeleteConfirmModal 
