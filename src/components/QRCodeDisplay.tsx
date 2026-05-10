@@ -167,7 +167,9 @@ export default function QRCodeDisplay({
               .container { border: none; }
               body { min-height: auto; }
             }
-          <body>
+          </style>
+        </head>
+        <body>
             <div class="container">
               <img class="qr-img" src="${qrUrl}" />
               <div class="info">
@@ -459,5 +461,4 @@ export default function QRCodeDisplay({
       )}
     </div>
   );
-}
 }
