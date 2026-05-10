@@ -48,7 +48,7 @@ export default function QRCodeDisplay({
         ? `${window.location.origin}/r/${value}`
         : `${window.location.origin}/${value}`;
       
-      QRCode.toDataURL(fullUrl, { width: 300, margin: 1, errorCorrectionLevel: 'M' }, (err, url) => {
+      QRCode.toDataURL(fullUrl, { width: 400, margin: 1, errorCorrectionLevel: 'M' }, (err, url) => {
         if (!err) setQrUrl(url);
       });
     }
@@ -67,8 +67,8 @@ export default function QRCodeDisplay({
           <title>Print QR Code</title>
           <style>
             @page {
+              size: 80mm 14mm;
               margin: 0;
-              size: auto;
             }
             body { 
               display: flex; 
@@ -77,7 +77,7 @@ export default function QRCodeDisplay({
               justify-content: center; 
               min-height: 100vh; 
               margin: 0; 
-              padding: 20px;
+              padding: 0;
               font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
               background: white;
             }
@@ -86,9 +86,9 @@ export default function QRCodeDisplay({
               flex-direction: row;
               align-items: center;
               justify-content: flex-start;
-              text-align: left;
+              text-align: center;
               border: 1px dashed #ccc;
-              padding: 1.5mm;
+              padding: 1.2mm;
               border-radius: 0.5mm;
               width: 80mm;
               height: 14mm;
@@ -99,7 +99,7 @@ export default function QRCodeDisplay({
             .qr-img { 
               width: 12.5mm; 
               height: 12.5mm; 
-              margin-right: 4mm;
+              margin-right: 5mm;
               flex-shrink: 0;
             }
             .info {
@@ -109,66 +109,54 @@ export default function QRCodeDisplay({
               min-width: 0;
               flex: 1;
               height: 100%;
-              padding-top: 0.5mm;
+              padding-top: 1.5mm;
             }
             .customer-name {
-              font-size: 11pt;
+              font-size: 11.5pt;
               font-weight: 950;
               margin: 0;
-              line-height: 1;
+              line-height: 0.9;
               color: #000;
               text-transform: uppercase;
               letter-spacing: 0.2mm;
               white-space: nowrap;
             }
-            .specs-container {
+            .specs-row {
               display: flex;
-              flex-direction: column;
-              gap: 0.2mm;
-              margin: 0.4mm 0;
+              justify-content: center;
+              gap: 6mm;
+              width: 100%;
+              margin: 0.2mm 0;
             }
-            .specs {
+            .specs-item {
               font-size: 8.5pt;
               font-weight: 900;
               color: #000;
               line-height: 1;
               white-space: nowrap;
             }
-            .racquet-model {
-              font-size: 8.5pt;
-              font-weight: 850;
-              color: #000;
-              line-height: 1;
-              white-space: nowrap;
-            }
             .shop-name-block {
-              font-size: 7.5pt;
+              font-size: 8pt;
               font-weight: 950;
               color: #000;
               text-transform: uppercase;
-              margin-top: auto;
-              padding-top: 0.2mm;
+              margin-top: 0.3mm;
               white-space: nowrap;
             }
             .footer-row {
               display: flex;
-              justify-content: space-between;
+              justify-content: center;
               align-items: center;
               margin-top: auto;
               padding-top: 0.4mm;
               border-top: 0.2mm solid #000;
             }
             .powered-by { 
-              font-size: 5pt; 
+              font-size: 5.5pt; 
               color: #000; 
               font-weight: 700;
               text-transform: uppercase;
-              letter-spacing: 0.2mm;
-            }
-            .date-info { 
-              font-size: 6pt; 
-              color: #000; 
-              font-weight: 900;
+              letter-spacing: 0.3mm;
             }
             @media print {
               .container { border: none; }
@@ -181,19 +169,24 @@ export default function QRCodeDisplay({
             <img class="qr-img" src="${qrUrl}" />
             <div class="info">
               <div class="customer-name">${customerName || label || 'RACQUET'}</div>
-              <div class="specs-container">
-                ${stringMain ? `<div class="specs">${stringMain}${tensionMain ? ' @ '+tensionMain : ''}</div>` : ''}
-                ${stringCross ? `<div class="specs">${stringCross}${tensionCross ? ' @ '+tensionCross : ''}</div>` : ''}
-                <div class="racquet-model">${label || ''}</div>
+              
+              <div class="specs-row">
+                ${stringMain ? `<div class="specs-item">${stringMain}${tensionMain ? ' @ '+tensionMain : ''}</div>` : ''}
+                ${stringCross ? `<div class="specs-item">${stringCross}${tensionCross ? ' @ '+tensionCross : ''}</div>` : ''}
               </div>
+
+              <div class="specs-row">
+                <div class="specs-item">${label || ''}</div>
+                <div class="specs-item">${stringingDate || new Date().toLocaleDateString()}</div>
+              </div>
+
               <div class="shop-name-block">${shopName || ''}</div>
+              
               <div class="footer-row">
                 <div class="powered-by">Powered by Stringer's Friend</div>
-                <div class="date-info">${stringingDate || new Date().toLocaleDateString()}</div>
               </div>
             </div>
           </div>
-
           <script>
             window.onload = () => {
               setTimeout(() => {
@@ -211,7 +204,6 @@ export default function QRCodeDisplay({
   const generateImage = async () => {
     if (!labelRef.current) return null;
     try {
-      // Filter out problematic elements (OneSignal widgets) that cause CSS insertRule errors
       const filter = (node: HTMLElement) => {
         const id = node.id || '';
         const className = typeof node.className === 'string' ? node.className : '';
@@ -223,7 +215,7 @@ export default function QRCodeDisplay({
         backgroundColor: '#ffffff',
         pixelRatio: 3,
         filter: filter as any,
-        skipFonts: true, // Speeds up generation and avoids font-loading issues
+        skipFonts: true,
       });
       return dataUrl;
     } catch (err) {
@@ -261,86 +253,32 @@ export default function QRCodeDisplay({
         await navigator.share({
           files: [file],
           title: 'QR Code Label',
-          text: `Label for ${label || value}`
+          text: label || value
         });
       } else {
-        // Fallback to clipboard for images
-        try {
-          const item = new ClipboardItem({ 'image/png': blob });
-          await navigator.clipboard.write([item]);
-          setIsCopied(true);
-          setTimeout(() => setIsCopied(false), 2000);
-        } catch (clipboardErr) {
-          console.warn("Clipboard image write failed, falling back to text:", clipboardErr);
-          // Final fallback: just copy the URL text
-          const isShopQR = !value.includes('_');
-          const fullUrl = isShopQR 
-            ? `${window.location.origin}/${value}`
-            : `${window.location.origin}/scan/${value}`;
-          await navigator.clipboard.writeText(fullUrl);
-          setIsCopied(true);
-          setTimeout(() => setIsCopied(false), 2000);
-        }
+        const link = document.createElement('a');
+        link.download = `label-${label || value}.png`;
+        link.href = dataUrl;
+        link.click();
       }
     } catch (err) {
-      if (err instanceof Error && (err.name === 'AbortError' || err.message.includes('Share canceled'))) {
-        // User cancelled the share - this is expected behavior
-        console.log("Share operation was cancelled by the user.");
-      } else {
-        console.error("Error sharing:", err);
-      }
+      console.error("Error sharing:", err);
+    } finally {
+      setIsSharing(false);
     }
-    setIsSharing(false);
   };
 
   if (minimal) {
     return (
-      <div className="flex flex-col items-center gap-2">
-        {/* Hidden element for image generation */}
-        <div className="fixed -left-[9999px] top-0">
-          <div 
-            ref={labelRef}
-            className="bg-white p-2 flex flex-row items-center justify-start text-left"
-            style={{ width: '600px', height: '280px' }}
-          >
-            {qrUrl && <img src={qrUrl} alt="QR Code" className="w-[220px] h-[220px] mr-4 flex-shrink-0" />}
-            <div className="flex flex-col justify-center min-w-0 flex-1">
-              {customerName && <p className="text-5xl font-black text-black leading-tight mb-2 line-clamp-2">{customerName}</p>}
-              {stringMain && <p className="text-4xl font-bold text-black mb-2 truncate">{stringMain}{tensionMain ? ' '+tensionMain+' lbs' : ''}</p>}
-              {stringCross && <p className="text-4xl font-bold text-black mb-2 truncate">{stringCross}{tensionCross ? ' '+tensionCross+' lbs' : ''}</p>}
-              {label && <p className="text-4xl font-bold text-black truncate">{label}</p>}
-            </div>
-          </div>
-        </div>
-
-        <div 
-          className="p-1 bg-white rounded-lg shadow-sm border border-neutral-100 dark:border-neutral-700 cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all"
-          onClick={() => setIsModalOpen(true)}
-        >
-          {qrUrl && <img src={qrUrl} alt="QR Code" className="w-28 h-28 dark:invert dark:brightness-150" />}
-        </div>
-        <div className="mt-1 flex gap-1">
-          <button 
-            onClick={handlePrint}
-            className="p-1.5 bg-primary/10 text-primary rounded-lg hover:bg-primary hover:text-white transition-all"
-            title="Print Label"
-          >
-            <Printer className="w-3 h-3" />
-          </button>
-          <button 
-            onClick={handleDownload}
-            className="p-1.5 bg-neutral-100 dark:bg-neutral-800 text-neutral-500 rounded-lg hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-all"
-            title="Download"
-          >
-            <Download className="w-3 h-3" />
-          </button>
-        </div>
+      <div className="flex flex-col items-center">
+        {qrUrl && <img src={qrUrl} alt="QR Code" className="w-32 h-32" />}
+        {label && <p className="mt-2 text-sm font-bold text-neutral-900 dark:text-white">{label}</p>}
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col items-center p-4 bg-white dark:bg-neutral-800 rounded-2xl border border-neutral-200 dark:border-neutral-700 shadow-sm group relative">
+    <div className="flex flex-col items-center p-4 bg-white dark:bg-neutral-800 rounded-2xl shadow-sm border border-neutral-100 dark:border-neutral-700 w-full max-w-sm mx-auto">
       {/* Hidden element for image generation */}
       <div className="fixed -left-[9999px] top-0">
         <div 
@@ -349,33 +287,37 @@ export default function QRCodeDisplay({
           style={{ width: '1200px', height: '210px', fontFamily: 'sans-serif' }}
         >
           {qrUrl && <img src={qrUrl} alt="QR Code" className="w-[180px] h-[180px] mr-12 flex-shrink-0" />}
-          <div className="flex flex-col justify-center min-w-0 flex-1 h-full py-1 pt-4">
-            <p className="text-6xl font-black text-black leading-none uppercase mb-2">
+          <div className="flex flex-col justify-center min-w-0 flex-1 h-full py-1 pt-6">
+            <p className="text-6xl font-black text-black leading-none uppercase mb-1">
               {customerName || label || 'RACQUET'}
             </p>
-            <div className="space-y-1.5 my-2">
-              {stringMain && (
-                <p className="text-4xl font-black text-black leading-tight">
-                  {stringMain}{tensionMain ? ` @ ${tensionMain} lbs` : ''}
+            <div className="space-y-1.5 my-1 overflow-hidden">
+              <div className="flex gap-8">
+                {stringMain && (
+                  <p className="text-3xl font-black text-black leading-tight">
+                    {stringMain}{tensionMain ? ` @ ${tensionMain} lbs` : ''}
+                  </p>
+                )}
+                {stringCross && (
+                  <p className="text-3xl font-black text-black leading-tight">
+                    {stringCross}{tensionCross ? ` @ ${tensionCross} lbs` : ''}
+                  </p>
+                )}
+              </div>
+              <div className="flex gap-8 mt-1">
+                <p className="text-3xl font-extrabold text-neutral-800">{label || ''}</p>
+                <p className="text-2xl font-bold text-neutral-500">
+                  {stringingDate || new Date().toLocaleDateString()}
                 </p>
-              )}
-              {stringCross && (
-                <p className="text-4xl font-black text-black leading-tight">
-                  {stringCross}{tensionCross ? ` @ ${tensionCross} lbs` : ''}
-                </p>
-              )}
-              <p className="text-4xl font-extrabold text-neutral-800">{label || ''}</p>
+              </div>
             </div>
             
-            <p className="text-3xl font-black text-black uppercase mt-auto mb-2">
+            <p className="text-2xl font-black text-black uppercase truncate mt-auto mb-1">
               {shopName || ''}
             </p>
             
-            <div className="pt-2 border-t-4 border-black flex justify-between items-center">
-              <p className="text-2xl font-bold text-neutral-400 uppercase tracking-widest">Powered by Stringer's Friend</p>
-              <p className="text-2xl font-black text-black">
-                {stringingDate || new Date().toLocaleDateString()}
-              </p>
+            <div className="pt-2 border-t-4 border-black flex justify-center">
+              <p className="text-xl font-bold text-black uppercase tracking-widest">Powered by Stringer's Friend</p>
             </div>
           </div>
         </div>
@@ -393,76 +335,84 @@ export default function QRCodeDisplay({
       <div className="mt-4 grid grid-cols-2 gap-2 w-full">
         <button 
           onClick={handlePrint}
-          className="flex items-center justify-center gap-2 px-3 py-2 bg-primary text-white rounded-xl text-[10px] font-bold hover:bg-primary/90 transition-all active:scale-95 shadow-lg shadow-primary/20"
+          className="flex items-center justify-center gap-2 px-4 py-3 bg-primary text-white rounded-xl font-bold hover:bg-primary/90 transition-all active:scale-95"
         >
-          <Printer className="w-3 h-3" />
+          <Printer className="w-4 h-4" />
           Print
-        </button>
-        <button 
-          onClick={handleShare}
-          disabled={isSharing}
-          className="flex items-center justify-center gap-2 px-3 py-2 bg-neutral-100 dark:bg-neutral-700 text-neutral-700 dark:text-neutral-200 rounded-xl text-[10px] font-bold hover:bg-neutral-200 dark:hover:bg-neutral-600 transition-all active:scale-95"
-        >
-          {isCopied ? <Check className="w-3 h-3 text-green-500" /> : <Share2 className="w-3 h-3" />}
-          {isSharing ? "..." : isCopied ? "Copied" : "Share"}
         </button>
         <button 
           onClick={handleDownload}
           disabled={isDownloading}
-          className="col-span-2 flex items-center justify-center gap-2 px-3 py-2 bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-neutral-500 dark:text-neutral-400 rounded-xl text-[10px] font-bold hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-all active:scale-95"
+          className="flex items-center justify-center gap-2 px-4 py-3 bg-neutral-100 dark:bg-neutral-700 text-neutral-700 dark:text-neutral-200 rounded-xl font-bold hover:bg-neutral-200 dark:hover:bg-neutral-600 transition-all active:scale-95 disabled:opacity-50"
         >
-          <Download className="w-3 h-3" />
-          {isDownloading ? "Generating..." : "Download Image"}
+          {isDownloading ? (
+            <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+          ) : (
+            <Download className="w-4 h-4" />
+          )}
+          Image
+        </button>
+        <button 
+          onClick={handleShare}
+          disabled={isSharing}
+          className="flex items-center justify-center gap-2 px-4 py-3 bg-neutral-100 dark:bg-neutral-700 text-neutral-700 dark:text-neutral-200 rounded-xl font-bold hover:bg-neutral-200 dark:hover:bg-neutral-600 transition-all active:scale-95 disabled:opacity-50"
+        >
+          {isSharing ? (
+            <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+          ) : (
+            <Share2 className="w-4 h-4" />
+          )}
+          Share
+        </button>
+        <button 
+          onClick={() => {
+            const hasDash = value.includes('-');
+            const isHexLike = /^[a-z0-9:-]+$/i.test(value);
+            const isRacquetId = hasDash && isHexLike;
+            const fullUrl = isRacquetId 
+              ? `${window.location.origin}/r/${value}`
+              : `${window.location.origin}/${value}`;
+            navigator.clipboard.writeText(fullUrl);
+            setIsCopied(true);
+            setTimeout(() => setIsCopied(false), 2000);
+          }}
+          className="flex items-center justify-center gap-2 px-4 py-3 bg-neutral-100 dark:bg-neutral-700 text-neutral-700 dark:text-neutral-200 rounded-xl font-bold hover:bg-neutral-200 dark:hover:bg-neutral-600 transition-all active:scale-95"
+        >
+          {isCopied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+          Copy Link
         </button>
       </div>
 
-      {/* Enlarge Modal */}
       {isModalOpen && (
-        <div 
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
-          onClick={() => setIsModalOpen(false)}
-        >
-          <div 
-            className="bg-white dark:bg-neutral-800 rounded-2xl p-6 max-w-sm w-full mx-4 relative"
-            onClick={e => e.stopPropagation()}
-          >
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center z-[100] p-4" onClick={() => setIsModalOpen(false)}>
+          <div className="relative max-w-2xl w-full flex flex-col items-center animate-scale-in" onClick={e => e.stopPropagation()}>
             <button 
               onClick={() => setIsModalOpen(false)}
-              className="absolute top-3 right-3 p-2 bg-neutral-100 dark:bg-neutral-700 rounded-full hover:bg-neutral-200 dark:hover:bg-neutral-600"
+              className="absolute -top-12 right-0 p-2 text-white hover:text-primary transition-colors"
             >
-              <X className="w-5 h-5" />
+              <X className="w-8 h-8" />
             </button>
-            
-            <div className="flex flex-col items-center">
-              <p className="text-xs font-bold text-neutral-500 dark:text-neutral-400 mb-3 uppercase tracking-wide">Scan Racquet</p>
-              <div className="p-4 bg-white rounded-xl shadow-2xl">
-                {qrUrl && <img src={qrUrl} alt="QR Code" className="w-64 h-64" />}
-              </div>
-              <p className="mt-4 text-sm font-bold text-neutral-600 dark:text-neutral-300">{label}</p>
-              {serialNumber && <p className="text-xs font-bold text-neutral-400">S/N: {serialNumber}</p>}
-              
-              <div className="mt-6 flex gap-2 w-full">
-                <button 
-                  onClick={handlePrint}
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-primary text-white rounded-xl font-bold hover:bg-primary/90 transition-all"
-                >
-                  <Printer className="w-4 h-4" />
-                  Print
-                </button>
+            <div className="bg-white p-8 rounded-3xl shadow-2xl flex flex-col items-center w-full">
+              {qrUrl && <img src={qrUrl} alt="QR Code Large" className="w-full max-w-[400px] aspect-square object-contain" />}
+              <div className="mt-8 flex flex-col items-center text-center">
+                <h3 className="text-2xl font-black text-neutral-900 mb-2">{label || "Racquet QR Code"}</h3>
+                <p className="text-neutral-500 font-medium mb-6">Scan to view full history and technical specs</p>
                 <button 
                   onClick={() => {
-                    const isShopQR = !value.includes('_');
-                    const fullUrl = isShopQR 
-                      ? `${window.location.origin}/${value}`
-                      : `${window.location.origin}/scan/${value}`;
+                    const hasDash = value.includes('-');
+                    const isHexLike = /^[a-z0-9:-]+$/i.test(value);
+                    const isRacquetId = hasDash && isHexLike;
+                    const fullUrl = isRacquetId 
+                      ? `${window.location.origin}/r/${value}`
+                      : `${window.location.origin}/${value}`;
                     navigator.clipboard.writeText(fullUrl);
                     setIsCopied(true);
                     setTimeout(() => setIsCopied(false), 2000);
                   }}
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-neutral-100 dark:bg-neutral-700 text-neutral-700 dark:text-neutral-200 rounded-xl font-bold hover:bg-neutral-200 dark:hover:bg-neutral-600 transition-all"
+                  className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-neutral-100 dark:bg-neutral-700 text-neutral-700 dark:text-neutral-200 rounded-2xl font-bold hover:bg-neutral-200 dark:hover:bg-neutral-600 transition-all"
                 >
-                  {isCopied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
-                  {isCopied ? "Copied" : "Copy"}
+                  {isCopied ? <Check className="w-5 h-5 text-green-500" /> : <Copy className="w-5 h-5" />}
+                  {isCopied ? "Link Copied" : "Copy Profile Link"}
                 </button>
               </div>
             </div>
