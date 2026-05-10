@@ -14,6 +14,7 @@ export default function QRCodeDisplay({
   tensionMain,
   tensionCross,
   customerName,
+  stringingDate,
   minimal = false
 }: { 
   value: string, 
@@ -26,6 +27,7 @@ export default function QRCodeDisplay({
   tensionMain?: string | number,
   tensionCross?: string | number,
   customerName?: string,
+  stringingDate?: string,
   minimal?: boolean
 }) {
   const [qrUrl, setQrUrl] = useState("");
@@ -46,7 +48,7 @@ export default function QRCodeDisplay({
         ? `${window.location.origin}/r/${value}`
         : `${window.location.origin}/${value}`;
       
-      QRCode.toDataURL(fullUrl, { width: 200, margin: 1, errorCorrectionLevel: 'L' }, (err, url) => {
+      QRCode.toDataURL(fullUrl, { width: 300, margin: 1, errorCorrectionLevel: 'M' }, (err, url) => {
         if (!err) setQrUrl(url);
       });
     }
@@ -86,18 +88,18 @@ export default function QRCodeDisplay({
               justify-content: flex-start;
               text-align: left;
               border: 1px dashed #ccc;
-              padding: 1mm;
+              padding: 1.5mm;
               border-radius: 0.5mm;
-              width: 30mm;
-              height: 14mm;
+              width: 32mm;
+              height: 15mm;
               box-sizing: border-box;
               overflow: hidden;
               background: white;
             }
-            img { 
-              width: 11mm; 
-              height: 11mm; 
-              margin-right: 1mm;
+            .qr-img { 
+              width: 12mm; 
+              height: 12mm; 
+              margin-right: 1.5mm;
               flex-shrink: 0;
             }
             .info {
@@ -108,39 +110,48 @@ export default function QRCodeDisplay({
               flex: 1;
               height: 100%;
             }
-            .label-text {
-              font-size: 6pt;
+            .customer-name {
+              font-size: 7pt;
               font-weight: 900;
               margin: 0;
               line-height: 1.1;
-              word-break: break-word;
               color: #000;
-              max-height: 14pt;
-              overflow: hidden;
+              text-transform: uppercase;
             }
-            .string-text {
+            .specs {
               font-size: 5pt;
               font-weight: 700;
               color: #111;
-              margin-top: 0.2mm;
+              margin-top: 0.5mm;
               white-space: nowrap;
               overflow: hidden;
               text-overflow: ellipsis;
             }
-            .shop-name { 
+            .racquet-model {
+              font-size: 5pt;
+              font-weight: 600;
+              color: #444;
+              white-space: nowrap;
+              overflow: hidden;
+              text-overflow: ellipsis;
+            }
+            .footer-row {
+              display: flex;
+              justify-content: space-between;
+              align-items: flex-end;
+              margin-top: auto;
+              padding-top: 0.5mm;
+              border-top: 0.1mm solid #eee;
+            }
+            .shop-info { 
               font-size: 4pt; 
               font-weight: 800; 
               color: #000; 
-              margin-top: 0.3mm;
               text-transform: uppercase;
-              white-space: nowrap;
-              overflow: hidden;
-              text-overflow: ellipsis;
             }
-            .shop-phone { 
-              font-size: 3pt; 
-              color: #333; 
-              margin-top: 0px;
+            .date-info { 
+              font-size: 3.5pt; 
+              color: #666; 
               font-weight: 600;
             }
             @media print {
@@ -151,22 +162,17 @@ export default function QRCodeDisplay({
         </head>
         <body>
           <div class="container">
-            <img src="${qrUrl}" />
+            <img class="qr-img" src="${qrUrl}" />
             <div class="info">
-              ${customerName ? `<div class="label-text">${customerName}</div>` : ''}
-              ${stringMain ? `<div class="string-text">${stringMain}${tensionMain ? ' '+tensionMain+' lbs' : ''}</div>` : ''}
-              ${stringCross ? `<div class="string-text">${stringCross}${tensionCross ? ' '+tensionCross+' lbs' : ''}</div>` : ''}
-              ${label ? `<div class="string-text">${label}</div>` : ''}
+              <div class="customer-name">${customerName || 'RACQUET'}</div>
+              <div class="specs">${stringMain}${tensionMain ? ' @ '+tensionMain : ''}</div>
+              ${stringCross ? `<div class="specs">${stringCross}${tensionCross ? ' @ '+tensionCross : ''}</div>` : ''}
+              <div class="racquet-model">${label || ''}</div>
+              <div class="footer-row">
+                <div class="shop-info">${shopName || 'STRINGERS FRIEND'}</div>
+                <div class="date-info">${stringingDate || new Date().toLocaleDateString()}</div>
+              </div>
             </div>
-          </div>
-          <script>
-            window.onload = () => {
-              setTimeout(() => {
-                window.print();
-                window.close();
-              }, 500);
-            };
-          </script>
           </div>
           <script>
             window.onload = () => {
@@ -185,10 +191,19 @@ export default function QRCodeDisplay({
   const generateImage = async () => {
     if (!labelRef.current) return null;
     try {
+      // Filter out problematic elements (OneSignal widgets) that cause CSS insertRule errors
+      const filter = (node: HTMLElement) => {
+        const id = node.id || '';
+        const className = typeof node.className === 'string' ? node.className : '';
+        return !id.includes('onesignal') && !className.includes('onesignal');
+      };
+
       const dataUrl = await toPng(labelRef.current, {
         cacheBust: true,
         backgroundColor: '#ffffff',
-        pixelRatio: 2,
+        pixelRatio: 3,
+        filter: filter as any,
+        skipFonts: true, // Speeds up generation and avoids font-loading issues
       });
       return dataUrl;
     } catch (err) {
@@ -310,15 +325,34 @@ export default function QRCodeDisplay({
       <div className="fixed -left-[9999px] top-0">
         <div 
           ref={labelRef}
-          className="bg-white p-2 flex flex-row items-center justify-start text-left"
-          style={{ width: '600px', height: '280px' }}
+          className="bg-white p-4 flex flex-row items-center justify-start text-left"
+          style={{ width: '600px', height: '280px', fontFamily: 'sans-serif' }}
         >
-          {qrUrl && <img src={qrUrl} alt="QR Code" className="w-[220px] h-[220px] mr-4 flex-shrink-0" />}
-          <div className="flex flex-col justify-center min-w-0 flex-1">
-            {customerName && <p className="text-5xl font-black text-black leading-tight mb-2 line-clamp-2">{customerName}</p>}
-            {stringMain && <p className="text-4xl font-bold text-black mb-2 truncate">{stringMain}{tensionMain ? ' '+tensionMain+' lbs' : ''}</p>}
-            {stringCross && <p className="text-4xl font-bold text-black mb-2 truncate">{stringCross}{tensionCross ? ' '+tensionCross+' lbs' : ''}</p>}
-            {label && <p className="text-4xl font-bold text-black truncate">{label}</p>}
+          {qrUrl && <img src={qrUrl} alt="QR Code" className="w-[220px] h-[220px] mr-6 flex-shrink-0" />}
+          <div className="flex flex-col justify-center min-w-0 flex-1 h-full">
+            {customerName && (
+              <p className="text-4xl font-black text-black leading-none mb-2 uppercase truncate">
+                {customerName}
+              </p>
+            )}
+            <div className="space-y-1 mb-2">
+              {stringMain && (
+                <p className="text-2xl font-bold text-neutral-800 truncate">
+                  {stringMain}{tensionMain ? ` @ ${tensionMain} lbs` : ''}
+                </p>
+              )}
+              {stringCross && (
+                <p className="text-2xl font-bold text-neutral-800 truncate">
+                  {stringCross}{tensionCross ? ` @ ${tensionCross} lbs` : ''}
+                </p>
+              )}
+            </div>
+            {label && <p className="text-2xl font-semibold text-neutral-600 truncate mb-4">{label}</p>}
+            
+            <div className="mt-auto pt-2 border-t border-neutral-100 flex justify-between items-end">
+              <p className="text-xl font-black text-black uppercase tracking-wider">{shopName || 'STRINGERS FRIEND'}</p>
+              <p className="text-lg font-bold text-neutral-400">{stringingDate || new Date().toLocaleDateString()}</p>
+            </div>
           </div>
         </div>
       </div>

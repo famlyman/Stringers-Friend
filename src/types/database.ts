@@ -24,10 +24,13 @@ export interface Shop {
   owner_id: string;
   name: string;
   slug: string;
+  description: string | null;
   address: string | null;
   phone: string | null;
   email: string | null;
+  logo_url: string | null;
   website: string | null;
+  qr_code: string | null;
   settings: Record<string, any>;
   created_at: string;
 }

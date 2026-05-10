@@ -33,11 +33,13 @@ export function RacquetQRModal({ showRacquetQR, setShowRacquetQR, customerName }
           <QRCodeDisplay 
             value={showRacquetQR.id} 
             customerName={customerName || (showRacquetQR as any).customerName}
-            stringMain={showRacquetQR.current_string_main}
-            stringCross={showRacquetQR.current_string_cross}
+            stringMain={showRacquetQR.current_string_main || ""}
+            stringCross={showRacquetQR.current_string_cross || ""}
             tensionMain={showRacquetQR.current_tension_main}
             tensionCross={showRacquetQR.current_tension_cross}
             label={`${showRacquetQR.brand} ${showRacquetQR.model}`}
+            stringingDate={new Date(showRacquetQR.updated_at).toLocaleDateString()}
+            shopName={(showRacquetQR as any).shopName}
           />
         </div>
       </div>
