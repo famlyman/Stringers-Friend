@@ -33,26 +33,49 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
   const [pendingRole, setPendingRole] = useState<'stringer' | 'customer' | null>(null);
 
-  const fetchProfile = async (userId: string, userEmail?: string, role?: 'stringer' | 'customer', retries = 3): Promise<Profile | null> => {
+  const fetchProfile = async (userId: string, userEmail?: string, role?: 'stringer' | 'customer', retries = 5): Promise<Profile | null> => {
     try {
+      // Use maybeSingle to avoid 406/PGRST116 errors when a row isn't found
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
-        .single();
+        .maybeSingle();
 
-      if (!error && data) {
+      if (data) {
         return data as Profile;
       }
 
-      // If error is 406 or no rows found, it might be a race condition with the trigger
-      if (retries > 0 && (error?.code === 'PGRST116' || error?.message?.includes('No rows') || error?.message?.includes('Not Acceptable'))) {
-        console.log(`[Auth] Profile not found, retrying... (${retries} left)`);
+      // If not found and we have a role to set (registration flow), try a safe upsert
+      const targetRole = role || pendingRole;
+      if (!data && targetRole && retries > 0) {
+        console.log(`[Auth] Profile missing for ${userId}, attempting safe upsert with role: ${targetRole}`);
+        const { error: upsertError } = await supabase
+          .from('profiles')
+          .upsert({
+            id: userId,
+            email: userEmail || '',
+            role: targetRole,
+            updated_at: new Date().toISOString()
+          }, { onConflict: 'id' });
+          
+        if (upsertError) {
+          console.warn('[Auth] Upsert fallback failed (likely race condition), will retry fetch:', upsertError.message);
+        }
+        
+        // Wait a bit for the upsert/trigger to settle
         await new Promise(resolve => setTimeout(resolve, 1000));
         return fetchProfile(userId, userEmail, role, retries - 1);
       }
 
-      console.error('fetchProfile error:', error);
+      // Standard retry if still not found
+      if (retries > 0) {
+        console.log(`[Auth] Profile not found for ${userId}, retrying... (${retries} left)`);
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        return fetchProfile(userId, userEmail, role, retries - 1);
+      }
+
+      if (error) console.error('fetchProfile final error:', error);
       return null;
     } catch (err) {
       console.error('fetchProfile unexpected error:', err);
