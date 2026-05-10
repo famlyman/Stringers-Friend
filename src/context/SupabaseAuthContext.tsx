@@ -33,7 +33,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
   const [pendingRole, setPendingRole] = useState<'stringer' | 'customer' | null>(null);
 
-  const fetchProfile = async (userId: string, userEmail?: string, role?: 'stringer' | 'customer'): Promise<Profile | null> => {
+  const fetchProfile = async (userId: string, userEmail?: string, role?: 'stringer' | 'customer', retries = 3): Promise<Profile | null> => {
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -45,30 +45,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return data as Profile;
       }
 
-      if (error?.code === 'PGRST116' || error?.message?.includes('No rows')) {
-        const profileRole = role || pendingRole || 'customer';
-        const { error: createError } = await supabase
-          .from('profiles')
-          .upsert({
-            id: userId,
-            email: userEmail || '',
-            role: profileRole,
-          }, {
-            onConflict: 'id'
-          });
-
-        if (!createError) {
-          const { data: newProfile } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', userId)
-            .single();
-          return newProfile as Profile;
-        }
+      // If error is 406 or no rows found, it might be a race condition with the trigger
+      if (retries > 0 && (error?.code === 'PGRST116' || error?.message?.includes('No rows') || error?.message?.includes('Not Acceptable'))) {
+        console.log(`[Auth] Profile not found, retrying... (${retries} left)`);
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        return fetchProfile(userId, userEmail, role, retries - 1);
       }
+
+      console.error('fetchProfile error:', error);
       return null;
     } catch (err) {
-      console.error('fetchProfile error:', err);
+      console.error('fetchProfile unexpected error:', err);
       return null;
     }
   };
