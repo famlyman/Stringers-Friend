@@ -47,7 +47,7 @@ export default function QRCodeDisplay({
         ? `${window.location.origin}/r/${value}`
         : `${window.location.origin}/${value}`;
       
-      QRCode.toDataURL(fullUrl, { width: 400, margin: 1, errorCorrectionLevel: 'M' }, (err, url) => {
+      QRCode.toDataURL(fullUrl, { width: 400, margin: 0, errorCorrectionLevel: 'M' }, (err, url) => {
         if (!err) setQrUrl(url);
       });
     }
@@ -70,103 +70,92 @@ export default function QRCodeDisplay({
               margin: 0;
             }
             body { 
-              display: flex; 
-              flex-direction: column; 
-              align-items: center; 
-              justify-content: center; 
-              min-height: 100vh; 
               margin: 0; 
               padding: 0;
               font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
               background: white;
+              height: 14mm;
+              width: 80mm;
+              overflow: hidden;
             }
             .container {
               display: flex;
               flex-direction: row;
               align-items: center;
-              justify-content: flex-start;
-              text-align: left;
-              border: 1px dashed #ccc;
-              padding: 1.5mm;
-              border-radius: 0.5mm;
               width: 80mm;
               height: 14mm;
               box-sizing: border-box;
-              overflow: hidden;
               background: white;
+              border: 1px dashed #eee;
             }
             .qr-img { 
-              width: 12.5mm; 
-              height: 12.5mm; 
-              margin-right: 4mm;
+              height: 12mm; 
+              width: 12mm; 
+              margin-left: 1mm;
+              margin-right: 3mm;
               flex-shrink: 0;
             }
             .info {
+              flex: 1;
               display: flex;
               flex-direction: column;
-              justify-content: center;
-              min-width: 0;
-              flex: 1;
+              justify-content: space-between;
               height: 100%;
-              padding-top: 1mm;
+              padding: 0.8mm 0;
+              min-width: 0;
             }
             .customer-name {
-              font-size: 11.5pt;
+              font-size: 8.5pt;
               font-weight: 950;
-              margin: 0;
               line-height: 1;
               color: #000;
               text-transform: uppercase;
-              letter-spacing: 0.1mm;
               white-space: nowrap;
             }
-            .specs-container {
-              display: flex;
-              flex-direction: column;
-              gap: 0.1mm;
-              margin: 0.4mm 0;
-            }
-            .specs {
-              font-size: 8.5pt;
-              font-weight: 950;
+            .specs-line {
+              font-size: 6.5pt;
+              font-weight: 900;
               color: #000;
-              line-height: 1.1;
+              line-height: 1;
               white-space: nowrap;
             }
-            .racquet-model {
-              font-size: 8.5pt;
-              font-weight: 950;
+            .model-line {
+              font-size: 6.5pt;
+              font-weight: 850;
               color: #000;
-              line-height: 1.1;
-              white-space: nowrap;
-            }
-            .shop-name-block {
-              font-size: 7.5pt;
-              font-weight: 950;
-              color: #000;
-              text-transform: uppercase;
-              margin-top: auto;
-              padding-top: 0.2mm;
+              line-height: 1;
               white-space: nowrap;
             }
             .footer-row {
               display: flex;
-              justify-content: center;
-              align-items: center;
-              margin-top: auto;
-              padding-top: 0.4mm;
+              flex-direction: row;
+              justify-content: space-between;
+              align-items: flex-end;
               border-top: 0.1mm solid #000;
+              padding-top: 0.3mm;
+              margin-right: 2mm;
             }
-            .powered-by { 
-              font-size: 4.5pt; 
-              color: #000; 
-              font-weight: 900;
+            .shop-name {
+              font-size: 6pt;
+              font-weight: 950;
               text-transform: uppercase;
-              letter-spacing: 0.2mm;
+              white-space: nowrap;
+            }
+            .date-info {
+              font-size: 5pt;
+              font-weight: 800;
+              color: #444;
+            }
+            .powered-by {
+              font-size: 3.5pt;
+              font-weight: 800;
+              text-transform: uppercase;
+              color: #888;
+              text-align: center;
+              margin-top: 0.2mm;
             }
             @media print {
               .container { border: none; }
-              body { min-height: auto; }
             }
           </style>
         </head>
@@ -175,16 +164,19 @@ export default function QRCodeDisplay({
             <img class="qr-img" src="${qrUrl}" />
             <div class="info">
               <div class="customer-name">${customerName || label || 'RACQUET'}</div>
-              <div class="specs-container">
-                ${stringMain ? `<div class="specs">${stringMain}${tensionMain ? ' @ '+tensionMain : ''}</div>` : ''}
-                ${stringCross ? `<div class="specs">${stringCross}${tensionCross ? ' @ '+tensionCross : ''}</div>` : ''}
-                <div class="racquet-model">${label || ''}</div>
-                <div class="specs" style="color: #000; font-size: 7.5pt; font-weight: 950; white-space: nowrap;">${stringingDate || new Date().toLocaleDateString()}</div>
+              
+              <div class="specs-line">
+                ${stringMain}${tensionMain ? ' @ '+tensionMain+' lbs' : ''}
+                ${stringCross ? ' / ' + stringCross + (tensionCross ? ' @ '+tensionCross+' lbs' : '') : ''}
               </div>
-              <div class="shop-name-block">${shopName || ''}</div>
+
+              <div class="model-line">${label || ''}</div>
+
               <div class="footer-row">
-                <div class="powered-by">Powered by Stringer's Friend</div>
+                <div class="shop-name">${shopName || ''}</div>
+                <div class="date-info">${stringingDate || new Date().toLocaleDateString()}</div>
               </div>
+              <div class="powered-by">Powered by Stringer's Friend</div>
             </div>
           </div>
           <script>
@@ -213,7 +205,7 @@ export default function QRCodeDisplay({
       const dataUrl = await toPng(labelRef.current, {
         cacheBust: true,
         backgroundColor: '#ffffff',
-        pixelRatio: 3,
+        pixelRatio: 4,
         filter: filter as any,
         skipFonts: true,
       });
@@ -279,42 +271,29 @@ export default function QRCodeDisplay({
 
   return (
     <div className="flex flex-col items-center p-4 bg-white dark:bg-neutral-800 rounded-2xl shadow-sm border border-neutral-100 dark:border-neutral-700 w-full max-w-sm mx-auto">
-      {/* Hidden element for image generation */}
+      {/* Hidden element for image generation (1371x240 for 80x14mm) */}
       <div className="fixed -left-[9999px] top-0">
         <div 
           ref={labelRef}
-          className="bg-white p-4 flex flex-row items-center justify-start text-left"
+          className="bg-white flex flex-row items-center justify-start text-left"
           style={{ width: '1371px', height: '240px', fontFamily: 'sans-serif' }}
         >
-          {qrUrl && <img src={qrUrl} alt="QR Code" className="w-[180px] h-[180px] mr-12 flex-shrink-0" />}
-          <div className="flex flex-col justify-center min-w-0 flex-1 h-full py-2 pl-12">
+          {qrUrl && <img src={qrUrl} alt="QR Code" style={{ width: '200px', height: '200px', marginLeft: '20px', marginRight: '40px' }} />}
+          <div className="flex flex-col justify-between flex-1 h-full py-4 pr-12 min-w-0">
             <p className="text-6xl font-black text-black leading-none uppercase whitespace-nowrap">
               {customerName || label || 'RACQUET'}
             </p>
-            <div className="space-y-1.5 my-2">
-              {stringMain && (
-                <p className="text-4xl font-black text-black leading-tight whitespace-nowrap">
-                  {stringMain}{tensionMain ? ` @ ${tensionMain} lbs` : ''}
-                </p>
-              )}
-              {stringCross && (
-                <p className="text-4xl font-black text-black leading-tight whitespace-nowrap">
-                  {stringCross}{tensionCross ? ` @ ${tensionCross} lbs` : ''}
-                </p>
-              )}
-              <p className="text-4xl font-black text-neutral-800 whitespace-nowrap">{label || ''}</p>
-              <p className="text-3xl font-black text-neutral-600 whitespace-nowrap">
-                {stringingDate || new Date().toLocaleDateString()}
-              </p>
-            </div>
-            
-            <p className="text-3xl font-black text-black uppercase mt-auto mb-1 whitespace-nowrap">
-              {shopName || ''}
+            <p className="text-4xl font-black text-black leading-none whitespace-nowrap">
+              {stringMain}{tensionMain ? ` @ ${tensionMain} lbs` : ''}
+              {stringCross ? ` / ${stringCross}${tensionCross ? ` @ ${tensionCross} lbs` : ''}` : ''}
             </p>
+            <p className="text-4xl font-black text-black leading-none whitespace-nowrap">{label || ''}</p>
             
-            <div className="pt-2 border-t-4 border-black flex justify-center">
-              <p className="text-xl font-black text-black uppercase tracking-widest">Powered by Stringer's Friend</p>
+            <div className="flex justify-between items-end border-t-4 border-black pt-2">
+              <p className="text-3xl font-black text-black uppercase whitespace-nowrap">{shopName || ''}</p>
+              <p className="text-2xl font-black text-neutral-400">{stringingDate || new Date().toLocaleDateString()}</p>
             </div>
+            <p className="text-xl font-bold text-neutral-300 uppercase tracking-widest text-center">Powered by Stringer's Friend</p>
           </div>
         </div>
       </div>
