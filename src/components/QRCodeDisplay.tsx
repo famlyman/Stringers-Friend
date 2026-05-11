@@ -119,9 +119,6 @@ export default function QRCodeDisplay({
               color: #000;
               text-transform: uppercase;
               letter-spacing: -0.1mm;
-              white-space: nowrap;
-              overflow: hidden;
-              text-overflow: ellipsis;
             }
             .specs-container {
               display: flex;
@@ -134,18 +131,12 @@ export default function QRCodeDisplay({
               font-weight: 950;
               color: #000;
               line-height: 1.1;
-              white-space: nowrap;
-              overflow: hidden;
-              text-overflow: ellipsis;
             }
             .racquet-model {
               font-size: 6pt;
               font-weight: 950;
               color: #000;
               line-height: 1.1;
-              white-space: nowrap;
-              overflow: hidden;
-              text-overflow: ellipsis;
             }
             .shop-name-block {
               font-size: 5.8pt;
@@ -154,9 +145,6 @@ export default function QRCodeDisplay({
               text-transform: uppercase;
               margin-top: auto;
               padding-top: 0.2mm;
-              white-space: nowrap;
-              overflow: hidden;
-              text-overflow: ellipsis;
             }
             .footer-row {
               display: flex;
@@ -299,24 +287,24 @@ export default function QRCodeDisplay({
             <p className="text-4xl font-black text-black leading-none uppercase mb-1">
               {customerName || label || 'RACQUET'}
             </p>
-            <div className="space-y-0.5 my-1 overflow-hidden">
+            <div className="space-y-0.5 my-1">
               {stringMain && (
-                <p className="text-2xl font-black text-black leading-tight truncate">
+                <p className="text-2xl font-black text-black leading-tight">
                   {stringMain}{tensionMain ? ` @ ${tensionMain} lbs` : ''}
                 </p>
               )}
               {stringCross && (
-                <p className="text-2xl font-black text-black leading-tight truncate">
+                <p className="text-2xl font-black text-black leading-tight">
                   {stringCross}{tensionCross ? ` @ ${tensionCross} lbs` : ''}
                 </p>
               )}
-              <p className="text-2xl font-black text-neutral-800 truncate">{label || ''}</p>
-              <p className="text-xl font-black text-neutral-600 truncate">
+              <p className="text-2xl font-black text-neutral-800">{label || ''}</p>
+              <p className="text-xl font-black text-neutral-600">
                 {stringingDate || new Date().toLocaleDateString()}
               </p>
             </div>
             
-            <p className="text-xl font-black text-black uppercase truncate mt-auto mb-1">
+            <p className="text-xl font-black text-black uppercase mt-auto mb-1">
               {shopName || ''}
             </p>
             
