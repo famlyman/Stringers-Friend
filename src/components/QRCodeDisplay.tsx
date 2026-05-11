@@ -39,7 +39,6 @@ export default function QRCodeDisplay({
 
   useEffect(() => {
     if (value) {
-      // UUIDs with dashes are racquets - route to /r/{id}
       const hasDash = value.includes('-');
       const isHexLike = /^[a-z0-9:-]+$/i.test(value);
       const isRacquetId = hasDash && isHexLike;
@@ -48,7 +47,7 @@ export default function QRCodeDisplay({
         ? `${window.location.origin}/r/${value}`
         : `${window.location.origin}/${value}`;
       
-      QRCode.toDataURL(fullUrl, { width: 300, margin: 1, errorCorrectionLevel: 'M' }, (err, url) => {
+      QRCode.toDataURL(fullUrl, { width: 400, margin: 1, errorCorrectionLevel: 'M' }, (err, url) => {
         if (!err) setQrUrl(url);
       });
     }
@@ -67,8 +66,8 @@ export default function QRCodeDisplay({
           <title>Print QR Code</title>
           <style>
             @page {
+              size: 80mm 14mm;
               margin: 0;
-              size: auto;
             }
             body { 
               display: flex; 
@@ -88,7 +87,7 @@ export default function QRCodeDisplay({
               justify-content: flex-start;
               text-align: left;
               border: 1px dashed #ccc;
-              padding: 0.8mm;
+              padding: 1.5mm;
               border-radius: 0.5mm;
               width: 80mm;
               height: 14mm;
@@ -97,9 +96,9 @@ export default function QRCodeDisplay({
               background: white;
             }
             .qr-img { 
-              width: 12mm; 
-              height: 12mm; 
-              margin-right: 1.5mm;
+              width: 12.5mm; 
+              height: 12.5mm; 
+              margin-right: 4mm;
               flex-shrink: 0;
             }
             .info {
@@ -109,56 +108,61 @@ export default function QRCodeDisplay({
               min-width: 0;
               flex: 1;
               height: 100%;
-              padding-top: 1.8mm;
+              padding-top: 1mm;
             }
             .customer-name {
-              font-size: 9.5pt;
+              font-size: 11.5pt;
               font-weight: 950;
               margin: 0;
               line-height: 1;
               color: #000;
               text-transform: uppercase;
-              letter-spacing: -0.1mm;
+              letter-spacing: 0.1mm;
+              white-space: nowrap;
             }
             .specs-container {
               display: flex;
               flex-direction: column;
               gap: 0.1mm;
-              margin: 0.3mm 0;
+              margin: 0.4mm 0;
             }
             .specs {
-              font-size: 6pt;
+              font-size: 8.5pt;
               font-weight: 950;
               color: #000;
               line-height: 1.1;
+              white-space: nowrap;
             }
             .racquet-model {
-              font-size: 6pt;
+              font-size: 8.5pt;
               font-weight: 950;
               color: #000;
               line-height: 1.1;
+              white-space: nowrap;
             }
             .shop-name-block {
-              font-size: 5.8pt;
+              font-size: 7.5pt;
               font-weight: 950;
               color: #000;
               text-transform: uppercase;
               margin-top: auto;
               padding-top: 0.2mm;
+              white-space: nowrap;
             }
             .footer-row {
               display: flex;
               justify-content: center;
               align-items: center;
-              padding-top: 0.3mm;
-              border-top: 0.05mm solid #000;
+              margin-top: auto;
+              padding-top: 0.4mm;
+              border-top: 0.1mm solid #000;
             }
             .powered-by { 
-              font-size: 3.5pt; 
+              font-size: 4.5pt; 
               color: #000; 
               font-weight: 900;
               text-transform: uppercase;
-              letter-spacing: 0.1mm;
+              letter-spacing: 0.2mm;
             }
             @media print {
               .container { border: none; }
@@ -175,7 +179,7 @@ export default function QRCodeDisplay({
                 ${stringMain ? `<div class="specs">${stringMain}${tensionMain ? ' @ '+tensionMain : ''}</div>` : ''}
                 ${stringCross ? `<div class="specs">${stringCross}${tensionCross ? ' @ '+tensionCross : ''}</div>` : ''}
                 <div class="racquet-model">${label || ''}</div>
-                <div class="specs" style="color: #000; font-size: 5.2pt; font-weight: 950;">${stringingDate || new Date().toLocaleDateString()}</div>
+                <div class="specs" style="color: #000; font-size: 7.5pt; font-weight: 950; white-space: nowrap;">${stringingDate || new Date().toLocaleDateString()}</div>
               </div>
               <div class="shop-name-block">${shopName || ''}</div>
               <div class="footer-row">
@@ -282,34 +286,34 @@ export default function QRCodeDisplay({
           className="bg-white p-4 flex flex-row items-center justify-start text-left"
           style={{ width: '1371px', height: '240px', fontFamily: 'sans-serif' }}
         >
-          {qrUrl && <img src={qrUrl} alt="QR Code" className="w-[180px] h-[180px] mr-6 flex-shrink-0" />}
-          <div className="flex flex-col justify-center min-w-0 flex-1 h-full py-1 pt-4">
-            <p className="text-4xl font-black text-black leading-none uppercase mb-1">
+          {qrUrl && <img src={qrUrl} alt="QR Code" className="w-[180px] h-[180px] mr-12 flex-shrink-0" />}
+          <div className="flex flex-col justify-center min-w-0 flex-1 h-full py-2 pl-12">
+            <p className="text-6xl font-black text-black leading-none uppercase whitespace-nowrap">
               {customerName || label || 'RACQUET'}
             </p>
-            <div className="space-y-0.5 my-1">
+            <div className="space-y-1.5 my-2">
               {stringMain && (
-                <p className="text-2xl font-black text-black leading-tight">
+                <p className="text-4xl font-black text-black leading-tight whitespace-nowrap">
                   {stringMain}{tensionMain ? ` @ ${tensionMain} lbs` : ''}
                 </p>
               )}
               {stringCross && (
-                <p className="text-2xl font-black text-black leading-tight">
+                <p className="text-4xl font-black text-black leading-tight whitespace-nowrap">
                   {stringCross}{tensionCross ? ` @ ${tensionCross} lbs` : ''}
                 </p>
               )}
-              <p className="text-2xl font-black text-neutral-800">{label || ''}</p>
-              <p className="text-xl font-black text-neutral-600">
+              <p className="text-4xl font-black text-neutral-800 whitespace-nowrap">{label || ''}</p>
+              <p className="text-3xl font-black text-neutral-600 whitespace-nowrap">
                 {stringingDate || new Date().toLocaleDateString()}
               </p>
             </div>
             
-            <p className="text-xl font-black text-black uppercase mt-auto mb-1">
+            <p className="text-3xl font-black text-black uppercase mt-auto mb-1 whitespace-nowrap">
               {shopName || ''}
             </p>
             
-            <div className="pt-1.5 border-t-2 border-black flex justify-center">
-              <p className="text-xs font-black text-black uppercase tracking-widest">Powered by Stringer's Friend</p>
+            <div className="pt-2 border-t-4 border-black flex justify-center">
+              <p className="text-xl font-black text-black uppercase tracking-widest">Powered by Stringer's Friend</p>
             </div>
           </div>
         </div>
