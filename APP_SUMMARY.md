@@ -31,8 +31,9 @@ The application serves as a digital assistant for racquet stringers, providing t
 
 ### 5. Inventory Control
 *   **Smart Inventory:** Tracks strings (by reel or individual set), grips, dampeners, and other accessories.
-*   **Reel Management:** Specifically tracks the remaining length on string reels, automatically alerting when stock is low.
-*   **Low Stock Alerts:** Visual indicators for items falling below a defined threshold.
+*   **Precision Reel Tracking:** Specifically tracks the remaining length on standard (200m/660ft) and mini (100m/330ft) reels. Supports both metric (m) and imperial (ft) units.
+*   **Automated Deductions:** Deducts exact string lengths based on job type (full bed vs hybrid) and automatically handles rollover to new reels.
+*   **Low Stock Alerts:** Visual indicators for items falling below length or quantity thresholds.
 
 ### 6. Communication & Notifications
 *   **Messaging System:** Integrated chat/messaging between the shop and the customer.
@@ -51,7 +52,7 @@ The application serves as a digital assistant for racquet stringers, providing t
 *   **PWA:** Vite PWA Plugin with unified OneSignal + Workbox Service Worker.
 
 ### Backend (Supabase)
-*   **Authentication:** Supabase Auth with resilient profile sync.
+*   **Authentication:** Supabase Auth with resilient profile sync and race-condition handling.
 *   **Database:** Supabase PostgreSQL with a multi-tenant schema (Shops, Customers, Jobs).
 *   **Multi-Device Tracking:** `user_devices` table for managing multiple push subscription IDs per user.
 *   **Security:** Row Level Security (RLS) policies ensuring shop-level data isolation and secure device management.
@@ -59,7 +60,7 @@ The application serves as a digital assistant for racquet stringers, providing t
 
 ### Integrations
 *   **AI:** Google Gemini API (gemini-1.5-flash) for technical racquet data.
-*   **QR Codes:** react-qr-code for generating scannable codes.
+*   **Professional Labeling:** High-resolution QR code label generation specifically optimized for Niimbot 80mm x 14mm thermal stock. Includes branded "Powered by Stringer's Friend" footers and automatic technical data population.
 *   **Push:** OneSignal REST API with standardized `Key` authorization.
 
 ---
