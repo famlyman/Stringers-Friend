@@ -90,7 +90,7 @@ export default function QRCodeDisplay({
               border: 1px dashed #ccc;
               padding: 0.8mm;
               border-radius: 0.5mm;
-              width: 35mm;
+              width: 80mm;
               height: 14mm;
               box-sizing: border-box;
               overflow: hidden;
@@ -280,7 +280,7 @@ export default function QRCodeDisplay({
         <div 
           ref={labelRef}
           className="bg-white p-4 flex flex-row items-center justify-start text-left"
-          style={{ width: '600px', height: '240px', fontFamily: 'sans-serif' }}
+          style={{ width: '1371px', height: '240px', fontFamily: 'sans-serif' }}
         >
           {qrUrl && <img src={qrUrl} alt="QR Code" className="w-[180px] h-[180px] mr-6 flex-shrink-0" />}
           <div className="flex flex-col justify-center min-w-0 flex-1 h-full py-1 pt-4">
