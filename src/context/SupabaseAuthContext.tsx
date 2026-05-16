@@ -33,7 +33,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
   const [pendingRole, setPendingRole] = useState<'stringer' | 'customer' | null>(null);
 
-  const fetchProfile = async (userId: string, userEmail?: string, role?: 'stringer' | 'customer', retries = 5): Promise<Profile | null> => {
+  const fetchProfile = async (userId: string, userEmail?: string, role?: 'stringer' | 'customer', retries = 2): Promise<Profile | null> => {
     try {
       // Use maybeSingle to avoid 406/PGRST116 errors when a row isn't found
       const { data, error } = await supabase
@@ -86,53 +86,54 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     let mounted = true;
     
-    // Safety timeout
-    const safetyTimeout = setTimeout(() => {
+    console.log('[Auth] Initializing...');
+
+    let activeFetch: Promise<void> | null = null;
+
+    const handleSession = async (session: any) => {
+      if (!mounted || !session?.user) return;
+      setUser(session.user);
+      const profileData = await fetchProfile(session.user.id, session.user.email);
       if (mounted) {
-        console.warn('[Auth] Safety timeout reached');
+        if (profileData) setProfile(profileData);
         setLoading(false);
       }
-    }, 10000);
-    
-    console.log('[Auth] Initializing...');
+    };
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (!mounted) return;
         
         if (session?.user) {
-          setUser(session.user);
-          // Set loading false immediately when session exists
-          setLoading(false);
-          clearTimeout(safetyTimeout);
-
-          // Fetch profile in background without blocking
-          if (!profile || profile.id !== session.user.id) {
-            fetchProfile(session.user.id, session.user.email).then(profileData => {
-              if (mounted && profileData) setProfile(profileData);
-            });
-          }
+          activeFetch = handleSession(session);
         } else {
           setUser(null);
           setProfile(null);
           setLoading(false);
-          clearTimeout(safetyTimeout);
         }
       }
     );
 
-    // Initial check
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    // Initial check — load session and wait for profile
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       console.log('[Auth] getSession:', !!session);
-      if (mounted && session?.user && !user) {
-        setUser(session.user);
+      if (mounted && session?.user) {
+        activeFetch = handleSession(session);
+      } else if (mounted) {
         setLoading(false);
-        clearTimeout(safetyTimeout);
       }
     }).catch(err => {
       console.error('[Auth] getSession error:', err);
       if (mounted) setLoading(false);
     });
+
+    // Safety timeout: force loading off after 12s
+    const safetyTimeout = setTimeout(() => {
+      if (mounted && activeFetch) {
+        console.warn('[Auth] Safety timeout — forcing loading false');
+        setLoading(false);
+      }
+    }, 12000);
 
     return () => {
       mounted = false;
