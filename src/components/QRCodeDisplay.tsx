@@ -66,7 +66,7 @@ export default function QRCodeDisplay({
           <title>Print QR Code</title>
           <style>
             @page {
-              size: 80mm 14mm;
+              size: 40mm 14mm;
               margin: 0;
             }
             body { 
@@ -75,37 +75,38 @@ export default function QRCodeDisplay({
               font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
               background: white;
               height: 14mm;
-              width: 80mm;
+              width: 40mm;
               overflow: hidden;
             }
             .container {
               display: flex;
               flex-direction: row;
               align-items: center;
-              width: 80mm;
+              width: 40mm;
               height: 14mm;
               box-sizing: border-box;
               background: white;
               border: 1px dashed #eee;
             }
             .qr-img { 
-              height: 12mm; 
-              width: 12mm; 
-              margin-left: 1mm;
-              margin-right: 3mm;
+              height: 10mm; 
+              width: 10mm; 
+              margin-left: 0.8mm;
+              margin-right: 1.5mm;
               flex-shrink: 0;
             }
             .info {
               flex: 1;
               display: flex;
               flex-direction: column;
-              justify-content: space-between;
+              justify-content: center;
               height: 100%;
-              padding: 0.8mm 0;
+              padding: 0.5mm 0;
               min-width: 0;
+              gap: 0.5mm;
             }
             .customer-name {
-              font-size: 8pt;
+              font-size: 6pt;
               font-weight: 950;
               line-height: 1;
               color: #000;
@@ -113,25 +114,24 @@ export default function QRCodeDisplay({
               white-space: nowrap;
             }
             .serial-number {
-              font-size: 7pt;
+              font-size: 5.5pt;
               font-weight: 900;
               color: #000;
               line-height: 1;
               white-space: nowrap;
             }
             .shop-name-line {
-              font-size: 6pt;
+              font-size: 5pt;
               font-weight: 950;
               text-transform: uppercase;
               white-space: nowrap;
             }
             .powered-by {
-              font-size: 4.5pt;
+              font-size: 4pt;
               font-weight: 800;
               text-transform: uppercase;
               color: #555;
-              text-align: center;
-              margin-top: 0.2mm;
+              text-align: left;
             }
             @media print {
               .container { border: none; }
@@ -244,23 +244,23 @@ export default function QRCodeDisplay({
 
   return (
     <div className="flex flex-col items-center p-4 bg-white dark:bg-neutral-800 rounded-2xl shadow-sm border border-neutral-100 dark:border-neutral-700 w-full max-w-sm mx-auto">
-      {/* Hidden element for image generation (1371x240 for 80x14mm) */}
+      {/* Hidden element for image generation (686x240 for 40x14mm) */}
       <div className="fixed -left-[9999px] top-0">
         <div 
           ref={labelRef}
           className="bg-white flex flex-row items-center justify-start text-left"
-          style={{ width: '1371px', height: '240px', fontFamily: 'sans-serif' }}
+          style={{ width: '686px', height: '240px', fontFamily: 'sans-serif' }}
         >
-          {qrUrl && <img src={qrUrl} alt="QR Code" style={{ width: '200px', height: '200px', marginLeft: '20px', marginRight: '40px' }} />}
-          <div className="flex flex-col justify-center flex-1 h-full py-6 pr-12 min-w-0 gap-2">
-            <p className="text-5xl font-black text-black leading-none uppercase whitespace-nowrap">
+          {qrUrl && <img src={qrUrl} alt="QR Code" style={{ width: '170px', height: '170px', marginLeft: '14px', marginRight: '26px' }} />}
+          <div className="flex flex-col justify-center flex-1 h-full py-5 pr-8 min-w-0 gap-1">
+            <p className="text-3xl font-black text-black leading-none uppercase whitespace-nowrap">
               {customerName || label || 'RACQUET'}
             </p>
-            <p className="text-3xl font-black text-black leading-none whitespace-nowrap">
+            <p className="text-2xl font-black text-black leading-none whitespace-nowrap">
               {serialNumber ? `SN: ${serialNumber.slice(-4)}` : 'N/A'}
             </p>
-            <p className="text-3xl font-black text-black uppercase whitespace-nowrap">{shopName || ''}</p>
-            <p className="text-xl font-bold text-neutral-500 uppercase tracking-widest text-center">Powered by Stringer's Friend</p>
+            <p className="text-xl font-black text-black uppercase whitespace-nowrap">{shopName || ''}</p>
+            <p className="text-sm font-bold text-neutral-500 uppercase tracking-widest text-left">Powered by Stringer's Friend</p>
           </div>
         </div>
       </div>
