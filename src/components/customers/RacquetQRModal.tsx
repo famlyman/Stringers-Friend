@@ -7,6 +7,7 @@ interface RacquetQRModalProps {
   showRacquetQR: Racquet | null;
   setShowRacquetQR: (data: Racquet | null) => void;
   customerName?: string;
+  shopName?: string;
 }
 
 export function RacquetQRModal({ showRacquetQR, setShowRacquetQR, customerName, shopName }: RacquetQRModalProps) {
@@ -23,12 +24,6 @@ export function RacquetQRModal({ showRacquetQR, setShowRacquetQR, customerName, 
   };
 
   const derivedCustomerName = getCustomerName();
-
-  // Get the most relevant date (last updated or completion date)
-  const getStringingDate = () => {
-    // If the racquet was updated recently (marked by a job completion)
-    return new Date(showRacquetQR.updated_at || showRacquetQR.created_at).toLocaleDateString();
-  };
 
   return (
     <div 
@@ -51,12 +46,8 @@ export function RacquetQRModal({ showRacquetQR, setShowRacquetQR, customerName, 
           <QRCodeDisplay 
             value={showRacquetQR.id} 
             customerName={derivedCustomerName}
-            stringMain={showRacquetQR.current_string_main || ""}
-            stringCross={showRacquetQR.current_string_cross || ""}
-            tensionMain={showRacquetQR.current_tension_main}
-            tensionCross={showRacquetQR.current_tension_cross}
+            serialNumber={showRacquetQR.serial_number || undefined}
             label={`${showRacquetQR.brand} ${showRacquetQR.model}`}
-            stringingDate={getStringingDate()}
             shopName={shopName || (showRacquetQR as any).shop?.name}
           />
         </div>
