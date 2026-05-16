@@ -5,9 +5,8 @@ import { useDashboardData } from "../hooks/useDashboardData";
 import { safeFormatDate } from "../lib/utils";
 import { sendNotification } from "../lib/notifications";
 import { supabase } from "../lib/supabase";
-import { v4 as uuidv4 } from "uuid";
-import { SmartRacquetBrandSelect, SmartRacquetModelSelect } from "../components/SmartRacquetSelect";
 import QRCodeDisplay from "../components/QRCodeDisplay";
+import { NewJobModal } from "../components/dashboard/NewJobModal";
 import { Profile, Customer, Job } from "../types/database";
 
 export default function Dashboard({ user, initialTab = 'jobs' }: { user: Profile, initialTab?: 'jobs' | 'customers' | 'messages' | 'inventory' }) {
@@ -25,112 +24,15 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: Profile
   } = useDashboardData(user?.shop_id || undefined);
 
   const [showNewJob, setShowNewJob] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'jobs' | 'customers' | 'messages' | 'inventory'>(initialTab);
   const [searchQuery, setSearchQuery] = useState("");
   const [showShopQR, setShowShopQR] = useState(false);
-  
-  // New Job Form State
-  const [newJob, setNewJob] = useState({
-    customer_name: "",
-    customer_email: "",
-    customer_phone: "",
-    racquet_brand: "",
-    racquet_model: "",
-    racquet_brand_custom: "",
-    racquet_model_custom: "",
-    racquet_serial: "",
-    tension_main: 0,
-    tension_cross: 0,
-    price: 25,
-    notes: "",
-    service_type: "string_full_bed"
-  });
-  
-  const [selectedCustomerId, setSelectedCustomerId] = useState("");
-  const [selectedRacquetId, setSelectedRacquetId] = useState("");
-  const [isNewCustomer, setIsNewCustomer] = useState(false);
-  const [isNewRacquet, setIsNewRacquet] = useState(false);
 
   useEffect(() => {
     setActiveTab(initialTab);
   }, [initialTab]);
 
-  const handleCreateJob = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSubmitting(true);
-    setError(null);
-    
-    try {
-      const shopId = user.shop_id || user.shopId;
-      if (!shopId) throw new Error("Shop ID is missing.");
 
-      let finalCustomerId = selectedCustomerId;
-      let finalRacquetId = selectedRacquetId;
-
-      if (isNewCustomer) {
-        const nameParts = newJob.customer_name.trim().split(' ');
-        const { data: newCustomerData, error: customerError } = await supabase
-          .from('customers')
-          .insert({
-            shop_id: shopId,
-            first_name: nameParts[0],
-            last_name: nameParts.slice(1).join(' ') || '',
-            email: newJob.customer_email,
-            phone: newJob.customer_phone,
-          })
-          .select()
-          .single();
-        
-        if (customerError) throw customerError;
-        finalCustomerId = newCustomerData.id;
-      }
-
-      if (isNewRacquet || !selectedRacquetId) {
-        finalRacquetId = uuidv4();
-        const brand = newJob.racquet_brand === "Other" ? newJob.racquet_brand_custom : newJob.racquet_brand;
-        const model = newJob.racquet_model === "Other" ? newJob.racquet_model_custom : newJob.racquet_model;
-        
-        await supabase
-          .from('racquets')
-          .insert({
-            id: finalRacquetId,
-            customer_id: finalCustomerId,
-            shop_id: shopId,
-            brand,
-            model,
-            serial_number: newJob.racquet_serial,
-            qr_code_id: `racquet_${finalRacquetId}`,
-            created_at: new Date().toISOString()
-          });
-      }
-
-      const jobId = uuidv4();
-      await supabase
-        .from('jobs')
-        .insert({
-          id: jobId,
-          customer_id: finalCustomerId,
-          racquet_id: finalRacquetId,
-          shop_id: shopId,
-          status: 'pending',
-          payment_status: 'unpaid',
-          total_price: Number(newJob.price),
-          notes: newJob.notes,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        });
-
-      setShowNewJob(false);
-      refreshData();
-    } catch (err: any) {
-      console.error("Error creating job:", err);
-      setError(err.message || "Failed to create job");
-    } finally {
-      setSubmitting(false);
-    }
-  };
 
   const filteredJobs = useMemo(() => jobs.filter((job: Job) => {
     if (!searchQuery) return true;
@@ -490,172 +392,15 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: Profile
         )}
       </div>
 
-      {/* New Job Modal */}
       {showNewJob && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-bg-card rounded-3xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl animate-scale-in">
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-black text-text-main">Create New Job</h3>
-              <button
-                onClick={() => setShowNewJob(false)}
-                className="p-2 hover:bg-bg-elevated rounded-xl transition-colors"
-              >
-                <X className="w-5 h-5 text-text-muted" />
-              </button>
-            </div>
-
-            {error && (
-              <div className="mb-4 p-3 bg-error/10 border border-error/20 text-error rounded-xl text-sm font-medium">
-                {error}
-              </div>
-            )}
-
-            <form onSubmit={handleCreateJob} className="space-y-6">
-              {/* Customer Section */}
-              <div className="space-y-4">
-                <h4 className="font-bold text-text-main flex items-center gap-2">
-                  <Users className="w-5 h-5 text-primary" />
-                  Customer
-                </h4>
-                <div className="flex gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setIsNewCustomer(false)}
-                    className={`flex-1 py-2.5 rounded-xl text-sm font-semibold border transition-all ${
-                      !isNewCustomer ? 'bg-primary text-white border-primary' : 'border-border-main text-text-muted hover:border-primary/30'
-                    }`}
-                  >
-                    Existing
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setIsNewCustomer(true)}
-                    className={`flex-1 py-2.5 rounded-xl text-sm font-semibold border transition-all ${
-                      isNewCustomer ? 'bg-primary text-white border-primary' : 'border-border-main text-text-muted hover:border-primary/30'
-                    }`}
-                  >
-                    New
-                  </button>
-                </div>
-
-                {isNewCustomer ? (
-                  <div className="grid grid-cols-2 gap-3">
-                    <input
-                      type="text"
-                      placeholder="Customer Name"
-                      value={newJob.customer_name}
-                      onChange={(e) => setNewJob({...newJob, customer_name: e.target.value})}
-                      className="px-4 py-2.5 bg-bg-elevated border border-border-main rounded-xl text-text-main placeholder:text-text-muted/50 focus:ring-2 focus:ring-primary/20 outline-none text-sm"
-                      required
-                    />
-                    <input
-                      type="email"
-                      placeholder="Email"
-                      value={newJob.customer_email}
-                      onChange={(e) => setNewJob({...newJob, customer_email: e.target.value})}
-                      className="px-4 py-2.5 bg-bg-elevated border border-border-main rounded-xl text-text-main placeholder:text-text-muted/50 focus:ring-2 focus:ring-primary/20 outline-none text-sm"
-                      required
-                    />
-                  </div>
-                ) : (
-                  <select
-                    value={selectedCustomerId}
-                    onChange={(e) => setSelectedCustomerId(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-bg-elevated border border-border-main rounded-xl text-text-main focus:ring-2 focus:ring-primary/20 outline-none text-sm"
-                    required
-                  >
-                    <option value="">Select a customer</option>
-                    {customers.map((c) => (
-                      <option key={c.id} value={c.id}>{c.first_name} {c.last_name} - {c.email}</option>
-                    ))}
-                  </select>
-                )}
-              </div>
-
-              {/* Racquet Section */}
-              <div className="space-y-4">
-                <h4 className="font-bold text-text-main flex items-center gap-2">
-                  <Package className="w-5 h-5 text-primary" />
-                  Racquet
-                </h4>
-                <div className="grid grid-cols-2 gap-3">
-                  <SmartRacquetBrandSelect
-                    value={newJob.racquet_brand}
-                    onChange={(val) => setNewJob({...newJob, racquet_brand: val, racquet_model: ""})}
-                  />
-                  <SmartRacquetModelSelect
-                    brand={newJob.racquet_brand}
-                    value={newJob.racquet_model}
-                    onChange={(val) => setNewJob({...newJob, racquet_model: val})}
-                  />
-                </div>
-              </div>
-
-              {/* Service Section */}
-              <div className="space-y-4">
-                <h4 className="font-bold text-text-main flex items-center gap-2">
-                  <Briefcase className="w-5 h-5 text-primary" />
-                  Service
-                </h4>
-                <div className="grid grid-cols-3 gap-3">
-                  <input
-                    type="number"
-                    placeholder="Main (lbs)"
-                    value={newJob.tension_main || ''}
-                    onChange={(e) => setNewJob({...newJob, tension_main: Number(e.target.value)})}
-                    className="px-4 py-2.5 bg-bg-elevated border border-border-main rounded-xl text-text-main placeholder:text-text-muted/50 focus:ring-2 focus:ring-primary/20 outline-none text-sm"
-                    required
-                  />
-                  <input
-                    type="number"
-                    placeholder="Cross (lbs)"
-                    value={newJob.tension_cross || ''}
-                    onChange={(e) => setNewJob({...newJob, tension_cross: Number(e.target.value)})}
-                    className="px-4 py-2.5 bg-bg-elevated border border-border-main rounded-xl text-text-main placeholder:text-text-muted/50 focus:ring-2 focus:ring-primary/20 outline-none text-sm"
-                  />
-                  <input
-                    type="number"
-                    placeholder="Price $"
-                    value={newJob.price || ''}
-                    onChange={(e) => setNewJob({...newJob, price: Number(e.target.value)})}
-                    className="px-4 py-2.5 bg-bg-elevated border border-border-main rounded-xl text-text-main placeholder:text-text-muted/50 focus:ring-2 focus:ring-primary/20 outline-none text-sm"
-                    required
-                  />
-                </div>
-                <textarea
-                  placeholder="Notes (optional)"
-                  value={newJob.notes}
-                  onChange={(e) => setNewJob({...newJob, notes: e.target.value})}
-                  className="w-full px-4 py-2.5 bg-bg-elevated border border-border-main rounded-xl text-text-main placeholder:text-text-muted/50 focus:ring-2 focus:ring-primary/20 outline-none text-sm h-20 resize-none"
-                />
-              </div>
-
-              <div className="flex gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowNewJob(false)}
-                  className="flex-1 py-3 border border-border-main rounded-xl font-semibold text-text-muted hover:bg-bg-elevated transition-all"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="flex-1 py-3 bg-gradient-primary text-white rounded-xl font-bold hover:shadow-lg hover:shadow-primary/20 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
-                >
-                  {submitting ? (
-                    <>
-                      <RefreshCw className="w-4 h-4 animate-spin" />
-                      Creating...
-                    </>
-                  ) : (
-                    <>Create Job</>
-                  )}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+        <NewJobModal
+          user={user}
+          customers={customers}
+          racquets={racquets}
+          inventoryStrings={inventoryStrings}
+          setShowNewJob={setShowNewJob}
+          refreshData={refreshData}
+        />
       )}
 
       {/* Shop QR Modal */}
