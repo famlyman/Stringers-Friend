@@ -186,13 +186,24 @@ export function NewJobModal({ user, customers, racquets = [], inventoryStrings =
         price: Number(newJob.labor_price) || 0,
       });
 
-      // Find matching inventory items
+      // Find matching inventory items (tries exact match, then model-only match)
       const findInventoryId = (brand: string, model: string) => {
         if (!brand || !model || !inventoryStrings) return null;
-        const match = inventoryStrings.find(i => 
+        let match = inventoryStrings.find(i => 
           i.brand.toLowerCase() === brand.toLowerCase() && 
           i.model.toLowerCase() === model.toLowerCase()
         );
+        if (!match) {
+          match = inventoryStrings.find(i =>
+            i.model.toLowerCase() === model.toLowerCase()
+          );
+        }
+        if (!match) {
+          match = inventoryStrings.find(i =>
+            i.model.toLowerCase().includes(model.toLowerCase()) ||
+            model.toLowerCase().includes(i.model.toLowerCase())
+          );
+        }
         return match?.id || null;
       };
 

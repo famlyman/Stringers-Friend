@@ -65,7 +65,7 @@ export function useDashboardData(shopId: string | undefined): DashboardData {
       
       if (inventoryData) {
         setInventoryItems(inventoryData as InventoryItem[]);
-        setInventoryStrings((inventoryData as InventoryItem[]).filter((i: InventoryItem) => i.category === 'string'));
+        setInventoryStrings((inventoryData as InventoryItem[]).filter((i: InventoryItem) => (i as any).category === 'string' || (i as any).item_type === 'string'));
       }
     } catch (err) {
       console.error('Error fetching dashboard data:', err);
