@@ -129,7 +129,7 @@ export default function QRCodeDisplay({
               font-size: 4.5pt;
               font-weight: 800;
               text-transform: uppercase;
-              color: #888;
+              color: #555;
               text-align: center;
               margin-top: 0.2mm;
             }
@@ -260,7 +260,7 @@ export default function QRCodeDisplay({
               {serialNumber ? `SN: ${serialNumber.slice(-4)}` : 'N/A'}
             </p>
             <p className="text-3xl font-black text-black uppercase whitespace-nowrap">{shopName || ''}</p>
-            <p className="text-xl font-bold text-neutral-300 uppercase tracking-widest text-center">Powered by Stringer's Friend</p>
+            <p className="text-xl font-bold text-neutral-500 uppercase tracking-widest text-center">Powered by Stringer's Friend</p>
           </div>
         </div>
       </div>
