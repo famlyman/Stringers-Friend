@@ -18,6 +18,7 @@ export default function Dashboard({ user, initialTab = 'jobs' }: { user: Profile
     customers,
     racquets,
     inventoryItems,
+    inventoryStrings,
     messages,
     stats,
     refreshData
