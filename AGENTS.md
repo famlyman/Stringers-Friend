@@ -79,21 +79,23 @@ await sendNotification(playerId, 'Title', 'Message body', { type: 'job', job_id:
 - **Racquet QR** -> encodes `/r/{racquet-uuid}`
 - **Route** `/r/:id` -> RacquetPage (standalone, shows racquet specs without auth)
 - **Shop QR** -> encodes `/{shop-slug}` -> PublicShop page
-- **Print Label** (14mm x 30mm): QR code + customer name + mains/crosses string info + tension
+- **Print Label** (14mm x 40mm): QR code + customer name + serial + shop name + "Powered by Stringer's Friend"
 
 ## Racquet Data Flow
 1. Create racquet -> generates UUID, sets `id` = `qr_code_id` = UUID
 2. QR displays -> `/r/{uuid}` encoded
 3. Scan -> Opens RacquetPage showing current strings, tension, specs
 
-## QR Code Label (14mm x 30mm)
-- Left: QR code (scans to `/r/{uuid}` - RacquetPage with live stringing data)
+## QR Code Label (14mm x 40mm Niimbot)
+- Left: QR code (10mm x 10mm, scans to `/r/{uuid}`)
 - Right columns:
-  - Customer name (top)
-  - Mains string: brand/model tension (e.g., "Luxilon ALU Power 1.25 55 lbs")
-  - Crosses string: brand/model tension
-  - Racquet: brand/model (e.g., "Babolat Pure Drive")
-- Font: 5pt for label, consistent sizing
+  - Customer name (large, uppercase)
+  - Serial number: last 4 digits ("SN: XXXX" or "N/A")
+  - Shop name
+  - "Powered by Stringer's Friend" (medium gray)
+- Print output renders via window.print (print template in `handlePrint`)
+- Image download via html-to-image (`generateImage`)
+- Hidden element at 686px x 240px for image generation
 
 ## Public Access RLS Policies
 For QR codes to work without authentication, these policies must be deployed:
@@ -107,7 +109,7 @@ CREATE POLICY "Anyone can view customers"
   ON public.customers FOR SELECT TO anon, authenticated USING (true);
 ```
 
-## Recent Changes (Apr-May 2026)
+## Recent Changes (May 2026)
 ### Push Notifications (OneSignal)
 - Added OneSignal SDK integration with VitePWA-compatible service worker
 - Service worker at `/OneSignalSDKWorker.js` to avoid conflicts
@@ -136,6 +138,27 @@ CREATE POLICY "Anyone can view customers"
   - User is logged in but session token needs refresh on page reload
   - Supabase query hangs due to network issues
   - Profile fetch times out
+
+### Create Job — Existing Racquet Selection
+- Replaced inline create-job form in `Dashboard.tsx` with the `NewJobModal` component
+- Inline form only had brand/model inputs (always created new racquet)
+- Now supports selecting existing racquet from customer's racquets, or adding a new one
+
+### QR Code Label Simplified
+- Removed string/tension/date info from label, now shows: QR code, customer name, SN (last 4), shop name, "Powered by Stringer's Friend"
+- Resized label to 40mm x 14mm for Niimbot compatibility (was 80mm x 14mm)
+- Hidden image element now 686px x 240px
+
+### Inventory Deduction Fixes
+- Fixed `findInventoryId` in `NewJobModal.tsx:190-200` — now falls back to model-only and substring matching when exact brand+model doesn't match inventory
+- Fixed `useDashboardData.ts:68` — inventory string filter now checks both `category` and `item_type` columns
+- Previously `inventory_id` was never linked in `job_details` due to brand/model mismatch, so completion never deducted inventory
+
+### Auth Sync Fix
+- Fixed `SupabaseAuthContext.tsx` — `loading` now stays `true` until profile is actually fetched, instead of being set `false` as soon as session is found
+- Previously caused "Sync Delayed" screen on every page load because `AppRoutes` rendered with `user && !profile`
+- Reduced `fetchProfile` retries from 5 to 2 for faster fallback
+- Added 12s safety timeout to prevent infinite loading
 
 ### Dashboard Fixes (Apr 2026)
 - Restored "Create Job" button beside search bar in Jobs tab (was removed during cleanup)
